@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
-      "Bash(git -C /Users/ihsan/Desktop/AIY log --oneline -5)"
+      "Bash(git -C /Users/ihsan/Desktop/AIY log --oneline -5)",
+      "Bash(npm install *)",
+      "Bash(cat /Users/ihsan/.npm/_logs/2026-06-16T22_35_21_166Z-eresolve-report.txt | head -40)",
+      "Bash(npm info *)",
+      "Bash(node -e \"require\\('@opennextjs/cloudflare'\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(npm uninstall *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(kill 7943)"
     ]
   }
 }

@@ -11,11 +11,19 @@ export default function Contact() {
   const change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    setState("sending");
-    // TODO: Hier später einen API-Route-Handler oder Formspree einbinden
-    await new Promise(r => setTimeout(r, 900));
+    const subject = `Kontaktanfrage von ${form.name}${form.company ? ` (${form.company})` : ""}`;
+    const body = [
+      `Name: ${form.name}`,
+      form.company ? `Unternehmen: ${form.company}` : "",
+      `E-Mail: ${form.email}`,
+      "",
+      form.message,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    window.location.href = `mailto:ihsan.yilmaz@gmx.de?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     setState("success");
   };
 
@@ -38,7 +46,7 @@ export default function Contact() {
               </div>
               <div>
                 <div className="text-xs text-slate-500 mb-0.5">E-Mail</div>
-                <a href="mailto:ihre-email@beispiel.de" className="text-white text-sm font-medium hover:text-indigo-400 transition-colors">ihre-email@beispiel.de</a>
+                <a href="mailto:ihsan.yilmaz@gmx.de" className="text-white text-sm font-medium hover:text-indigo-400 transition-colors">ihsan.yilmaz@gmx.de</a>
               </div>
             </div>
           </div>
