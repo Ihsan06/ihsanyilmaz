@@ -11,20 +11,19 @@ export default function Contact() {
   const change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const subject = `Kontaktanfrage von ${form.name}${form.company ? ` (${form.company})` : ""}`;
-    const body = [
-      `Name: ${form.name}`,
-      form.company ? `Unternehmen: ${form.company}` : "",
-      `E-Mail: ${form.email}`,
-      "",
-      form.message,
-    ]
-      .filter(Boolean)
-      .join("\n");
-    window.location.href = `mailto:ihsan.yilmaz@gmx.de?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    setState("success");
+    setState("sending");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, fax: "" }),
+      });
+      setState(res.ok ? "success" : "error");
+    } catch {
+      setState("error");
+    }
   };
 
   return (
