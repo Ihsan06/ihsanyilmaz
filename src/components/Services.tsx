@@ -1,4 +1,4 @@
-import { Globe, Database, Bot, Lightbulb } from "lucide-react";
+import { Globe, Database, Lightbulb } from "lucide-react";
 
 const services = [
   {
@@ -16,14 +16,6 @@ const services = [
     tags: ["Python", "SQL", "Power BI", "ETL"],
     grad: "from-cyan-500 to-blue-600",
     glow: "group-hover:shadow-cyan-500/20",
-  },
-  {
-    icon: Bot,
-    title: "KI & Automatisierung",
-    description: "Intelligente Lösungen, die repetitive Aufgaben übernehmen: KI-gestützte Chatbots, automatisierte Workflows und smarte Analysen, die Zeit und Ressourcen sparen.",
-    tags: ["LLMs", "RAG", "Automatisierung", "API"],
-    grad: "from-violet-500 to-purple-600",
-    glow: "group-hover:shadow-violet-500/20",
   },
   {
     icon: Lightbulb,
