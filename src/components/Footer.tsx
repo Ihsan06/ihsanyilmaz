@@ -6,7 +6,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-start gap-8">
           <div>
             <div className="text-xl font-bold text-white mb-2">Ihsan<span className="text-indigo-400">.</span></div>
-            <p className="text-slate-500 text-sm max-w-xs">Freelancer für professionelle Webentwicklung.</p>
+            <p className="text-slate-500 text-sm max-w-xs">Websites für Restaurants, Cafés und Gastronomiebetriebe.</p>
           </div>
           <div className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm">
             {[["#leistungen","Leistungen"],["#ueber-mich","Über mich"],["#projekte","Projekte"],["#kontakt","Kontakt"],["/impressum","Impressum"],["/datenschutz","Datenschutz"]].map(([h,l]) => (

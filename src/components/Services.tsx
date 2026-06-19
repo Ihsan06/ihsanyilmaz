@@ -1,35 +1,35 @@
-import { Globe, Code, ShoppingCart, Search } from "lucide-react";
+import { Globe, UtensilsCrossed, MapPin, Smartphone } from "lucide-react";
 
 const services = [
   {
     icon: Globe,
     title: "Website & Landingpage",
-    description: "Professionelle Websites, die Ihr Unternehmen optimal repräsentieren — modern, schnell und auf allen Geräten perfekt dargestellt.",
-    tags: ["Next.js", "React", "Responsive", "SEO"],
+    description: "Eine saubere, moderne Website für Ihren Gastrobetrieb — mit Speisekarte, Öffnungszeiten, Fotos und allem was Ihre Gäste brauchen.",
+    tags: ["Design", "Speisekarte", "Öffnungszeiten", "Fotos"],
     grad: "from-indigo-500 to-violet-600",
     glow: "group-hover:shadow-indigo-500/20",
   },
   {
-    icon: ShoppingCart,
-    title: "E-Commerce & Online-Shop",
-    description: "Maßgeschneiderte Online-Shops, die Ihre Produkte optimal in Szene setzen und den Kaufprozess so einfach wie möglich machen.",
-    tags: ["Shopify", "WooCommerce", "Checkout", "Zahlungen"],
+    icon: UtensilsCrossed,
+    title: "Online-Speisekarte",
+    description: "Eine digitale Speisekarte, die Sie jederzeit selbst aktualisieren können — kein Drucken mehr, immer aktuell.",
+    tags: ["Aktualisierbar", "QR-Code", "Mehrsprachig", "Allergene"],
     grad: "from-cyan-500 to-blue-600",
     glow: "group-hover:shadow-cyan-500/20",
   },
   {
-    icon: Search,
-    title: "SEO & Performance",
-    description: "Damit Ihre Website auch gefunden wird: technische Suchmaschinenoptimierung und schnelle Ladezeiten für mehr Sichtbarkeit und Conversions.",
-    tags: ["Google", "Core Web Vitals", "Ladezeit", "Rankings"],
+    icon: MapPin,
+    title: "Google & Local SEO",
+    description: "Damit Ihr Lokal bei Google Maps und in der Suche gefunden wird — mehr Sichtbarkeit für mehr Laufkundschaft.",
+    tags: ["Google Maps", "SEO", "Bewertungen", "Local Search"],
     grad: "from-green-500 to-emerald-600",
     glow: "group-hover:shadow-green-500/20",
   },
   {
-    icon: Code,
-    title: "Webapplikationen",
-    description: "Individuelle Webanwendungen, die genau auf Ihre Arbeitsprozesse zugeschnitten sind — von einfachen Tools bis zur komplexen Business-Lösung.",
-    tags: ["React", "TypeScript", "REST API", "Datenbank"],
+    icon: Smartphone,
+    title: "Mobil & Schnell",
+    description: "Alle Websites sind vollständig für Smartphones optimiert — denn die meisten Gäste suchen unterwegs vom Handy aus.",
+    tags: ["Responsive", "Schnell", "Handy-freundlich", "Modern"],
     grad: "from-violet-500 to-purple-600",
     glow: "group-hover:shadow-violet-500/20",
   },
@@ -42,7 +42,7 @@ export default function Services() {
         <div className="text-center mb-16">
           <span className="inline-block text-indigo-400 text-sm font-medium tracking-wider uppercase mb-3">Leistungen</span>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Was ich für Sie baue</h2>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">Professionelle Webentwicklung aus einer Hand — von der Idee bis zur fertigen Website.</p>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">Alles was Ihr Gastrobetrieb online braucht — ohne Schnickschnack, zu fairen Preisen.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

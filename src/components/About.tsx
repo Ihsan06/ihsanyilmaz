@@ -1,18 +1,16 @@
-import { GraduationCap, Briefcase, Zap, CheckCircle } from "lucide-react";
+import { Smile, Clock, Euro, CheckCircle } from "lucide-react";
 
 const highlights = [
-  { icon: GraduationCap, title: "Wirtschaftsinformatik", text: "Fundiertes Verständnis für Technologie und Business — ich spreche beide Sprachen." },
-  { icon: Briefcase, title: "Branchenübergreifende Erfahrung", text: "Webprojekte für verschiedenste Branchen — von kleinen Unternehmen bis zu mittelständischen Betrieben." },
-  { icon: Zap, title: "Hands-on & pragmatisch", text: "Kein Overhead, keine unnötige Komplexität. Ich liefere Lösungen, die wirklich funktionieren." },
+  { icon: Smile, title: "Persönlich & unkompliziert", text: "Kein Agentur-Overhead, keine langen Wartezeiten. Sie haben eine Ansprechperson — mich." },
+  { icon: Clock, title: "Schnelle Umsetzung", text: "Ihre Website ist in der Regel innerhalb weniger Wochen fertig und online." },
+  { icon: Euro, title: "Faire Preise", text: "Keine versteckten Kosten. Festpreise, die für kleine Gastrobetriebe passen." },
 ];
 
-const skills = ["TypeScript","React / Next.js","HTML & CSS","REST APIs","WordPress","Shopify","SEO","Docker","Cloud (AWS / GCP)","Node.js"];
-
 const values = [
-  "Direkte Kommunikation ohne Agentur-Overhead",
-  "Festpreise oder transparente Stundensätze",
-  "Kurze Reaktionszeiten und zuverlässige Lieferung",
-  "Mittelstandsgerechte Lösungen statt Enterprise-Overkill",
+  "Ich melde mich innerhalb von 24 Stunden",
+  "Keine langen Vertragslaufzeiten",
+  "Änderungen und Updates unkompliziert möglich",
+  "Auch nach dem Launch erreichbar",
 ];
 
 export default function About() {
@@ -23,14 +21,14 @@ export default function About() {
           <div>
             <span className="inline-block text-indigo-600 text-sm font-medium tracking-wider uppercase mb-3">Über mich</span>
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 leading-tight">
-              Technologie, die<br />
-              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Ihr Business voranbringt</span>
+              Ihr Ansprechpartner<br />
+              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">für Ihre Website</span>
             </h2>
             <p className="text-slate-600 text-lg leading-relaxed mb-6">
-              Ich bin Webentwickler mit einem Abschluss in Wirtschaftsinformatik und mehrjähriger Erfahrung im Aufbau moderner Websites und Webanwendungen. Meine Stärke liegt darin, dass ich sowohl die technische als auch die unternehmerische Seite verstehe.
+              Ich bin Ihsan, Webentwickler aus Leidenschaft. Ich helfe Gastronomiebetrieben dabei, online sichtbar zu werden — mit einer Website, die zu Ihrem Lokal passt und bei der Ihre Gäste alles finden was sie brauchen.
             </p>
             <p className="text-slate-600 leading-relaxed mb-10">
-              Für kleine und mittelständische Unternehmen biete ich persönliche Betreuung, direkte Kommunikation und Lösungen, die zum Budget und den Zielen Ihres Unternehmens passen.
+              Mein Ziel ist es, den Prozess so einfach wie möglich zu machen: Sie kümmern sich um Ihr Lokal, ich kümmere mich um Ihre Website.
             </p>
             <ul className="space-y-3">
               {values.map(v => (
@@ -54,12 +52,6 @@ export default function About() {
                 </div>
               </div>
             ))}
-            <div className="p-6 rounded-xl bg-slate-50 border border-slate-100">
-              <h4 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wider">Technologien & Tools</h4>
-              <div className="flex flex-wrap gap-2">
-                {skills.map(s => <span key={s} className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-medium">{s}</span>)}
-              </div>
-            </div>
           </div>
         </div>
       </div>

@@ -5,9 +5,9 @@ import "./globals.css";
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Ihsan | IT-Freelancer — Webentwicklung, Data & KI für KMUs",
+  title: "Ihsan — Websites für Restaurants, Cafés & Gastronomiebetriebe",
   description:
-    "Moderne IT-Lösungen für kleine und mittelständische Unternehmen. Webentwicklung, Data Engineering, KI-Integration und IT-Beratung aus einer Hand.",
+    "Ich erstelle professionelle Websites für Restaurants, Cafés, Bars und andere Gastronomiebetriebe. Schnell, modern und zu fairen Preisen.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

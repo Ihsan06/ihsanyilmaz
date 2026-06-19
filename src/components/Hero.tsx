@@ -1,6 +1,6 @@
 import { ArrowRight, ChevronDown } from "lucide-react";
 
-const tags = ["Webentwicklung", "E-Commerce", "Next.js"];
+const tags = ["Restaurant", "Café", "Bar", "Imbiss", "Hotel"];
 
 export default function Hero() {
   return (
@@ -15,20 +15,20 @@ export default function Hero() {
         </div>
 
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-[1.1] animate-fade-in-up animation-delay-200">
-          Moderne IT-Lösungen<br />
-          <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">für Ihr Unternehmen</span>
+          Websites für die<br />
+          <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">Gastronomie</span>
         </h1>
 
         <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up animation-delay-400">
-          Professionelle Websites und Webanwendungen für kleine und mittelständische Unternehmen — modern, schnell und suchmaschinenoptimiert.
+          Ich baue professionelle Websites für Restaurants, Cafés, Bars und Imbisse — damit Ihre Gäste Sie online finden und direkt Kontakt aufnehmen können.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14 animate-fade-in-up animation-delay-600">
           <a href="#leistungen" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-all hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/25">
-            Leistungen entdecken <ArrowRight size={18} />
+            Was ich anbiete <ArrowRight size={18} />
           </a>
           <a href="#kontakt" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium transition-all hover:scale-105">
-            Projekt besprechen
+            Kostenlos anfragen
           </a>
         </div>
 
