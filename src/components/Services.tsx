@@ -41,8 +41,8 @@ export default function Services() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-16">
           <span className="inline-block text-indigo-400 text-sm font-medium tracking-wider uppercase mb-3">Leistungen</span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Was ich für Sie baue</h2>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">Alles was Ihr Gastrobetrieb online braucht — ohne Schnickschnack, zu fairen Preisen.</p>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Meine Leistungen</h2>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">Alles was Ihr Gastronomiebetrieb online braucht — professionell umgesetzt, zu fairen Preisen.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -20,7 +20,7 @@ export default function Hero() {
         </h1>
 
         <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up animation-delay-400">
-          Ich baue professionelle Websites für Restaurants, Cafés, Bars und Imbisse — damit Ihre Gäste Sie online finden und direkt Kontakt aufnehmen können.
+          Professionelle Webauftritte für Restaurants, Cafés, Bars und Imbisse — damit Ihre Gäste Sie online finden und unkompliziert Kontakt aufnehmen können.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14 animate-fade-in-up animation-delay-600">

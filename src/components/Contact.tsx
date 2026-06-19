@@ -37,7 +37,7 @@ export default function Contact() {
               <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">zusammenarbeiten</span>
             </h2>
             <p className="text-slate-400 text-lg leading-relaxed mb-10">
-              Sie haben ein Projekt im Kopf oder möchten herausfinden, wie ich Ihrem Unternehmen helfen kann? Schreiben Sie mir — ich melde mich innerhalb von 24 Stunden.
+              Sie möchten einen professionellen Webauftritt für Ihren Gastronomiebetrieb? Nehmen Sie gerne Kontakt auf — ich melde mich innerhalb von 24 Stunden bei Ihnen.
             </p>
             <div className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10">
               <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
@@ -65,7 +65,7 @@ export default function Contact() {
             ) : (
               <form onSubmit={submit} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {[["name","Name *","Max Mustermann","text",true],["company","Unternehmen","Muster GmbH","text",false]].map(([n,l,p,t,r]) => (
+                  {[["name","Name *","Max Mustermann","text",true],["company","Betrieb / Lokal","Zum goldenen Löwen","text",false]].map(([n,l,p,t,r]) => (
                     <div key={n as string}>
                       <label className="block text-sm text-slate-400 mb-1.5">{l as string}</label>
                       <input type={t as string} name={n as string} required={r as boolean} value={form[n as keyof typeof form]} onChange={change} placeholder={p as string}
