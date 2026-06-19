@@ -2,11 +2,11 @@ import { GraduationCap, Briefcase, Zap, CheckCircle } from "lucide-react";
 
 const highlights = [
   { icon: GraduationCap, title: "Wirtschaftsinformatik", text: "Fundiertes Verständnis für Technologie und Business — ich spreche beide Sprachen." },
-  { icon: Briefcase, title: "Branchenübergreifende Erfahrung", text: "Jahre in Softwareentwicklung und Webentwicklung in unterschiedlichsten Projekten." },
+  { icon: Briefcase, title: "Branchenübergreifende Erfahrung", text: "Webprojekte für verschiedenste Branchen — von kleinen Unternehmen bis zu mittelständischen Betrieben." },
   { icon: Zap, title: "Hands-on & pragmatisch", text: "Kein Overhead, keine unnötige Komplexität. Ich liefere Lösungen, die wirklich funktionieren." },
 ];
 
-const skills = ["Python","TypeScript","React / Next.js","SQL & Datenbanken","REST APIs","Cloud (AWS / GCP)","Power BI","Docker","WordPress","Shopify"];
+const skills = ["TypeScript","React / Next.js","HTML & CSS","REST APIs","WordPress","Shopify","SEO","Docker","Cloud (AWS / GCP)","Node.js"];
 
 const values = [
   "Direkte Kommunikation ohne Agentur-Overhead",
@@ -27,7 +27,7 @@ export default function About() {
               <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Ihr Business voranbringt</span>
             </h2>
             <p className="text-slate-600 text-lg leading-relaxed mb-6">
-              Ich bin IT-Freelancer mit einem Abschluss in Wirtschaftsinformatik und mehrjähriger Erfahrung in der Softwareentwicklung und Webentwicklung. Meine Stärke liegt darin, technologische Möglichkeiten und geschäftliche Anforderungen zu verbinden.
+              Ich bin IT-Freelancer mit einem Abschluss in Wirtschaftsinformatik und mehrjähriger Erfahrung in der Webentwicklung. Meine Stärke liegt darin, moderne Technologien und die Anforderungen meiner Kunden zu verbinden.
             </p>
             <p className="text-slate-600 leading-relaxed mb-10">
               Für kleine und mittelständische Unternehmen biete ich persönliche Betreuung, direkte Kommunikation und Lösungen, die zum Budget und den Zielen Ihres Unternehmens passen.

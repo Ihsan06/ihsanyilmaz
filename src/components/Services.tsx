@@ -1,4 +1,4 @@
-import { Globe, Database, Lightbulb } from "lucide-react";
+import { Globe, Lightbulb } from "lucide-react";
 
 const services = [
   {
@@ -8,14 +8,6 @@ const services = [
     tags: ["Next.js", "React", "SEO", "Shopify"],
     grad: "from-indigo-500 to-violet-600",
     glow: "group-hover:shadow-indigo-500/20",
-  },
-  {
-    icon: Database,
-    title: "Data Engineering & Analytics",
-    description: "Daten-Pipelines, Dashboards und Business Intelligence, die aus Ihren Rohdaten klare Entscheidungsgrundlagen machen. Skalierbare Dateninfrastruktur, die mit Ihrem Unternehmen wächst.",
-    tags: ["Python", "SQL", "Power BI", "ETL"],
-    grad: "from-cyan-500 to-blue-600",
-    glow: "group-hover:shadow-cyan-500/20",
   },
   {
     icon: Lightbulb,

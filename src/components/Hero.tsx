@@ -1,6 +1,6 @@
 import { ArrowRight, ChevronDown } from "lucide-react";
 
-const tags = ["Webentwicklung", "IT-Beratung", "Data Engineering"];
+const tags = ["Webentwicklung", "IT-Beratung", "E-Commerce"];
 
 export default function Hero() {
   return (
