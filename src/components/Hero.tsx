@@ -1,6 +1,6 @@
 import { ArrowRight, ChevronDown } from "lucide-react";
 
-const tags = ["Webentwicklung", "IT-Beratung", "E-Commerce"];
+const tags = ["Webentwicklung", "E-Commerce", "Next.js"];
 
 export default function Hero() {
   return (
@@ -20,7 +20,7 @@ export default function Hero() {
         </h1>
 
         <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up animation-delay-400">
-          Von der professionellen Website bis zur IT-Beratung — ich helfe kleinen und mittelständischen Unternehmen, digital zu wachsen und effizienter zu arbeiten.
+          Professionelle Websites und Webanwendungen für kleine und mittelständische Unternehmen — modern, schnell und suchmaschinenoptimiert.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14 animate-fade-in-up animation-delay-600">

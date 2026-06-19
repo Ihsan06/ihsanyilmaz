@@ -27,7 +27,7 @@ export default function About() {
               <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Ihr Business voranbringt</span>
             </h2>
             <p className="text-slate-600 text-lg leading-relaxed mb-6">
-              Ich bin IT-Freelancer mit einem Abschluss in Wirtschaftsinformatik und mehrjähriger Erfahrung in der Webentwicklung. Meine Stärke liegt darin, moderne Technologien und die Anforderungen meiner Kunden zu verbinden.
+              Ich bin Webentwickler mit einem Abschluss in Wirtschaftsinformatik und mehrjähriger Erfahrung im Aufbau moderner Websites und Webanwendungen. Meine Stärke liegt darin, dass ich sowohl die technische als auch die unternehmerische Seite verstehe.
             </p>
             <p className="text-slate-600 leading-relaxed mb-10">
               Für kleine und mittelständische Unternehmen biete ich persönliche Betreuung, direkte Kommunikation und Lösungen, die zum Budget und den Zielen Ihres Unternehmens passen.
