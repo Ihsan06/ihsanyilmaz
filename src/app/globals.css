@@ -1,31 +1,147 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #0f172a;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
 }
 
-html {
-  scroll-behavior: smooth;
+html { scroll-behavior: smooth; }
+
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body, var(--font-geist-sans)), system-ui, sans-serif;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+/* ============================================================
+   BOLD DESIGN — shared base, three accent variants
+   switched via [data-theme] on <html>
+   ============================================================ */
+
+/* ---- shared bold design tokens ---- */
+[data-theme="cobalt"],
+[data-theme="magenta"],
+[data-theme="emerald"] {
+  --bg:#FFFFFF; --fg:#0A0A0A; --fg-muted:#3F3F3F; --fg-subtle:#737373;
+  --surface:#FFFFFF; --surface-2:#F4F4F4; --border:#0A0A0A;
+  --accent-fg:#FFFFFF;
+  --radius:0px;
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-body: var(--font-space-grotesk), system-ui, sans-serif;
 }
 
+/* ---- accent colors ---- */
+[data-theme="cobalt"]  { --accent:#2347FF; --accent-2:#2347FF; --accent-soft:rgba(35,71,255,0.10); }
+[data-theme="magenta"] { --accent:#FF1F6B; --accent-2:#FF1F6B; --accent-soft:rgba(255,31,107,0.10); }
+[data-theme="emerald"] { --accent:#059669; --accent-2:#059669; --accent-soft:rgba(5,150,105,0.12); }
+
+/* ---- alternating surfaces (white / black) ---- */
+[data-theme="cobalt"] .surface-base,
+[data-theme="magenta"] .surface-base,
+[data-theme="emerald"] .surface-base {
+  --bg:#FFFFFF; --fg:#0A0A0A; --fg-muted:#3F3F3F; --fg-subtle:#737373;
+  --border:#0A0A0A; --surface:#FFFFFF; --surface-2:#F4F4F4;
+}
+[data-theme="cobalt"] .surface-alt,
+[data-theme="magenta"] .surface-alt,
+[data-theme="emerald"] .surface-alt {
+  --bg:#0A0A0A; --fg:#FFFFFF; --fg-muted:#BDBDBD; --fg-subtle:#8A8A8A;
+  --border:#FFFFFF; --surface:#161616; --surface-2:#1F1F1F;
+}
+
+/* ============================================================
+   SURFACES & COMPONENT UTILITIES
+   ============================================================ */
+.surface-base, .surface-alt { background: var(--bg); color: var(--fg); }
+
+.font-display { font-family: var(--font-display); }
+
+.display-h {
+  font-family: var(--font-display);
+  text-transform: uppercase; letter-spacing:-0.03em; font-weight:700; line-height:0.95;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size:0.8rem; font-weight:700; letter-spacing:0.16em; text-transform:uppercase;
+  font-family: var(--font-body);
+}
+
+.accent-text { color: var(--accent); }
+
+/* primary button — hard offset shadow */
+.btn-primary {
+  display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;
+  background: var(--accent); color: var(--accent-fg);
+  border-radius: var(--radius); font-weight:600;
+  border:2px solid var(--fg); box-shadow:4px 4px 0 var(--fg);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.btn-primary:hover { transform:translate(-2px,-2px); box-shadow:6px 6px 0 var(--fg); }
+
+/* ghost / secondary button */
+.btn-ghost {
+  display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;
+  background: transparent; color: var(--fg);
+  border:2px solid var(--border); border-radius: var(--radius); font-weight:600;
+  transition: background-color .15s ease, color .15s ease;
+}
+.btn-ghost:hover { background: var(--fg); color: var(--bg); }
+
+/* cards */
+.card {
+  background: var(--surface); border:2px solid var(--border); border-radius: var(--radius);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.card:hover { transform:translate(-3px,-3px); box-shadow:7px 7px 0 var(--accent); }
+
+/* icon tile */
+.icon-tile {
+  display:inline-flex; align-items:center; justify-content:center;
+  background: var(--accent); color: var(--accent-fg);
+  border-radius: 0;
+}
+
+/* chips / tags */
+.chip {
+  background: var(--surface-2); color: var(--fg-muted);
+  border:1px solid var(--border); border-radius: 0;
+}
+
+/* inputs */
+.field {
+  width:100%; background: var(--surface-2); color: var(--fg);
+  border:2px solid var(--border); border-radius: var(--radius);
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.field::placeholder { color: var(--fg-subtle); }
+.field:focus { outline:none; border-color: var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+
+/* badge / pill */
+.badge {
+  display:inline-flex; align-items:center; gap:0.5rem;
+  background: var(--accent-soft); color: var(--accent);
+  border:2px solid var(--border); border-radius:0;
+}
+
+/* ============================================================
+   HERO BACKGROUND — grid
+   ============================================================ */
+.hero-bg { position:relative; }
+.hero-bg::after {
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background-image: linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px);
+  background-size:64px 64px; opacity:0.05;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
 }
-.animate-fade-in-up            { animation: fade-in-up 0.6s ease-out both; }
-.animation-delay-200           { animation-delay: 200ms; }
-.animation-delay-400           { animation-delay: 400ms; }
-.animation-delay-600           { animation-delay: 600ms; }
+.animate-fade-in-up  { animation: fade-in-up 0.6s ease-out both; }
+.animation-delay-200 { animation-delay:200ms; }
+.animation-delay-400 { animation-delay:400ms; }
+.animation-delay-600 { animation-delay:600ms; }
