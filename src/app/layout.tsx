@@ -8,7 +8,7 @@ const spaceGrotesk = Space_Grotesk({ variable: "--font-space-grotesk", subsets: 
 export const metadata: Metadata = {
   title: "Ihsan — Websites für lokale Betriebe & kleine Unternehmen",
   description:
-    "Professionelle Websites für Gastronomie, Einzelhandel, Dienstleister und Handwerk. Schnell, modern und zu fairen Preisen — mit cleveren Funktionen, die Zeit sparen.",
+    "Professionelle Websites für Gastronomie, Einzelhandel, Dienstleister und Handwerk. Schnell, modern und zu fairen Preisen — mit smarten KI-Funktionen, die Zeit sparen.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

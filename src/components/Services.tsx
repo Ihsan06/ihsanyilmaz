@@ -9,9 +9,9 @@ const services = [
   },
   {
     icon: Sparkles,
-    title: "Clevere Funktionen",
-    description: "Kleine, praktische Helfer direkt auf Ihrer Website — z.B. Anfragen automatisch beantworten, Termine entgegennehmen oder häufige Fragen rund um die Uhr klären. Großer Nutzen, wenig Aufwand.",
-    tags: ["Anfragen-Assistent", "Termin-Anfragen", "Rund um die Uhr", "Zeitersparnis"],
+    title: "Smarte KI-Funktionen",
+    description: "Kleine, praktische KI-Helfer direkt auf Ihrer Website — z.B. Anfragen automatisch beantworten, Termine entgegennehmen oder häufige Fragen rund um die Uhr klären. Großer Nutzen, wenig Aufwand.",
+    tags: ["KI-Assistent", "Termin-Anfragen", "Rund um die Uhr", "Zeitersparnis"],
   },
   {
     icon: MapPin,
