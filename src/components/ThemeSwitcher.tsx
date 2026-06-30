@@ -2,9 +2,9 @@
 import type { Theme } from "./ThemeProvider";
 
 const opts: { id: Theme; label: string; dot: string }[] = [
-  { id: "cobalt", label: "Türkis", dot: "#0891B2" },
-  { id: "magenta", label: "Pink", dot: "#FF1F6B" },
-  { id: "emerald", label: "Grün", dot: "#059669" },
+  { id: "tief", label: "Tief", dot: "#0E7490" },
+  { id: "klar", label: "Klar", dot: "#0891B2" },
+  { id: "hell", label: "Hell", dot: "#0E9BB0" },
 ];
 
 export default function ThemeSwitcher({

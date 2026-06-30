@@ -2,18 +2,18 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import ThemeSwitcher from "./ThemeSwitcher";
 
-export type Theme = "cobalt" | "magenta" | "emerald";
-const THEMES: Theme[] = ["cobalt", "magenta", "emerald"];
+export type Theme = "tief" | "klar" | "hell";
+const THEMES: Theme[] = ["tief", "klar", "hell"];
 
 const ThemeCtx = createContext<{ theme: Theme; setTheme: (t: Theme) => void }>({
-  theme: "cobalt",
+  theme: "klar",
   setTheme: () => {},
 });
 
 export const useTheme = () => useContext(ThemeCtx);
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("cobalt");
+  const [theme, setThemeState] = useState<Theme>("klar");
 
   useEffect(() => {
     const saved = localStorage.getItem("theme") as Theme | null;
