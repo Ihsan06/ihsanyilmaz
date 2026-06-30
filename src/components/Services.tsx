@@ -15,9 +15,9 @@ const services = [
   },
   {
     icon: MapPin,
-    title: "Bei Google gefunden werden",
+    title: "Google & Local SEO",
     description: "Damit Kunden Sie bei Google und in Google Maps finden, wenn sie in der Nähe suchen — mit eingerichtetem Google-Profil und sauberer Grundoptimierung.",
-    tags: ["Google Maps", "Google-Profil", "Lokale Suche", "Bewertungen"],
+    tags: ["Google Maps", "SEO", "Bewertungen", "Local Search"],
   },
   {
     icon: Smartphone,
