@@ -2,7 +2,7 @@
 import type { Theme } from "./ThemeProvider";
 
 const opts: { id: Theme; label: string; dot: string }[] = [
-  { id: "cobalt", label: "Blau", dot: "#2347FF" },
+  { id: "cobalt", label: "Türkis", dot: "#0891B2" },
   { id: "magenta", label: "Pink", dot: "#FF1F6B" },
   { id: "emerald", label: "Grün", dot: "#059669" },
 ];

@@ -31,7 +31,7 @@ html, body {
 }
 
 /* ---- accent colors ---- */
-[data-theme="cobalt"]  { --accent:#2347FF; --accent-2:#2347FF; --accent-soft:rgba(35,71,255,0.10); }
+[data-theme="cobalt"]  { --accent:#0891B2; --accent-2:#0891B2; --accent-soft:rgba(8,145,178,0.12); }
 [data-theme="magenta"] { --accent:#FF1F6B; --accent-2:#FF1F6B; --accent-soft:rgba(255,31,107,0.10); }
 [data-theme="emerald"] { --accent:#059669; --accent-2:#059669; --accent-soft:rgba(5,150,105,0.12); }
 
