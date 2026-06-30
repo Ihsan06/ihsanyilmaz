@@ -6,9 +6,9 @@ const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const spaceGrotesk = Space_Grotesk({ variable: "--font-space-grotesk", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Ihsan — Websites für Restaurants, Cafés & Gastronomiebetriebe",
+  title: "Ihsan — Websites für lokale Betriebe & kleine Unternehmen",
   description:
-    "Ich erstelle professionelle Websites für Restaurants, Cafés, Bars und andere Gastronomiebetriebe. Schnell, modern und zu fairen Preisen.",
+    "Professionelle Websites für Gastronomie, Einzelhandel, Dienstleister und Handwerk. Schnell, modern und zu fairen Preisen — mit cleveren Funktionen, die Zeit sparen.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

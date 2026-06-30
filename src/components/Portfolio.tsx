@@ -9,7 +9,7 @@ export default function Portfolio() {
             <span className="eyebrow inline-block mb-3">Projekte</span>
             <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)]">Aktuelle Arbeiten</h2>
           </div>
-          <p className="text-[var(--fg-muted)] max-w-xs text-sm leading-relaxed">Erste Referenzprojekte im Aufbau — mit Fokus auf Gastronomie und lokale Betriebe.</p>
+          <p className="text-[var(--fg-muted)] max-w-xs text-sm leading-relaxed">Erste Referenzprojekte im Aufbau — für lokale Betriebe und kleine Unternehmen.</p>
         </div>
 
         <div className="max-w-2xl">

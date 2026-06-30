@@ -20,7 +20,7 @@ html, body {
 :root {
   --bg:#FFFFFF; --fg:#0A0A0A; --fg-muted:#3F3F3F; --fg-subtle:#737373;
   --surface:#FFFFFF; --surface-2:#F4F4F4; --border:#0A0A0A;
-  --accent:#0C9A95; --accent-2:#0C9A95; --accent-fg:#FFFFFF; --accent-soft:rgba(12,154,149,0.12);
+  --accent:#0E9BB0; --accent-2:#0E9BB0; --accent-fg:#FFFFFF; --accent-soft:rgba(14,155,176,0.12);
   --radius:0px;
   --font-display: var(--font-space-grotesk), system-ui, sans-serif;
   --font-body: var(--font-space-grotesk), system-ui, sans-serif;

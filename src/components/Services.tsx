@@ -1,28 +1,28 @@
-import { Globe, UtensilsCrossed, MapPin, Smartphone } from "lucide-react";
+import { Globe, Sparkles, MapPin, Smartphone } from "lucide-react";
 
 const services = [
   {
     icon: Globe,
     title: "Website & Landingpage",
-    description: "Eine saubere, moderne Website für Ihren Gastrobetrieb — mit Speisekarte, Öffnungszeiten, Fotos und allem was Ihre Gäste brauchen.",
-    tags: ["Design", "Speisekarte", "Öffnungszeiten", "Fotos"],
+    description: "Eine saubere, moderne Website für Ihren Betrieb — mit allem, was Ihre Kunden brauchen: Leistungen, Öffnungszeiten, Kontakt und Fotos.",
+    tags: ["Design", "Leistungen", "Öffnungszeiten", "Kontakt"],
   },
   {
-    icon: UtensilsCrossed,
-    title: "Online-Speisekarte",
-    description: "Eine digitale Speisekarte, die Sie jederzeit selbst aktualisieren können — kein Drucken mehr, immer aktuell.",
-    tags: ["Aktualisierbar", "QR-Code", "Mehrsprachig", "Allergene"],
+    icon: Sparkles,
+    title: "Clevere Funktionen",
+    description: "Kleine, praktische Helfer direkt auf Ihrer Website — z.B. Anfragen automatisch beantworten, Termine entgegennehmen oder häufige Fragen rund um die Uhr klären. Großer Nutzen, wenig Aufwand.",
+    tags: ["Anfragen-Assistent", "Termin-Anfragen", "Rund um die Uhr", "Zeitersparnis"],
   },
   {
     icon: MapPin,
-    title: "Google & Local SEO",
-    description: "Damit Ihr Lokal bei Google Maps und in der Suche gefunden wird — mehr Sichtbarkeit für mehr Laufkundschaft.",
-    tags: ["Google Maps", "SEO", "Bewertungen", "Local Search"],
+    title: "Bei Google gefunden werden",
+    description: "Damit Kunden Sie bei Google und in Google Maps finden, wenn sie in der Nähe suchen — mit eingerichtetem Google-Profil und sauberer Grundoptimierung.",
+    tags: ["Google Maps", "Google-Profil", "Lokale Suche", "Bewertungen"],
   },
   {
     icon: Smartphone,
     title: "Mobil & Schnell",
-    description: "Alle Websites sind vollständig für Smartphones optimiert — denn die meisten Gäste suchen unterwegs vom Handy aus.",
+    description: "Alle Websites sind vollständig für Smartphones optimiert — denn die meisten Kunden suchen unterwegs vom Handy aus.",
     tags: ["Responsive", "Schnell", "Handy-freundlich", "Modern"],
   },
 ];
@@ -34,7 +34,7 @@ export default function Services() {
         <div className="text-center mb-16">
           <span className="eyebrow inline-block mb-3">Leistungen</span>
           <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-4">Meine Leistungen</h2>
-          <p className="text-[var(--fg-muted)] text-lg max-w-2xl mx-auto">Alles was Ihr Gastronomiebetrieb online braucht — professionell umgesetzt, zu fairen Preisen.</p>
+          <p className="text-[var(--fg-muted)] text-lg max-w-2xl mx-auto">Alles was Ihr Betrieb online braucht — professionell umgesetzt, zu fairen Preisen.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -1,6 +1,6 @@
 import { ArrowRight, ChevronDown } from "lucide-react";
 
-const tags = ["Restaurant", "Café", "Bar", "Imbiss", "Hotel"];
+const tags = ["Gastronomie", "Café", "Friseur", "Autohaus", "Einzelhandel", "Handwerk"];
 
 export default function Hero() {
   return (
@@ -12,12 +12,12 @@ export default function Hero() {
         </div>
 
         <h1 className="display-h text-5xl md:text-7xl lg:text-[5.5rem] text-[var(--fg)] mb-6 leading-[1.05] animate-fade-in-up animation-delay-200">
-          Websites für die<br />
-          <span className="accent-text">Gastronomie</span>
+          Websites für<br />
+          <span className="accent-text">lokale Betriebe</span>
         </h1>
 
         <p className="text-lg md:text-xl text-[var(--fg-muted)] max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up animation-delay-400">
-          Professionelle Webauftritte für Restaurants, Cafés, Bars und Imbisse — damit Ihre Gäste Sie online finden und unkompliziert Kontakt aufnehmen können.
+          Professionelle Webauftritte für Gastronomie, Einzelhandel, Dienstleister und Gewerbe — damit Ihre Kunden Sie online finden und unkompliziert Kontakt aufnehmen können.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14 animate-fade-in-up animation-delay-600">

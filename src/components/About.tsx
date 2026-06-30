@@ -3,7 +3,7 @@ import { Smile, Clock, Euro, CheckCircle } from "lucide-react";
 const highlights = [
   { icon: Smile, title: "Persönlich & unkompliziert", text: "Kein Agentur-Overhead, keine langen Wartezeiten. Sie haben eine Ansprechperson — mich." },
   { icon: Clock, title: "Schnelle Umsetzung", text: "Ihre Website ist in der Regel innerhalb weniger Wochen fertig und online." },
-  { icon: Euro, title: "Faire Preise", text: "Keine versteckten Kosten. Festpreise, die für kleine Gastrobetriebe passen." },
+  { icon: Euro, title: "Faire Preise", text: "Keine versteckten Kosten. Festpreise, die für kleine Betriebe passen." },
 ];
 
 const values = [
@@ -25,10 +25,10 @@ export default function About() {
               <span className="accent-text">für Ihre Website</span>
             </h2>
             <p className="text-[var(--fg-muted)] text-lg leading-relaxed mb-6">
-              Ich bin Ihsan, Webentwickler aus Leidenschaft. Ich helfe Gastronomiebetrieben dabei, online sichtbar zu werden — mit einer Website, die zu Ihrem Lokal passt und bei der Ihre Gäste alles finden was sie brauchen.
+              Ich bin Ihsan, Webentwickler aus Leidenschaft. Ich helfe lokalen Betrieben dabei, online sichtbar zu werden — mit einer Website, die zu Ihrem Geschäft passt und bei der Ihre Kunden alles finden, was sie brauchen.
             </p>
             <p className="text-[var(--fg-muted)] leading-relaxed mb-10">
-              Mein Ziel ist es, den Prozess so einfach wie möglich zu machen: Sie kümmern sich um Ihr Lokal, ich kümmere mich um Ihre Website.
+              Mein Ziel ist es, den Prozess so einfach wie möglich zu machen: Sie kümmern sich um Ihr Geschäft, ich kümmere mich um Ihre Website.
             </p>
             <ul className="space-y-3">
               {values.map(v => (
