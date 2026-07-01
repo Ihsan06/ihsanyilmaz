@@ -18,18 +18,15 @@ function esc(s) {
 }
 
 // Zusätzliche, nicht blockierende Telegram-Benachrichtigung.
-// Schlägt sie fehl oder ist nicht konfiguriert, bleibt der Formularversand davon unberührt.
-async function notifyTelegram(env, { name, email, company, message }) {
+// Datensparsam: nur der Hinweis, DASS eine Anfrage kam — KEINE personenbezogenen Inhalte.
+// Die Details stehen in der E-Mail. Schlägt sie fehl oder ist nicht konfiguriert,
+// bleibt der Formularversand davon unberührt.
+async function notifyTelegram(env) {
   const token = env.TELEGRAM_BOT_TOKEN;
   const chatId = env.TELEGRAM_CHAT_ID;
   if (!token || !chatId) return;
 
-  const text =
-    `📩 Neue Kontaktanfrage – ihsan-yilmaz.de\n\n` +
-    `Name: ${name}\n` +
-    `E-Mail: ${email}\n` +
-    (company ? `Betrieb: ${company}\n` : '') +
-    `\nNachricht:\n${message}`;
+  const text = '📩 Neue Kontaktanfrage über ihsan-yilmaz.de eingegangen — Details in deinem E-Mail-Postfach.';
 
   try {
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -106,7 +103,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   }
 
   // Zusätzliche Telegram-Benachrichtigung, ohne die Antwort zu verzögern.
-  const tg = notifyTelegram(env, { name, email, company, message });
+  const tg = notifyTelegram(env);
   if (typeof waitUntil === 'function') waitUntil(tg); else await tg;
 
   return json({ ok: true });
