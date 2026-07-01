@@ -89,7 +89,10 @@ export default function Contact() {
                 <button type="submit" disabled={state === "sending"} className="btn-primary w-full px-6 py-3 disabled:opacity-60">
                   {state === "sending" ? "Wird gesendet..." : <><span>Nachricht senden</span><Send size={16} /></>}
                 </button>
-                <p className="text-xs text-[var(--fg-subtle)] text-center">Ich antworte innerhalb von 24 Stunden.</p>
+                <p className="text-xs text-[var(--fg-subtle)] text-center leading-relaxed">
+                  Mit dem Absenden stimmen Sie der Verarbeitung Ihrer Angaben gemäß{" "}
+                  <a href="/datenschutz" className="underline underline-offset-2 hover:opacity-80" style={{ color: "var(--accent)" }}>Datenschutzerklärung</a> zu. Ich antworte innerhalb von 24 Stunden.
+                </p>
               </form>
             )}
           </div>
