@@ -1,7 +1,9 @@
 // Cloudflare Pages Function — POST /api/contact
 // Benötigte Umgebungsvariablen (im Pages-Projekt setzen):
-//   RESEND_API_KEY  — API-Key aus dem Resend-Dashboard (bereits vom Autohaus-Projekt vorhanden)
-//   CONTACT_TO      (optional) — Standard: ihsan.yilmaz@gmx.de
+//   RESEND_API_KEY       — API-Key aus dem Resend-Dashboard
+//   CONTACT_TO           (optional) — Standard: ihsan.yilmaz@gmx.de
+//   TELEGRAM_BOT_TOKEN   (optional) — Token vom @BotFather; aktiviert Telegram-Benachrichtigung
+//   TELEGRAM_CHAT_ID     (optional) — eigene Chat-ID; nur zusammen mit TELEGRAM_BOT_TOKEN aktiv
 
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
 
@@ -15,7 +17,36 @@ function esc(s) {
   ));
 }
 
-export async function onRequestPost({ request, env }) {
+// Zusätzliche, nicht blockierende Telegram-Benachrichtigung.
+// Schlägt sie fehl oder ist nicht konfiguriert, bleibt der Formularversand davon unberührt.
+async function notifyTelegram(env, { name, email, company, message }) {
+  const token = env.TELEGRAM_BOT_TOKEN;
+  const chatId = env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+
+  const text =
+    `📩 Neue Kontaktanfrage – ihsan-yilmaz.de\n\n` +
+    `Name: ${name}\n` +
+    `E-Mail: ${email}\n` +
+    (company ? `Betrieb: ${company}\n` : '') +
+    `\nNachricht:\n${message}`;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        disable_web_page_preview: true,
+      }),
+    });
+  } catch {
+    // Telegram ist nur eine Zusatz-Benachrichtigung – Fehler bewusst ignorieren.
+  }
+}
+
+export async function onRequestPost({ request, env, waitUntil }) {
   let data;
   try {
     data = await request.json();
@@ -45,7 +76,7 @@ export async function onRequestPost({ request, env }) {
     <h2 style="margin:0 0 16px">Neue Kontaktanfrage – ihsan-yilmaz.de</h2>
     <p><strong>Name:</strong> ${esc(name)}</p>
     <p><strong>E-Mail:</strong> ${esc(email)}</p>
-    ${company ? `<p><strong>Unternehmen:</strong> ${esc(company)}</p>` : ''}
+    ${company ? `<p><strong>Betrieb:</strong> ${esc(company)}</p>` : ''}
     <p><strong>Nachricht:</strong></p>
     <p style="white-space:pre-wrap">${esc(message)}</p>
   `;
@@ -73,6 +104,10 @@ export async function onRequestPost({ request, env }) {
   if (!r.ok) {
     return json({ ok: false, error: 'Versand fehlgeschlagen. Bitte später erneut versuchen.' }, 502);
   }
+
+  // Zusätzliche Telegram-Benachrichtigung, ohne die Antwort zu verzögern.
+  const tg = notifyTelegram(env, { name, email, company, message });
+  if (typeof waitUntil === 'function') waitUntil(tg); else await tg;
 
   return json({ ok: true });
 }

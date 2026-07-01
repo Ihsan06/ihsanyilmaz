@@ -29,6 +29,7 @@ export default function Datenschutz() {
             <p>Wenn Sie mir über das Kontaktformular oder per E-Mail eine Anfrage senden, verarbeite ich die von Ihnen angegebenen Daten — insbesondere Name, E-Mail-Adresse, optional die Bezeichnung Ihres Betriebs sowie den Inhalt Ihrer Nachricht — zur Bearbeitung Ihrer Anfrage.</p>
             <p className="mt-2">Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Anbahnung bzw. Erfüllung eines Vertrags), sofern Ihre Anfrage auf einen Vertragsabschluss abzielt, andernfalls Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Beantwortung Ihrer Anfrage).</p>
             <p className="mt-2">Für den technischen Versand der über das Kontaktformular eingegangenen Nachrichten als E-Mail nutze ich den Dienst Resend (Resend, Inc., USA). Dabei werden die von Ihnen eingegebenen Daten an Resend übermittelt und an meine E-Mail-Adresse zugestellt. Die Übermittlung in die USA erfolgt auf Grundlage der EU-Standardvertragsklauseln.</p>
+            <p className="mt-2">Zusätzlich erhalte ich über den Messenger-Dienst Telegram (Telegram Messenger Inc.) eine Benachrichtigung über neue Anfragen, die die von Ihnen übermittelten Formulardaten enthält. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer zeitnahen Kenntnisnahme von Anfragen).</p>
             <p className="mt-2">Ihre Daten werden gelöscht, sobald sie für die Bearbeitung Ihrer Anfrage nicht mehr erforderlich sind und keine gesetzlichen Aufbewahrungspflichten entgegenstehen.</p>
           </section>
 
@@ -38,6 +39,7 @@ export default function Datenschutz() {
             <ul className="mt-2 space-y-1 list-disc list-inside">
               <li>Cloudflare, Inc. (USA) — Hosting und Auslieferung der Website</li>
               <li>Resend, Inc. (USA) — Versand der Kontaktanfragen per E-Mail</li>
+              <li>Telegram Messenger Inc. — Benachrichtigung über neue Kontaktanfragen</li>
             </ul>
             <p className="mt-2">Mit diesen Dienstleistern bestehen die datenschutzrechtlich erforderlichen Vereinbarungen. Soweit eine Verarbeitung außerhalb der EU/des EWR stattfindet, erfolgt diese auf Grundlage geeigneter Garantien (EU-Standardvertragsklauseln).</p>
           </section>
