@@ -6,14 +6,14 @@ const projects = [
     status: "Online",
     title: "Autohaus-Website",
     description: "Webauftritt für ein Autohaus mit Fahrzeug-Präsentation und Kontaktformular, über das Anfragen direkt per E-Mail ankommen.",
-    tech: ["Next.js", "Cloudflare Pages", "Kontaktformular"],
+    tech: ["Next.js", "Cloudflare Pages", "Kontaktformular", "Webshop-Anbindung"],
   },
   {
     tag: "Webentwicklung",
     status: "In Arbeit",
     title: "Gastronomie-Website",
     description: "Konzeption und Umsetzung eines professionellen Webauftritts für einen lokalen Gastronomiebetrieb. Inklusive Kontaktmöglichkeit und mobilem Design.",
-    tech: ["Next.js", "Tailwind CSS", "Cloudflare Pages", "Smarte Speisekarten"],
+    tech: ["Next.js", "Tailwind CSS", "Cloudflare Pages", "Smarte Speisekarte"],
   },
 ];
 
