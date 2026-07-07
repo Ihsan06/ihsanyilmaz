@@ -19,9 +19,9 @@ html, body {
 
 :root {
   --bg:#FFFFFF; --fg:#0A0A0A; --fg-muted:#3F3F3F; --fg-subtle:#737373;
-  --surface:#FFFFFF; --surface-2:#F4F4F4; --border:#0A0A0A;
+  --surface:#FFFFFF; --surface-2:#F7F7F7; --border:#E6E6E6;
   --accent:#0E9BB0; --accent-2:#0E9BB0; --accent-fg:#FFFFFF; --accent-soft:rgba(14,155,176,0.12);
-  --radius:0px;
+  --radius:12px;
   --font-display: var(--font-space-grotesk), system-ui, sans-serif;
   --font-body: var(--font-space-grotesk), system-ui, sans-serif;
 }
@@ -29,11 +29,17 @@ html, body {
 /* alternating surfaces (white / black) */
 .surface-base {
   --bg:#FFFFFF; --fg:#0A0A0A; --fg-muted:#3F3F3F; --fg-subtle:#737373;
-  --border:#0A0A0A; --surface:#FFFFFF; --surface-2:#F4F4F4;
+  --border:#E6E6E6; --surface:#FFFFFF; --surface-2:#F7F7F7;
 }
 .surface-alt {
   --bg:#0A0A0A; --fg:#FFFFFF; --fg-muted:#BDBDBD; --fg-subtle:#8A8A8A;
-  --border:#FFFFFF; --surface:#161616; --surface-2:#1F1F1F;
+  --border:rgba(255,255,255,0.14); --surface:#161616; --surface-2:#1F1F1F;
+}
+
+/* Variante "Hell": macht die sonst schwarzen Sektionen hell & dezent */
+html[data-variant="hell"] .surface-alt {
+  --bg:#F4F6F6; --fg:#0A0A0A; --fg-muted:#3F3F3F; --fg-subtle:#737373;
+  --border:#E6E6E6; --surface:#FFFFFF; --surface-2:#EFF1F1;
 }
 
 /* ============================================================
@@ -45,70 +51,70 @@ html, body {
 
 .display-h {
   font-family: var(--font-display);
-  text-transform: uppercase; letter-spacing:-0.03em; font-weight:700; line-height:0.95;
+  letter-spacing:-0.02em; font-weight:600; line-height:1.08;
 }
 
 .eyebrow {
   color: var(--accent);
-  font-size:0.8rem; font-weight:700; letter-spacing:0.16em; text-transform:uppercase;
+  font-size:0.78rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase;
   font-family: var(--font-body);
 }
 
 .accent-text { color: var(--accent); }
 
-/* primary button — hard offset shadow */
+/* primary button — soft, rounded */
 .btn-primary {
   display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;
   background: var(--accent); color: var(--accent-fg);
-  border-radius: var(--radius); font-weight:600;
-  border:2px solid var(--fg); box-shadow:4px 4px 0 var(--fg);
-  transition: transform .15s ease, box-shadow .15s ease;
+  border-radius: var(--radius); font-weight:600; border:none;
+  box-shadow:0 1px 2px rgba(10,10,10,0.06);
+  transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
 }
-.btn-primary:hover { transform:translate(-2px,-2px); box-shadow:6px 6px 0 var(--fg); }
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(14,155,176,0.28); }
 
 /* ghost / secondary button */
 .btn-ghost {
   display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;
   background: transparent; color: var(--fg);
-  border:2px solid var(--border); border-radius: var(--radius); font-weight:600;
-  transition: background-color .15s ease, color .15s ease;
+  border:1px solid var(--fg-subtle); border-radius: var(--radius); font-weight:600;
+  transition: background-color .2s ease, border-color .2s ease;
 }
-.btn-ghost:hover { background: var(--fg); color: var(--bg); }
+.btn-ghost:hover { background: var(--surface-2); border-color: var(--fg); }
 
 /* cards */
 .card {
-  background: var(--surface); border:2px solid var(--border); border-radius: var(--radius);
-  transition: transform .2s ease, box-shadow .2s ease;
+  background: var(--surface); border:1px solid var(--border); border-radius: var(--radius);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 }
-.card:hover { transform:translate(-3px,-3px); box-shadow:7px 7px 0 var(--accent); }
+.card:hover { transform:translateY(-4px); box-shadow:0 14px 32px rgba(10,10,10,0.09); border-color:transparent; }
 
 /* icon tile */
 .icon-tile {
   display:inline-flex; align-items:center; justify-content:center;
   background: var(--accent); color: var(--accent-fg);
-  border-radius: 0;
+  border-radius: var(--radius);
 }
 
 /* chips / tags */
 .chip {
   background: var(--surface-2); color: var(--fg-muted);
-  border:1px solid var(--border); border-radius: 0;
+  border:1px solid var(--border); border-radius: 9999px;
 }
 
 /* inputs */
 .field {
   width:100%; background: var(--surface-2); color: var(--fg);
-  border:2px solid var(--border); border-radius: var(--radius);
+  border:1px solid var(--border); border-radius: var(--radius);
   transition: border-color .2s ease, box-shadow .2s ease;
 }
 .field::placeholder { color: var(--fg-subtle); }
-.field:focus { outline:none; border-color: var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+.field:focus { outline:none; border-color: var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
 
 /* badge / pill */
 .badge {
   display:inline-flex; align-items:center; gap:0.5rem;
   background: var(--accent-soft); color: var(--accent);
-  border:2px solid var(--border); border-radius:0;
+  border:1px solid transparent; border-radius:9999px;
 }
 
 /* ============================================================
@@ -118,7 +124,18 @@ html, body {
 .hero-bg::after {
   content:""; position:absolute; inset:0; pointer-events:none;
   background-image: linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px);
-  background-size:64px 64px; opacity:0.05;
+  background-size:64px 64px; opacity:0.03;
+}
+
+/* Lokaler Bezug: Festung Marienberg (Würzburg) als dezenter Wasserzeichen-Hintergrund.
+   Bild: Wikimedia Commons, CC0 / gemeinfrei — keine Namensnennung erforderlich. */
+.hero-photo {
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(to bottom, rgba(255,255,255,0.60) 0%, rgba(255,255,255,0.55) 40%, rgba(255,255,255,0.72) 68%, rgba(255,255,255,0.66) 100%),
+    url('/wuerzburg-marienberg.jpg');
+  background-size:cover; background-position:center 30%; background-repeat:no-repeat;
+  filter: grayscale(100%);
 }
 
 /* ============================================================

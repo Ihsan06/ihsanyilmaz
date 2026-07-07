@@ -5,19 +5,20 @@ const tags = ["Gastronomie", "Café", "Friseur", "Autohaus", "Einzelhandel", "Ha
 export default function Hero() {
   return (
     <section className="hero-bg surface-base relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+      <div className="hero-photo" aria-hidden="true" />
       <div className="relative max-w-5xl mx-auto px-6 lg:px-8 text-center">
         <div className="badge px-3 py-1.5 text-sm mb-8 animate-fade-in-up">
           <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--accent)" }} />
-          Verfügbar für neue Projekte
+          Aus Würzburg — verfügbar für neue Projekte
         </div>
 
         <h1 className="display-h text-5xl md:text-7xl lg:text-[5.5rem] text-[var(--fg)] mb-6 leading-[1.05] animate-fade-in-up animation-delay-200">
-          Websites für<br />
-          <span className="accent-text">lokale Betriebe</span>
+          Was früher teuer war,<br />
+          <span className="accent-text">ist heute bezahlbar.</span>
         </h1>
 
         <p className="text-lg md:text-xl text-[var(--fg-muted)] max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up animation-delay-400">
-          Professionelle Webauftritte für Gastronomie, Einzelhandel, Dienstleister und Gewerbe — damit Ihre Kunden Sie online finden und unkompliziert Kontakt aufnehmen können.
+          Dank moderner KI-Tools baue ich professionelle Websites mit smarten Funktionen — schneller und günstiger als früher. So bekommt Ihr Betrieb Technik, die bisher nur große Firmen hatten.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14 animate-fade-in-up animation-delay-600">
