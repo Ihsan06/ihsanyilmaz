@@ -24,7 +24,7 @@ export default function Portfolio() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-16">
           <div>
             <span className="eyebrow inline-block mb-3">Projekte</span>
-            <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)]">Aktuelle Arbeiten</h2>
+            <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)]">Aktuelle Projekte</h2>
           </div>
           <p className="text-[var(--fg-muted)] max-w-xs text-sm leading-relaxed">Erste Referenzprojekte im Aufbau — für lokale Betriebe und kleine Unternehmen.</p>
         </div>

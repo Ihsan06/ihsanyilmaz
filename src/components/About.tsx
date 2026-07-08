@@ -7,7 +7,6 @@ const highlights = [
 ];
 
 const values = [
-  "Ich melde mich innerhalb von 24 Stunden",
   "Keine langen Vertragslaufzeiten",
   "Änderungen und Updates unkompliziert möglich",
   "Auch nach dem Launch erreichbar",
@@ -19,16 +18,27 @@ export default function About() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
+            <div className="flex items-center gap-4 mb-8">
+              <img
+                src="/ihsan.jpg?v=1"
+                alt="Ihsan Yilmaz — IT & Websites aus Würzburg"
+                className="w-28 h-36 rounded-[var(--radius)] object-cover flex-shrink-0"
+              />
+              <div>
+                <div className="text-[var(--fg)] font-semibold text-lg">Ihsan Yilmaz</div>
+                <div className="text-[var(--fg-subtle)] text-sm">IT &amp; Websites · Würzburg</div>
+              </div>
+            </div>
             <span className="eyebrow inline-block mb-3">Über mich</span>
             <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-6 leading-tight">
               Ihr Ansprechpartner<br />
-              <span className="accent-text">für Ihre Website</span>
+              <span className="accent-text">aus Würzburg</span>
             </h2>
             <p className="text-[var(--fg-muted)] text-lg leading-relaxed mb-6">
-              Ich bin Ihsan, Webentwickler aus Leidenschaft. Ich helfe lokalen Betrieben dabei, online sichtbar zu werden — mit einer Website, die zu Ihrem Geschäft passt und bei der Ihre Kunden alles finden, was sie brauchen.
+              Ich bin Ihsan — IT-Fachmann aus Würzburg. Ich helfe lokalen Betrieben, online sichtbar zu werden und Zeit zu sparen: mit modernen Websites und smarten Funktionen, die dank KI-Tools heute bezahlbar sind.
             </p>
             <p className="text-[var(--fg-muted)] leading-relaxed mb-10">
-              Mein Ziel ist es, den Prozess so einfach wie möglich zu machen: Sie kümmern sich um Ihr Geschäft, ich kümmere mich um Ihre Website.
+              Bei mir gibt es keinen Agentur-Overhead — nur eine Ansprechperson, die zuhört und pragmatisch umsetzt, was Ihrem Geschäft wirklich weiterhilft.
             </p>
             <ul className="space-y-3">
               {values.map(v => (

@@ -13,8 +13,8 @@ export default function Hero() {
         </div>
 
         <h1 className="display-h text-5xl md:text-7xl lg:text-[5.5rem] text-[var(--fg)] mb-6 leading-[1.05] animate-fade-in-up animation-delay-200">
-          Was früher teuer war,<br />
-          <span className="accent-text">ist heute bezahlbar.</span>
+          Mehr Zeit.<br />
+          <span className="accent-text">Mehr Kunden.</span>
         </h1>
 
         <p className="text-lg md:text-xl text-[var(--fg-muted)] max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up animation-delay-400">
