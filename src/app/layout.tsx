@@ -6,7 +6,7 @@ const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const spaceGrotesk = Space_Grotesk({ variable: "--font-space-grotesk", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Ihsan — Websites für lokale Betriebe & kleine Unternehmen",
+  title: "AIY | Ihsan Yilmaz — Websites für lokale Betriebe & kleine Unternehmen",
   description:
     "Professionelle Websites für Gastronomie, Einzelhandel, Dienstleister und Handwerk. Schnell, modern und zu fairen Preisen — mit smarten KI-Funktionen, die Zeit sparen.",
 };

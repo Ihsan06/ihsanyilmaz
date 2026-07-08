@@ -17,7 +17,7 @@ export default function Hero() {
           <span className="accent-text">Mehr Kunden.</span>
         </h1>
 
-        <p className="text-lg md:text-xl text-[var(--fg-muted)] max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up animation-delay-400">
+        <p className="hero-sub text-lg md:text-xl text-[var(--fg-muted)] max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in-up animation-delay-400">
           Dank moderner KI-Tools baue ich professionelle Websites mit smarten Funktionen — schneller und günstiger als früher. So bekommt Ihr Betrieb Technik, die bisher nur große Firmen hatten.
         </p>
 
