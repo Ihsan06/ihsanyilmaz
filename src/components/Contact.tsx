@@ -45,7 +45,7 @@ export default function Contact() {
               </div>
               <div>
                 <div className="text-xs text-[var(--fg-subtle)] mb-0.5">E-Mail</div>
-                <a href="mailto:ihsan.yilmaz@gmx.de" className="text-[var(--fg)] text-sm font-medium hover:opacity-80 transition-opacity">ihsan.yilmaz@gmx.de</a>
+                <a href="mailto:kontakt@ihsan-yilmaz.de" className="text-[var(--fg)] text-sm font-medium hover:opacity-80 transition-opacity">kontakt@ihsan-yilmaz.de</a>
               </div>
             </div>
           </div>

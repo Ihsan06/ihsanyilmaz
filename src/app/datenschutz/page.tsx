@@ -11,7 +11,7 @@ export default function Datenschutz() {
             <p className="mt-2">Ihsan Yilmaz<br />
             Oberer Mainkai 9<br />
             97070 Würzburg<br />
-            E-Mail: <a href="mailto:ihsan.yilmaz@gmx.de" className="hover:opacity-80" style={{ color: "var(--accent)" }}>ihsan.yilmaz@gmx.de</a></p>
+            E-Mail: <a href="mailto:kontakt@ihsan-yilmaz.de" className="hover:opacity-80" style={{ color: "var(--accent)" }}>kontakt@ihsan-yilmaz.de</a></p>
           </section>
 
           <section>

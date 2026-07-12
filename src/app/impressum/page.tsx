@@ -14,7 +14,7 @@ export default function Impressum() {
 
           <section>
             <h2 className="text-[var(--fg)] font-semibold text-base mb-3">Kontakt</h2>
-            <p>E-Mail: <a href="mailto:ihsan.yilmaz@gmx.de" className="hover:opacity-80" style={{ color: "var(--accent)" }}>ihsan.yilmaz@gmx.de</a></p>
+            <p>E-Mail: <a href="mailto:kontakt@ihsan-yilmaz.de" className="hover:opacity-80" style={{ color: "var(--accent)" }}>kontakt@ihsan-yilmaz.de</a></p>
           </section>
 
           <section>

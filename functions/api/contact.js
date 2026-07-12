@@ -1,7 +1,7 @@
 // Cloudflare Pages Function — POST /api/contact
 // Benötigte Umgebungsvariablen (im Pages-Projekt setzen):
 //   RESEND_API_KEY       — API-Key aus dem Resend-Dashboard
-//   CONTACT_TO           (optional) — Standard: ihsan.yilmaz@gmx.de
+//   CONTACT_TO           (optional) — Standard: kontakt@ihsan-yilmaz.de
 //   TELEGRAM_BOT_TOKEN   (optional) — Token vom @BotFather; aktiviert Telegram-Benachrichtigung
 //   TELEGRAM_CHAT_ID     (optional) — eigene Chat-ID; nur zusammen mit TELEGRAM_BOT_TOKEN aktiv
 
@@ -67,7 +67,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     return json({ ok: false, error: 'E-Mail-Dienst ist noch nicht konfiguriert.' }, 500);
   }
 
-  const to = env.CONTACT_TO || 'ihsan.yilmaz@gmx.de';
+  const to = env.CONTACT_TO || 'kontakt@ihsan-yilmaz.de';
 
   const html = `
     <h2 style="margin:0 0 16px">Neue Kontaktanfrage – ihsan-yilmaz.de</h2>
