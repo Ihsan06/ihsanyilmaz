@@ -2,10 +2,10 @@ import { ChevronDown } from "lucide-react";
 
 export default function Hero() {
   return (
-    <section className="hero-bg surface-base relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+    <section className="hero-bg surface-base relative min-h-screen flex flex-col items-center justify-start overflow-hidden">
       <div className="hero-photo" aria-hidden="true" />
 
-      <div className="relative text-center px-6 mt-[12vh] animate-fade-in-up">
+      <div className="relative text-center px-6 mt-[14vh] animate-fade-in-up">
         <div
           className="display-h text-7xl md:text-8xl lg:text-[9rem] leading-none tracking-tight"
           style={{ fontWeight: 700, color: "var(--fg)" }}
