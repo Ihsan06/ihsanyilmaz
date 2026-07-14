@@ -36,7 +36,6 @@ export default function Header() {
               <a key={l.href} href={l.href} className="text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors">{l.label}</a>
             ))}
           </nav>
-          <a href="#kontakt" className="btn-primary hidden md:inline-flex px-4 py-2 text-sm">Projekt anfragen</a>
           <button className="md:hidden text-[var(--fg)]" onClick={() => setOpen(!open)}>
             {open ? <X size={24} /> : <Menu size={24} />}
           </button>
