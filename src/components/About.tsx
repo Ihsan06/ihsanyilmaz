@@ -26,12 +26,12 @@ export default function About() {
             </h2>
 
             {/* Kleine Autor-Komponente */}
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-4 mb-8">
               <img
-                src="/ihsan.jpg?v=1"
+                src="/ihsan.jpg?v=2"
                 alt="Ihsan Yilmaz — IT & Websites aus Würzburg"
-                className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                style={{ border: "1px solid var(--border)" }}
+                className="rounded-[12px] object-cover flex-shrink-0"
+                style={{ width: 192, height: 192, border: "1px solid var(--border)" }}
               />
               <div>
                 <div className="text-[var(--fg)] font-semibold leading-tight">Ihsan Yilmaz</div>
