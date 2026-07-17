@@ -20,31 +20,37 @@ export default function About() {
           {/* Text */}
           <div>
             <span className="eyebrow inline-block mb-3">Über mich</span>
-            <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-6 leading-tight">
+            <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-8 leading-tight">
               Ihr Ansprechpartner<br />
               <span className="accent-text">aus Würzburg</span>
             </h2>
 
-            {/* Kleine Autor-Komponente */}
-            <div className="flex items-center gap-4 mb-8">
-              <img
-                src="/ihsan.jpg?v=2"
-                alt="Ihsan Yilmaz — IT & Websites aus Würzburg"
-                className="rounded-[12px] object-cover flex-shrink-0"
-                style={{ width: 192, height: 192, border: "1px solid var(--border)" }}
-              />
+            <div className="flex flex-col sm:flex-row gap-6 mb-8">
+              {/* Bild mit Bildunterschrift */}
+              <figure className="flex-shrink-0 w-48">
+                <img
+                  src="/ihsan.jpg?v=2"
+                  alt="Ihsan Yilmaz — IT & Websites aus Würzburg"
+                  className="rounded-[12px] object-cover"
+                  style={{ width: 192, height: 192, border: "1px solid var(--border)" }}
+                />
+                <figcaption className="mt-3">
+                  <div className="text-[var(--fg)] font-semibold leading-tight">Ihsan Yilmaz</div>
+                  <div className="text-[var(--fg-subtle)] text-sm">IT &amp; Websites · Würzburg</div>
+                </figcaption>
+              </figure>
+
+              {/* Text daneben */}
               <div>
-                <div className="text-[var(--fg)] font-semibold leading-tight">Ihsan Yilmaz</div>
-                <div className="text-[var(--fg-subtle)] text-sm">IT &amp; Websites · Würzburg</div>
+                <p className="text-[var(--fg-muted)] text-lg leading-relaxed mb-4">
+                  Ich bin Ihsan — IT-Fachmann aus Würzburg. Ich helfe lokalen Betrieben, online sichtbar zu werden und Zeit zu sparen: mit modernen Websites und smarten Funktionen, die dank KI-Tools heute bezahlbar sind.
+                </p>
+                <p className="text-[var(--fg-muted)] leading-relaxed">
+                  Bei mir gibt es keinen Agentur-Overhead — nur eine Ansprechperson, die zuhört und pragmatisch umsetzt, was Ihrem Geschäft wirklich weiterhilft.
+                </p>
               </div>
             </div>
 
-            <p className="text-[var(--fg-muted)] text-lg leading-relaxed mb-6">
-              Ich bin Ihsan — IT-Fachmann aus Würzburg. Ich helfe lokalen Betrieben, online sichtbar zu werden und Zeit zu sparen: mit modernen Websites und smarten Funktionen, die dank KI-Tools heute bezahlbar sind.
-            </p>
-            <p className="text-[var(--fg-muted)] leading-relaxed mb-10">
-              Bei mir gibt es keinen Agentur-Overhead — nur eine Ansprechperson, die zuhört und pragmatisch umsetzt, was Ihrem Geschäft wirklich weiterhilft.
-            </p>
             <ul className="space-y-3">
               {values.map(v => (
                 <li key={v} className="flex items-start gap-3">
