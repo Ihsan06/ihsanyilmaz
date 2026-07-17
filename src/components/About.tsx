@@ -1,4 +1,4 @@
-import { Smile, Clock, Euro, CheckCircle } from "lucide-react";
+import { Smile, Clock, Euro, CheckCircle, Linkedin } from "lucide-react";
 
 const highlights = [
   { icon: Smile, title: "Persönlich & unkompliziert", text: "Kein Agentur-Overhead, keine langen Wartezeiten. Sie haben eine Ansprechperson — mich." },
@@ -37,6 +37,17 @@ export default function About() {
                 <figcaption className="mt-3">
                   <div className="text-[var(--fg)] font-semibold leading-tight">Ihsan Yilmaz</div>
                   <div className="text-[var(--fg-subtle)] text-sm">IT &amp; Websites · Würzburg</div>
+                  <a
+                    href="https://www.linkedin.com/in/ihsan-yilmaz-3a634713a/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="LinkedIn-Profil von Ihsan Yilmaz"
+                    className="inline-flex items-center gap-1.5 mt-2 text-sm hover:opacity-80 transition-opacity"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    <Linkedin size={15} />
+                    LinkedIn
+                  </a>
                 </figcaption>
               </figure>
 

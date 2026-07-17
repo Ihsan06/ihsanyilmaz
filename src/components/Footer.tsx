@@ -1,3 +1,5 @@
+import { Linkedin } from "lucide-react";
+
 export default function Footer() {
   const year = new Date().getFullYear();
   return (
@@ -11,6 +13,16 @@ export default function Footer() {
               <span className="font-medium text-[var(--fg-muted)]">Ihsan Yilmaz</span>
             </div>
             <p className="text-[var(--fg-muted)] text-sm max-w-xs">Websites für lokale Betriebe und kleine Unternehmen.</p>
+            <a
+              href="https://www.linkedin.com/in/ihsan-yilmaz-3a634713a/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LinkedIn-Profil von Ihsan Yilmaz"
+              className="inline-flex items-center gap-2 mt-4 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+            >
+              <Linkedin size={18} />
+              LinkedIn
+            </a>
           </div>
           <div className="grid grid-cols-2 gap-x-16 gap-y-2 text-sm">
             {[["#leistungen","Leistungen"],["#ueber-mich","Über mich"],["#projekte","Projekte"],["#kontakt","Kontakt"],["/impressum","Impressum"],["/datenschutz","Datenschutz"]].map(([h,l]) => (
