@@ -2,26 +2,6 @@ export default function Footer() {
   const year = new Date().getFullYear();
   return (
     <footer className="surface-alt border-t border-[var(--border)]">
-      <div className="relative border-b border-[var(--border)]">
-        <iframe
-          title="Standort – Oberer Mainkai 9, 97070 Würzburg (OpenStreetMap)"
-          src="https://www.openstreetmap.org/export/embed.html?bbox=9.9239%2C49.7879%2C9.9309%2C49.7915&layer=mapnik&marker=49.7897%2C9.9274"
-          className="w-full h-64 md:h-72 block"
-          style={{ border: 0, filter: "grayscale(1)" }}
-          loading="lazy"
-        />
-        <a
-          href="https://www.google.com/maps/search/?api=1&query=Oberer+Mainkai+9%2C+97070+W%C3%BCrzburg"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-primary absolute bottom-4 right-4 px-4 py-2 text-sm"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" />
-          </svg>
-          In Google Maps öffnen
-        </a>
-      </div>
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row justify-between items-start gap-8">
           <div>

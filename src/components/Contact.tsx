@@ -48,6 +48,27 @@ export default function Contact() {
                 <a href="mailto:kontakt@ihsan-yilmaz.de" className="text-[var(--fg)] text-sm font-medium hover:opacity-80 transition-opacity">kontakt@ihsan-yilmaz.de</a>
               </div>
             </div>
+
+            <div className="relative mt-4 rounded-[12px] overflow-hidden border" style={{ borderColor: "var(--border)" }}>
+              <iframe
+                title="Standort – Oberer Mainkai 9, 97070 Würzburg (OpenStreetMap)"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=9.9239%2C49.7879%2C9.9309%2C49.7915&layer=mapnik&marker=49.7897%2C9.9274"
+                className="w-full h-56 block"
+                style={{ border: 0, filter: "grayscale(1)" }}
+                loading="lazy"
+              />
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Oberer+Mainkai+9%2C+97070+W%C3%BCrzburg"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary absolute bottom-3 right-3 px-3.5 py-1.5 text-xs"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" />
+                </svg>
+                In Google Maps öffnen
+              </a>
+            </div>
           </div>
 
           <div className="card p-8">
