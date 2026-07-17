@@ -42,11 +42,8 @@ export default function About() {
 
               {/* Text daneben */}
               <div>
-                <p className="text-[var(--fg-muted)] text-lg leading-relaxed mb-4">
+                <p className="text-[var(--fg-muted)] text-lg leading-relaxed">
                   Ich bin Ihsan — IT-Fachmann aus Würzburg. Ich helfe lokalen Betrieben, online sichtbar zu werden und Zeit zu sparen: mit modernen Websites und smarten Funktionen, die dank KI-Tools heute bezahlbar sind.
-                </p>
-                <p className="text-[var(--fg-muted)] leading-relaxed">
-                  Bei mir gibt es keinen Agentur-Overhead — nur eine Ansprechperson, die zuhört und pragmatisch umsetzt, was Ihrem Geschäft wirklich weiterhilft.
                 </p>
               </div>
             </div>
