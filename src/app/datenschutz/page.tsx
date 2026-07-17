@@ -38,8 +38,10 @@ export default function Datenschutz() {
             <ul className="mt-2 space-y-1 list-disc list-inside">
               <li>Cloudflare, Inc. (USA) — Hosting und Auslieferung der Website</li>
               <li>Resend, Inc. (USA) — Versand der Kontaktanfragen per E-Mail</li>
+              <li>OpenStreetMap Foundation (Vereinigtes Königreich) — Anzeige der Standort-Karte im Footer</li>
             </ul>
             <p className="mt-2">Mit diesen Dienstleistern bestehen die datenschutzrechtlich erforderlichen Vereinbarungen. Soweit eine Verarbeitung außerhalb der EU/des EWR stattfindet, erfolgt diese auf Grundlage geeigneter Garantien (EU-Standardvertragsklauseln).</p>
+            <p className="mt-2">Im Footer dieser Website ist eine Karte des Dienstes OpenStreetMap eingebunden (OpenStreetMap Foundation, Cambridge, Vereinigtes Königreich). Beim Laden der Karte wird Ihre IP-Adresse an OpenStreetMap übermittelt, damit die Karteninhalte in Ihrem Browser dargestellt werden können. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Darstellung unseres Standorts). Für das Vereinigte Königreich besteht ein Angemessenheitsbeschluss der EU-Kommission, sodass ein angemessenes Datenschutzniveau gewährleistet ist.</p>
           </section>
 
           <section>
