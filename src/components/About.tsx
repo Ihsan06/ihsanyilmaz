@@ -16,7 +16,7 @@ export default function About() {
   return (
     <section id="ueber-mich" className="surface-base py-24">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Text */}
           <div>
             <span className="eyebrow inline-block mb-3">Über mich</span>
@@ -43,7 +43,7 @@ export default function About() {
               {/* Text daneben */}
               <div>
                 <p className="text-[var(--fg-muted)] text-lg leading-relaxed">
-                  Ich bin Ihsan — IT-Fachmann aus Würzburg. Ich helfe lokalen Betrieben, online sichtbar zu werden und Zeit zu sparen: mit modernen Websites und smarten Funktionen, die dank KI-Tools heute bezahlbar sind.
+                  Ich bin Ihsan — IT-Fachmann aus Würzburg, mit einem B.Sc. in Wirtschaftswissenschaften und einem M.Sc. in Wirtschaftsinformatik (Julius-Maximilians-Universität Würzburg). Ich helfe lokalen Betrieben, online sichtbar zu werden und Zeit zu sparen: mit modernen Websites und smarten Funktionen, die dank KI-Tools heute bezahlbar sind.
                 </p>
               </div>
             </div>
