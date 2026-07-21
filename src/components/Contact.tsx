@@ -29,7 +29,7 @@ export default function Contact() {
   return (
     <section id="kontakt" className="surface-base py-24">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
             <span className="eyebrow inline-block mb-3">Kontakt</span>
             <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-6 leading-tight">

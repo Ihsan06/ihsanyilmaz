@@ -128,14 +128,29 @@ html, body {
   background-image:
     radial-gradient(ellipse 78% 50% at 50% 30%, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.18) 46%, rgba(255,255,255,0) 78%),
     linear-gradient(to bottom, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.26) 100%),
-    url('/wuerzburg-marienberg.jpg?v=4');
+    url('/wuerzburg-marienberg.jpg?v=5');
   background-size:cover; background-position:center 30%; background-repeat:no-repeat;
-  filter: grayscale(100%) brightness(0.9) contrast(1.05);
+  background-attachment: scroll, scroll, fixed;
 }
 
 /* Hero-Text über dem Foto klar lesbar machen */
 .hero-bg h1 { font-weight:700; text-shadow:0 1px 18px rgba(255,255,255,0.7); }
 .hero-bg .hero-sub { text-shadow:0 1px 14px rgba(255,255,255,0.78); }
+
+/* ============================================================
+   PROJEKTE — unterer Bildteil (Stadt/Main) als sticky Hintergrund
+   ============================================================ */
+.projekte-bg {
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(244,246,246,0.70), rgba(244,246,246,0.70)),
+    url('/wuerzburg-lower.jpg?v=1');
+  background-size:cover; background-position:center; background-repeat:no-repeat;
+  background-attachment: fixed;
+}
+@media (max-width: 768px) {
+  .hero-photo, .projekte-bg { background-attachment: scroll; }
+}
 
 /* ============================================================
    ANIMATIONS

@@ -15,16 +15,23 @@ const projects = [
     description: "Konzeption und Umsetzung eines professionellen Webauftritts für einen lokalen Gastronomiebetrieb. Inklusive Kontaktmöglichkeit und mobilem Design.",
     tech: ["Next.js", "Tailwind CSS", "Cloudflare Pages", "Smarte Speisekarte"],
   },
+  {
+    tag: "Webentwicklung",
+    status: "In Arbeit",
+    title: "Mietwagen-Buchungstool",
+    description: "Online-Buchungstool für einen Autovermieter — Fahrzeug wählen, Zeitraum festlegen und direkt anfragen. Verfügbarkeiten bleiben immer aktuell.",
+    tech: ["Next.js", "Buchungskalender", "Verfügbarkeiten", "Online-Anfrage"],
+  },
 ];
 
 export default function Portfolio() {
   return (
-    <section id="projekte" className="surface-alt py-24">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section id="projekte" className="relative surface-alt py-24 overflow-hidden">
+      <div className="projekte-bg" aria-hidden="true" />
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-16">
           <div>
-            <span className="eyebrow inline-block mb-3">Projekte</span>
-            <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)]">Aktuelle Projekte</h2>
+            <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)]">Projekte</h2>
           </div>
           <p className="text-[var(--fg-muted)] max-w-xs text-sm leading-relaxed">Erste Referenzprojekte im Aufbau — für lokale Betriebe und kleine Unternehmen.</p>
         </div>
