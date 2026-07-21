@@ -107,10 +107,10 @@ export default function Contact() {
                 {state === "error" && (
                   <div className="flex items-center gap-2 text-sm" style={{ color: "#ef4444" }}><AlertCircle size={16} />Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.</div>
                 )}
-                <button type="submit" disabled={state === "sending"} className="btn-primary w-full px-6 py-3 disabled:opacity-60">
-                  {state === "sending" ? "Wird gesendet..." : <><span>Nachricht senden</span><Send size={16} /></>}
+                <button type="submit" disabled={state === "sending"} className="btn-primary self-start px-5 py-2.5 text-sm disabled:opacity-60">
+                  {state === "sending" ? "Wird gesendet..." : <><span>Nachricht senden</span><Send size={15} /></>}
                 </button>
-                <p className="text-xs text-[var(--fg-subtle)] text-center leading-relaxed">
+                <p className="text-xs text-[var(--fg-subtle)] text-left leading-relaxed">
                   Mit dem Absenden stimmen Sie der Verarbeitung Ihrer Angaben gemäß{" "}
                   <a href="/datenschutz" className="underline underline-offset-2 hover:opacity-80" style={{ color: "var(--accent)" }}>Datenschutzerklärung</a> zu. Ich antworte innerhalb von 24 Stunden.
                 </p>
