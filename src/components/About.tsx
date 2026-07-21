@@ -56,7 +56,7 @@ export default function About() {
               {/* Text daneben */}
               <div>
                 <p className="text-[var(--fg-muted)] text-lg leading-relaxed">
-                  Ich bin Ihsan — IT-Fachmann aus Würzburg, mit einem B.Sc. in Wirtschaftswissenschaften und einem M.Sc. in Wirtschaftsinformatik (Julius-Maximilians-Universität Würzburg). Ich helfe lokalen Betrieben, online sichtbar zu werden und Zeit zu sparen: mit modernen Websites und smarten Funktionen, die dank KI-Tools heute bezahlbar sind.
+                  Ich bin Ihsan — IT-Fachmann aus Würzburg, mit einem B.Sc. in Wirtschaftswissenschaften und einem M.Sc. in Wirtschaftsinformatik (Julius-Maximilians-Universität Würzburg). Ich helfe lokalen Betrieben mit modernen Websites und smarten Funktionen, die dank KI-Tools heute bezahlbar sind.
                 </p>
               </div>
             </div>
