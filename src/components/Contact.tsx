@@ -71,7 +71,7 @@ export default function Contact() {
             </div>
           </div>
 
-          <div className="card p-8">
+          <div className="card p-8 flex flex-col">
             {state === "success" ? (
               <div className="flex flex-col items-center justify-center text-center py-12 gap-4">
                 <div className="icon-tile w-16 h-16">
@@ -84,7 +84,7 @@ export default function Contact() {
                 </button>
               </div>
             ) : (
-              <form onSubmit={submit} className="space-y-5">
+              <form onSubmit={submit} className="flex flex-col flex-1 space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {[["name","Name *","Max Mustermann","text",true],["company","Betrieb / Lokal","Zum goldenen Löwen","text",false]].map(([n,l,p,t,r]) => (
                     <div key={n as string}>
@@ -99,10 +99,10 @@ export default function Contact() {
                   <input type="email" name="email" required value={form.email} onChange={change} placeholder="max@muster.de"
                     className="field px-4 py-3 text-sm" />
                 </div>
-                <div>
+                <div className="flex flex-1 flex-col">
                   <label className="block text-sm text-[var(--fg-muted)] mb-1.5">Ihr Anliegen *</label>
                   <textarea name="message" required rows={5} value={form.message} onChange={change} placeholder="Kurze Beschreibung Ihres Projekts..."
-                    className="field px-4 py-3 text-sm resize-none" />
+                    className="field px-4 py-3 text-sm resize-none flex-1 min-h-[8rem]" />
                 </div>
                 {state === "error" && (
                   <div className="flex items-center gap-2 text-sm" style={{ color: "#ef4444" }}><AlertCircle size={16} />Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.</div>
