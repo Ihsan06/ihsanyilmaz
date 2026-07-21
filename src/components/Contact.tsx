@@ -29,8 +29,8 @@ export default function Contact() {
   return (
     <section id="kontakt" className="surface-base py-24">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-stretch">
+          <div className="flex flex-col">
             <span className="eyebrow inline-block mb-3">Kontakt</span>
             <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-6 leading-tight">
               Lassen Sie uns<br />
@@ -49,11 +49,11 @@ export default function Contact() {
               </div>
             </div>
 
-            <div className="relative mt-4 rounded-[12px] overflow-hidden border" style={{ borderColor: "var(--border)" }}>
+            <div className="relative mt-4 flex-1 min-h-[16rem] rounded-[12px] overflow-hidden border" style={{ borderColor: "var(--border)" }}>
               <iframe
                 title="Standort – Oberer Mainkai 9, 97070 Würzburg (OpenStreetMap)"
                 src="https://www.openstreetmap.org/export/embed.html?bbox=9.9239%2C49.7879%2C9.9309%2C49.7915&layer=mapnik&marker=49.7897%2C9.9274"
-                className="w-full h-56 block"
+                className="w-full h-full block"
                 style={{ border: 0, filter: "grayscale(1)" }}
                 loading="lazy"
               />
