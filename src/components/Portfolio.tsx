@@ -1,13 +1,12 @@
-import { ArrowRight, ExternalLink, Quote } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const projects = [
   {
     tag: "Webentwicklung",
     status: "Online",
-    title: "Autohaus Diezmann GmbH",
-    url: "https://autohaus-diezmann.de",
-    description: "Neuer Webauftritt für einen freien Kfz-Händler bei Coburg — mit Fahrzeug-Präsentation, Ankauf-Anfrage und Werkstatt-Kontakt. Schnell, klar strukturiert und auf allen Geräten optimal.",
-    tech: ["Next.js", "Cloudflare Pages", "Fahrzeug-Präsentation", "Kontaktformular"],
+    title: "Autohaus-Website",
+    description: "Webauftritt für ein Autohaus mit Fahrzeug-Präsentation und Kontaktformular, über das Anfragen direkt per E-Mail ankommen.",
+    tech: ["Next.js", "Cloudflare Pages", "Kontaktformular", "Webshop-Anbindung"],
   },
   {
     tag: "Webentwicklung",
@@ -53,36 +52,10 @@ export default function Portfolio() {
                     <span key={t} className="chip px-2 py-0.5 text-xs font-medium">{t}</span>
                   ))}
                 </div>
-                {p.url && (
-                  <a
-                    href={p.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-5 text-sm font-medium transition-opacity hover:opacity-80"
-                    style={{ color: "var(--accent)" }}
-                  >
-                    Website ansehen <ExternalLink size={15} />
-                  </a>
-                )}
               </div>
             </div>
           ))}
         </div>
-
-        {/* Kundenstimme */}
-        <figure className="card mt-8 p-8 md:p-10">
-          <Quote size={28} style={{ color: "var(--accent)" }} className="mb-4" aria-hidden="true" />
-          <blockquote className="display-h text-xl md:text-2xl font-medium leading-relaxed text-[var(--fg)]">
-            „Ihsan hat unseren kompletten Webauftritt neu umgesetzt — schnell, unkompliziert und genau so, wie wir es uns vorgestellt haben. Die Seite lädt blitzschnell, sieht auf dem Handy top aus und Anfragen kommen jetzt direkt bei uns an. Klare Empfehlung!"
-          </blockquote>
-          <figcaption className="mt-6 flex items-center gap-3">
-            <span className="inline-flex items-center justify-center w-10 h-10 rounded-full font-semibold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>FD</span>
-            <span>
-              <span className="block text-[var(--fg)] font-semibold leading-tight">Flo — Autohaus Diezmann GmbH</span>
-              <span className="block text-[var(--fg-subtle)] text-sm">Weidhausen bei Coburg</span>
-            </span>
-          </figcaption>
-        </figure>
 
         <div className="mt-12">
           <a href="#kontakt" className="inline-flex items-center gap-2 font-medium transition-colors hover:opacity-80" style={{ color: "var(--accent)" }}>
