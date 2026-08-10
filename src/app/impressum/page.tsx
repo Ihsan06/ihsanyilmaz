@@ -6,7 +6,7 @@ export default function Impressum() {
 
         <div className="space-y-8 text-[var(--fg-muted)] text-sm leading-relaxed">
           <section>
-            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">Angaben gemäß § 5 TMG</h2>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">Angaben gemäß § 5 DDG</h2>
             <p>Ihsan Yilmaz<br />
             Oberer Mainkai 9<br />
             97070 Würzburg</p>
@@ -18,13 +18,13 @@ export default function Impressum() {
           </section>
 
           <section>
-            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">Steuerliche Angaben</h2>
-            <p>Steuernummer: 257/291/52520</p>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">Berufsbezeichnung</h2>
+            <p>Webentwicklung</p>
           </section>
 
           <section>
-            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">Berufsbezeichnung</h2>
-            <p>Webentwicklung</p>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2>
+            <p>Ich bin nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
           </section>
 
           <section>
