@@ -11,6 +11,7 @@ export default function Datenschutz() {
             <p className="mt-2">Ihsan Yilmaz<br />
             Oberer Mainkai 9<br />
             97070 Würzburg<br />
+            Telefon: <a href="tel:+4917663657207" className="hover:opacity-80" style={{ color: "var(--accent)" }}>+49 176 63657207</a><br />
             E-Mail: <a href="mailto:kontakt@ihsan-yilmaz.de" className="hover:opacity-80" style={{ color: "var(--accent)" }}>kontakt@ihsan-yilmaz.de</a></p>
           </section>
 
