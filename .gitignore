@@ -43,3 +43,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Cloudflare Wrangler (lokale Dev-Datenbank)
+.wrangler/
+
+# Echte wrangler-Konfiguration (wuerde Dashboard-Bindings ueberschreiben)
+wrangler.toml

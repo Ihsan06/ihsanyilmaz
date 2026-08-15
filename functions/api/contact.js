@@ -63,6 +63,18 @@ export async function onRequestPost({ request, env, waitUntil }) {
     return json({ ok: false, error: 'Bitte eine gültige E-Mail-Adresse angeben.' }, 400);
   }
 
+  // Anfrage im Dashboard sichtbar machen. Bewusst VOR dem Mailversand und
+  // fehlertolerant: Wenn die Datenbank streikt, soll die E-Mail trotzdem rausgehen.
+  if (env.DB) {
+    try {
+      await env.DB.prepare(
+        'INSERT INTO anfragen (name, email, betrieb, nachricht) VALUES (?, ?, ?, ?)',
+      ).bind(name, email, company || null, message).run();
+    } catch {
+      // Dashboard ist nur eine Zusatzfunktion — Formular darf daran nicht scheitern.
+    }
+  }
+
   if (!env.RESEND_API_KEY) {
     return json({ ok: false, error: 'E-Mail-Dienst ist noch nicht konfiguriert.' }, 500);
   }
