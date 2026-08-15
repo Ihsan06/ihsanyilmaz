@@ -55,7 +55,7 @@ export default function AnfragenSeite() {
   const sichtbar = filter === "alle" ? anfragen : anfragen.filter(a => a.status === filter);
 
   return (
-    <AdminShell titel="Anfragen">
+    <AdminShell titel="Anfragen" eyebrow="Verwaltung" lead="Nachrichten aus dem Kontaktformular.">
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
       <div className="flex flex-wrap gap-2 mb-6">

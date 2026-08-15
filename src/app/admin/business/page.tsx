@@ -64,7 +64,7 @@ export default function BusinessSeite() {
   const sichtbar = zeigeErledigte ? erledigt : offen;
 
   return (
-    <AdminShell titel="Selbständigkeit">
+    <AdminShell titel="Selbständigkeit" eyebrow="Verwaltung" lead="Aufgaben, Ideen und Termine.">
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
       <div className="flex flex-wrap gap-2 mb-6">

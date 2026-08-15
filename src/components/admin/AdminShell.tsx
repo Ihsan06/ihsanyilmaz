@@ -1,14 +1,32 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 // Hinweis: lucide-react hat in dieser Version keine Marken-Icons (kein "Instagram") — daher Camera.
-import { LayoutDashboard, Inbox, Camera, Euro, Briefcase, LogOut, Lock } from "lucide-react";
+import { LayoutDashboard, Inbox, Camera, Euro, Briefcase, LogOut, Lock, ExternalLink } from "lucide-react";
 
-const nav = [
-  { href: "/admin", label: "Übersicht", icon: LayoutDashboard },
-  { href: "/admin/anfragen", label: "Anfragen", icon: Inbox },
-  { href: "/admin/instagram", label: "Instagram", icon: Camera },
-  { href: "/admin/finanzen", label: "Finanzen", icon: Euro },
-  { href: "/admin/business", label: "Selbständigkeit", icon: Briefcase },
+type Seite = {
+  pfad: string;
+  titel: string;
+  icon: typeof LayoutDashboard;
+  unter?: { pfad: string; titel: string }[];
+};
+
+// Jeder Punkt trägt sein Zeichen: in einer senkrechten Leiste liest sich eine
+// reine Wörterliste wie ein Inhaltsverzeichnis, nicht wie ein Menü.
+const SEITEN: Seite[] = [
+  { pfad: "/admin", titel: "Übersicht", icon: LayoutDashboard },
+  { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
+  {
+    pfad: "/admin/instagram",
+    titel: "Instagram",
+    icon: Camera,
+    unter: [
+      { pfad: "/admin/instagram", titel: "Profil" },
+      { pfad: "/admin/instagram/content", titel: "Content erstellen" },
+      { pfad: "/admin/instagram/galerie", titel: "Galerie" },
+    ],
+  },
+  { pfad: "/admin/finanzen", titel: "Finanzen", icon: Euro },
+  { pfad: "/admin/business", titel: "Selbständigkeit", icon: Briefcase },
 ];
 
 export async function api(pfad: string, options: RequestInit = {}) {
@@ -52,7 +70,8 @@ function Login({ onErfolg }: { onErfolg: () => void }) {
   };
 
   return (
-    <div className="surface-base min-h-screen flex items-center justify-center px-6">
+    <div className="admin-theme min-h-screen flex items-center justify-center px-6"
+      style={{ background: "var(--tief)" }}>
       <form onSubmit={absenden} className="card w-full max-w-sm p-8">
         <div className="icon-tile w-11 h-11 mb-5"><Lock size={20} /></div>
         <h1 className="display-h text-2xl font-semibold text-[var(--fg)] mb-1">Adminbereich</h1>
@@ -60,12 +79,8 @@ function Login({ onErfolg }: { onErfolg: () => void }) {
 
         <label className="block text-sm text-[var(--fg-muted)] mb-1.5">Passwort</label>
         <input
-          type="password"
-          value={passwort}
-          onChange={e => setPasswort(e.target.value)}
-          autoFocus
-          required
-          className="field px-4 py-3 text-sm"
+          type="password" value={passwort} onChange={e => setPasswort(e.target.value)}
+          autoFocus required className="field px-4 py-3 text-sm"
         />
 
         {fehler && <p className="mt-3 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
@@ -78,7 +93,11 @@ function Login({ onErfolg }: { onErfolg: () => void }) {
   );
 }
 
-export default function AdminShell({ titel, children }: { titel: string; children: ReactNode }) {
+export default function AdminShell({
+  titel, eyebrow, lead, children,
+}: {
+  titel: string; eyebrow?: string; lead?: string; children: ReactNode;
+}) {
   const [status, setStatus] = useState<"pruefe" | "aus" | "an">("pruefe");
   const [pfad, setPfad] = useState("");
 
@@ -96,7 +115,7 @@ export default function AdminShell({ titel, children }: { titel: string; childre
 
   if (status === "pruefe") {
     return (
-      <div className="surface-base min-h-screen flex items-center justify-center">
+      <div className="admin-theme min-h-screen flex items-center justify-center">
         <p className="text-[var(--fg-subtle)] text-sm">Wird geladen…</p>
       </div>
     );
@@ -104,49 +123,99 @@ export default function AdminShell({ titel, children }: { titel: string; childre
 
   if (status === "aus") return <Login onErfolg={() => setStatus("an")} />;
 
-  return (
-    <div className="surface-base min-h-screen">
-      <header className="border-b border-[var(--border)]" style={{ background: "var(--surface)" }}>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <a href="/admin" className="flex items-center gap-2 font-display text-[var(--fg)]">
-              <span className="text-lg font-bold tracking-tight">AIY</span>
-              <span className="text-base font-light" style={{ color: "var(--accent)" }}>|</span>
-              <span className="text-sm font-medium text-[var(--fg-muted)]">Adminbereich</span>
-            </a>
-            <button
-              onClick={abmelden}
-              className="inline-flex items-center gap-2 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-            >
-              <LogOut size={16} /> Abmelden
-            </button>
-          </div>
-          <nav className="flex gap-1 overflow-x-auto -mb-px">
-            {nav.map(n => {
-              const aktiv = pfad === n.href;
-              return (
-                <a
-                  key={n.href}
-                  href={n.href}
-                  className="inline-flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap border-b-2 transition-colors"
-                  style={{
-                    borderColor: aktiv ? "var(--accent)" : "transparent",
-                    color: aktiv ? "var(--accent)" : "var(--fg-muted)",
-                    fontWeight: aktiv ? 600 : 400,
-                  }}
-                >
-                  <n.icon size={16} /> {n.label}
-                </a>
-              );
-            })}
-          </nav>
-        </div>
-      </header>
+  // Ein Punkt gilt auch als aktiv, wenn eine seiner Unterseiten offen ist.
+  const istAktiv = (s: Seite) =>
+    pfad === s.pfad || (s.pfad !== "/admin" && pfad.startsWith(s.pfad + "/"));
 
-      <main className="max-w-7xl mx-auto px-6 lg:px-8 py-10">
-        <h1 className="display-h text-3xl font-semibold text-[var(--fg)] mb-8">{titel}</h1>
-        {children}
-      </main>
+  const jahr = new Date().getFullYear();
+
+  return (
+    <div className="admin-theme min-h-screen flex flex-col">
+      <aside className="admin-leiste">
+        <a href="/admin" className="flex flex-col gap-0.5 px-6 py-5 no-underline" style={{ color: "#fff" }}>
+          <span className="font-display text-xl font-bold tracking-tight">AIY</span>
+          <span className="text-[0.64rem] font-semibold uppercase tracking-[0.06em]"
+            style={{ color: "rgba(255,255,255,0.6)" }}>
+            Verwaltung
+          </span>
+        </a>
+
+        <nav className="flex lg:flex-col gap-1 px-3 pb-4 overflow-x-auto lg:overflow-x-visible"
+          aria-label="Bereiche">
+          {SEITEN.map(s => {
+            const aktiv = istAktiv(s);
+            return (
+              <div key={s.pfad} className="lg:contents">
+                <a
+                  href={s.pfad}
+                  aria-current={aktiv ? "page" : undefined}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-[9px] text-sm font-medium whitespace-nowrap no-underline transition-colors ${aktiv ? "aktiv" : ""}`}
+                >
+                  <s.icon size={18} className="shrink-0" />
+                  <span>{s.titel}</span>
+                </a>
+
+                {/* Unterpunkte erscheinen nur im geöffneten Bereich */}
+                {s.unter && aktiv && (
+                  <div className="hidden lg:flex flex-col gap-0.5 mt-0.5 mb-1 ml-[30px] pl-3.5"
+                    style={{ borderLeft: "1px solid rgba(255,255,255,0.14)" }}>
+                    {s.unter.map(u => (
+                      <a
+                        key={u.pfad}
+                        href={u.pfad}
+                        className={`px-2.5 py-1.5 rounded-[7px] text-[0.83rem] no-underline transition-colors ${pfad === u.pfad ? "unter-aktiv" : ""}`}
+                        style={pfad === u.pfad ? { background: "rgba(255,255,255,0.10)" } : undefined}
+                      >
+                        {u.titel}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="hidden lg:block mt-auto px-6 pt-4 pb-2 text-xs"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.09)" }}>
+          <a href="/" target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 no-underline">
+            Website ansehen <ExternalLink size={12} />
+          </a>
+        </div>
+      </aside>
+
+      <div className="admin-inhalt flex-1 flex flex-col">
+        {/* Abmelden sitzt ganz außen am rechten Bildschirmrand */}
+        <div className="flex justify-end px-6 lg:px-8 pt-5">
+          <button
+            onClick={abmelden}
+            className="inline-flex items-center gap-2 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+          >
+            <LogOut size={16} /> Abmelden
+          </button>
+        </div>
+
+        <main className="flex-1 px-6 lg:px-8 pt-4 pb-12 max-w-[1340px] w-full">
+          <div className="mb-8">
+            {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
+            <h1 className="display-h text-3xl font-semibold text-[var(--fg)]">{titel}</h1>
+            {lead && <p className="text-[var(--fg-muted)] mt-2">{lead}</p>}
+          </div>
+          {children}
+        </main>
+
+        <footer className="border-t border-[var(--border)] px-6 lg:px-8 py-4">
+          <div className="max-w-[1340px] flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-xs text-[var(--fg-subtle)]">
+            <span>© {jahr} AIY · Ihsan Yilmaz — Verwaltung</span>
+            <nav className="flex flex-wrap gap-5">
+              <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent)] transition-colors">Website ansehen ↗</a>
+              <a href="/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent)] transition-colors">Impressum</a>
+              <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent)] transition-colors">Datenschutz</a>
+            </nav>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }

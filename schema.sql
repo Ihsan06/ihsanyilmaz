@@ -51,6 +51,18 @@ CREATE TABLE IF NOT EXISTS notizen (
 );
 CREATE INDEX IF NOT EXISTS idx_notizen_erledigt ON notizen(erledigt);
 
+-- Galerie: Verzeichnis der Bilder. Die Dateien selbst liegen in R2 (Binding BILDER),
+-- hier stehen nur Schlüssel und Größe, damit der Speicherstand abfragbar bleibt.
+CREATE TABLE IF NOT EXISTS bilder (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  schluessel   TEXT NOT NULL UNIQUE,
+  dateiname    TEXT,
+  groesse      INTEGER NOT NULL DEFAULT 0,
+  typ          TEXT,
+  erstellt_am  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_bilder_datum ON bilder(erstellt_am DESC);
+
 -- Fehlgeschlagene Login-Versuche (Brute-Force-Bremse)
 CREATE TABLE IF NOT EXISTS login_versuche (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,

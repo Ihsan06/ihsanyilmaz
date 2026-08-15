@@ -112,6 +112,37 @@ html, body {
 }
 
 /* ============================================================
+   ADMINBEREICH — eigenes Thema: Schwarz / Weiß / Ozeanblau
+   Nur hier gültig, die Website bleibt Terrakotta.
+   ============================================================ */
+.admin-theme {
+  --bg:#F5F7F9; --fg:#0A1622; --fg-muted:#3A4B5C; --fg-subtle:#6B7C8D;
+  --surface:#FFFFFF; --surface-2:#EFF3F6; --border:#DCE3E9;
+  --accent:#12557F; --accent-2:#12557F; --accent-fg:#FFFFFF;
+  --accent-soft:rgba(18,85,127,0.12);
+  --tief:#071A2B;          /* Seitenleiste — Ozean, tief und dunkel */
+  background: var(--bg); color: var(--fg);
+}
+.admin-theme .btn-primary:hover { box-shadow:0 8px 22px rgba(18,85,127,0.30); }
+
+/* Seitenleiste am linken Rand (ab Desktop) */
+.admin-leiste {
+  background: var(--tief); color:#fff;
+}
+.admin-leiste a, .admin-leiste button { color: rgba(255,255,255,0.72); }
+.admin-leiste a:hover, .admin-leiste button:hover { color:#fff; background: rgba(255,255,255,0.07); }
+.admin-leiste a.aktiv { color:#fff; background: var(--accent); }
+.admin-leiste a.unter-aktiv { color:#fff; }
+
+@media (min-width: 1024px) {
+  .admin-leiste {
+    position: fixed; top:0; left:0; bottom:0; width:240px; z-index:60;
+    overflow-y:auto; display:flex; flex-direction:column;
+  }
+  .admin-inhalt { margin-left:240px; }
+}
+
+/* ============================================================
    HERO BACKGROUND — grid
    ============================================================ */
 .hero-bg { position:relative; }

@@ -1,0 +1,154 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { Upload, Trash2, ImageOff } from "lucide-react";
+import AdminShell, { api, datum } from "@/components/admin/AdminShell";
+
+type Bild = {
+  schluessel: string;
+  dateiname: string | null;
+  groesse: number;
+  typ: string | null;
+  erstellt_am: string;
+};
+
+function mb(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+export default function GalerieSeite() {
+  const [bilder, setBilder] = useState<Bild[]>([]);
+  const [summe, setSumme] = useState(0);
+  const [speicherDa, setSpeicherDa] = useState(true);
+  const [laedtHoch, setLaedtHoch] = useState(false);
+  const [fehler, setFehler] = useState("");
+  const [laedt, setLaedt] = useState(true);
+  const dateiFeld = useRef<HTMLInputElement>(null);
+
+  const laden = () =>
+    api("/api/admin/bild")
+      .then(d => {
+        setBilder(d.bilder);
+        setSumme(d.summeBytes);
+        setSpeicherDa(d.speicherVerbunden);
+      })
+      .catch(e => setFehler(e.message))
+      .finally(() => setLaedt(false));
+
+  useEffect(() => { laden(); }, []);
+
+  const hochladen = async (dateien: FileList | null) => {
+    if (!dateien?.length) return;
+    setFehler("");
+    setLaedtHoch(true);
+    try {
+      for (const datei of Array.from(dateien)) {
+        const form = new FormData();
+        form.append("datei", datei);
+        // Kein Content-Type setzen — der Browser ergänzt die multipart-Grenze selbst.
+        const res = await fetch("/api/admin/bild", { method: "POST", body: form });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d?.error || "Upload fehlgeschlagen.");
+      }
+      laden();
+    } catch (err) {
+      setFehler(err instanceof Error ? err.message : "Upload fehlgeschlagen.");
+    } finally {
+      setLaedtHoch(false);
+      if (dateiFeld.current) dateiFeld.current.value = "";
+    }
+  };
+
+  const loeschen = async (schluessel: string) => {
+    if (!confirm("Dieses Bild wirklich löschen?")) return;
+    setBilder(b => b.filter(x => x.schluessel !== schluessel));
+    await api("/api/admin/bild", { method: "DELETE", body: JSON.stringify({ schluessel }) })
+      .then(laden)
+      .catch(e => setFehler(e.message));
+  };
+
+  return (
+    <AdminShell
+      titel="Galerie"
+      eyebrow="Instagram"
+      lead="Deine Fotos — hinzufügen, ansehen, herausnehmen."
+    >
+      {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
+
+      {!speicherDa && (
+        <div className="card p-5 mb-6">
+          <p className="text-[var(--fg)] font-medium mb-1">Bildspeicher noch nicht verbunden</p>
+          <p className="text-[var(--fg-muted)] text-sm leading-relaxed">
+            Die Galerie ist fertig eingebaut, es fehlt nur der Speicher. In Cloudflare unter{" "}
+            <em>R2 → Create bucket</em> einen Bucket anlegen (z.&nbsp;B. <code>aiy-bilder</code>) und
+            ihn im Pages-Projekt unter <em>Settings → Bindings → Add → R2 bucket</em> als{" "}
+            <code>BILDER</code> hinterlegen. Danach einmal neu deployen.
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-4 mb-6">
+        <button
+          onClick={() => dateiFeld.current?.click()}
+          disabled={laedtHoch || !speicherDa}
+          className="btn-primary px-5 py-2.5 text-sm disabled:opacity-60"
+        >
+          <Upload size={16} /> {laedtHoch ? "Wird hochgeladen…" : "Bilder hinzufügen"}
+        </button>
+        <input
+          ref={dateiFeld} type="file" accept="image/jpeg,image/png,image/webp,image/avif"
+          multiple hidden onChange={e => hochladen(e.target.files)}
+        />
+        <span className="text-[var(--fg-subtle)] text-sm">
+          {bilder.length} {bilder.length === 1 ? "Bild" : "Bilder"} · {mb(summe)} belegt
+        </span>
+      </div>
+
+      {laedt ? (
+        <p className="text-[var(--fg-subtle)] text-sm">Wird geladen…</p>
+      ) : bilder.length === 0 ? (
+        <div className="card p-10 text-center">
+          <div className="inline-flex items-center justify-center mb-3" style={{ color: "var(--fg-subtle)" }}>
+            <ImageOff size={28} />
+          </div>
+          <p className="text-[var(--fg-muted)]">Noch keine Bilder in der Galerie.</p>
+          <p className="text-[var(--fg-subtle)] text-sm mt-1">
+            JPG, PNG, WebP oder AVIF — bis 8 MB pro Bild.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+          {bilder.map(b => (
+            <figure key={b.schluessel} className="card overflow-hidden flex flex-col">
+              <div className="relative" style={{ aspectRatio: "1 / 1", background: "var(--surface-2)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/admin/bild?schluessel=${encodeURIComponent(b.schluessel)}`}
+                  alt={b.dateiname || "Galeriebild"}
+                  loading="lazy"
+                  className="w-full h-full object-cover block"
+                />
+                <button
+                  onClick={() => loeschen(b.schluessel)}
+                  aria-label="Bild löschen"
+                  className="absolute top-2 right-2 p-2 rounded-[8px] transition-colors"
+                  style={{ background: "rgba(7,26,43,0.72)", color: "#fff" }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <figcaption className="p-3">
+                <div className="text-[var(--fg)] text-xs font-medium truncate" title={b.dateiname || ""}>
+                  {b.dateiname || "Bild"}
+                </div>
+                <div className="text-[var(--fg-subtle)] text-xs mt-0.5">
+                  {mb(b.groesse)} · {datum(b.erstellt_am)}
+                </div>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+    </AdminShell>
+  );
+}

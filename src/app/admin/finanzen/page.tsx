@@ -81,7 +81,7 @@ export default function FinanzenSeite() {
   };
 
   return (
-    <AdminShell titel="Einnahmen & Ausgaben">
+    <AdminShell titel="Einnahmen & Ausgaben" eyebrow="Verwaltung" lead="Was reinkommt, was rausgeht.">
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">

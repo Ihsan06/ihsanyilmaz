@@ -26,7 +26,7 @@ export default function AdminUebersicht() {
   const monat = new Date().toLocaleDateString("de-DE", { month: "long", year: "numeric" });
 
   return (
-    <AdminShell titel="Übersicht">
+    <AdminShell titel="Übersicht" eyebrow="Verwaltung" lead="Alles Wichtige auf einen Blick.">
       {fehler && (
         <div className="card p-5 mb-6" style={{ borderColor: "#ef4444" }}>
           <p className="text-sm" style={{ color: "#ef4444" }}>{fehler}</p>
