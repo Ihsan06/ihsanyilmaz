@@ -164,6 +164,31 @@ neuen Wert speichern, dann Schritt 5.
 
 ---
 
+## Optional: API-Verbrauch mit Tageszahlen (Finanzen → API & Verbrauch)
+
+Die Seite zeigt Datenbankgröße, Bildspeicher und Mail-Verbrauch **sofort ohne Setup**.
+Für die Tageszahlen (gelesene/geschriebene Zeilen, Seitenaufrufe) braucht es einen
+lesenden Cloudflare-Token:
+
+1. **https://dash.cloudflare.com/profile/api-tokens** → **Create Token**
+2. Unten **Create Custom Token** → **Get started**
+3. Name: `aiy-verbrauch` — Berechtigungen (beide nur **Read**):
+   - **Account → Account Analytics → Read**
+   - **Account → D1 → Read**
+4. **Continue to summary** → **Create Token** → den Token kopieren
+   (wird nur einmal angezeigt).
+5. Im Pages-Projekt unter **Settings → Variables and Secrets** zwei Einträge anlegen:
+
+   | Typ | Name | Wert |
+   |---|---|---|
+   | Secret | `CF_API_TOKEN` | der eben erzeugte Token |
+   | Text | `CF_ACCOUNT_ID` | deine Account-ID (Dashboard → rechte Seitenleiste unter „API", oder in der URL nach `dash.cloudflare.com/`) |
+
+6. **Deployments → Retry deployment.**
+
+Der Token kann nur lesen — selbst wenn er abhandenkommt, kann damit niemand etwas
+ändern oder löschen. Trotzdem: wie ein Passwort behandeln.
+
 ## Was der Adminbereich kann
 
 - **Übersicht** — Kennzahlen auf einen Blick

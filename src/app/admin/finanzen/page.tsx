@@ -12,7 +12,7 @@ type Transaktion = {
   datum: string;
 };
 
-const KATEGORIEN = ["Website-Projekt", "Wartung", "Software / Tools", "Hardware", "Fahrtkosten", "Sonstiges"];
+const KATEGORIEN = ["Website-Projekt", "Wartung", "KI-Abos (Anthropic & Co.)", "Software / Tools", "Hardware", "Fahrtkosten", "Sonstiges"];
 
 const heute = () => new Date().toISOString().slice(0, 10);
 const LEER = { art: "einnahme", betrag: "", beschreibung: "", kategorie: "", datum: heute() };

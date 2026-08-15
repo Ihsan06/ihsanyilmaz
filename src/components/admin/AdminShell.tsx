@@ -14,7 +14,16 @@ type Seite = {
 // reine Wörterliste wie ein Inhaltsverzeichnis, nicht wie ein Menü.
 const SEITEN: Seite[] = [
   { pfad: "/admin", titel: "Übersicht", icon: LayoutDashboard },
-  { pfad: "/admin/finanzen", titel: "Finanzen", icon: Euro },
+  {
+    pfad: "/admin/finanzen",
+    titel: "Finanzen",
+    icon: Euro,
+    unter: [
+      { pfad: "/admin/finanzen", titel: "Einnahmen & Ausgaben" },
+      { pfad: "/admin/finanzen/steuer", titel: "Steuer" },
+      { pfad: "/admin/finanzen/api", titel: "API & Verbrauch" },
+    ],
+  },
   { pfad: "/admin/business", titel: "Selbständigkeit", icon: Briefcase },
   {
     pfad: "/admin/instagram",
