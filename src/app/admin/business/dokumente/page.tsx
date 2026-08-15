@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Upload, Trash2, FileText, Download } from "lucide-react";
+import { Upload, Trash2, FileText, Download, Eye, X, ExternalLink } from "lucide-react";
 import AdminShell, { api, datum } from "@/components/admin/AdminShell";
 
 type Dokument = {
@@ -15,6 +15,16 @@ type Dokument = {
 
 const KATEGORIEN = ["Rechnung", "Beleg", "Vertrag", "Behörde", "Sonstiges"];
 
+// Im Fenster anzeigen können Browser nur PDFs und Bilder — Word/Excel/CSV
+// werden stattdessen heruntergeladen.
+function vorschaubar(typ: string | null) {
+  return typ === "application/pdf" || (typ ?? "").startsWith("image/");
+}
+
+function dokUrl(schluessel: string) {
+  return `/api/admin/dokument?schluessel=${encodeURIComponent(schluessel)}`;
+}
+
 function mb(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -28,7 +38,16 @@ export default function DokumenteSeite() {
   const [laedtHoch, setLaedtHoch] = useState(false);
   const [fehler, setFehler] = useState("");
   const [laedt, setLaedt] = useState(true);
+  const [vorschau, setVorschau] = useState<Dokument | null>(null);
   const dateiFeld = useRef<HTMLInputElement>(null);
+
+  // Vorschau mit Escape schließen
+  useEffect(() => {
+    if (!vorschau) return;
+    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") setVorschau(null); };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [vorschau]);
 
   const laden = () =>
     api("/api/admin/dokument")
@@ -134,7 +153,10 @@ export default function DokumenteSeite() {
             <div key={d.schluessel} className="card p-5 flex items-center gap-4">
               <div className="icon-tile w-10 h-10 shrink-0"><FileText size={18} /></div>
 
-              <div className="flex-1 min-w-0">
+              <div
+                className={`flex-1 min-w-0 ${vorschaubar(d.typ) ? "cursor-pointer" : ""}`}
+                onClick={() => vorschaubar(d.typ) && setVorschau(d)}
+              >
                 <div className="text-[var(--fg)] font-medium truncate" title={d.dateiname || ""}>
                   {d.dateiname || "Dokument"}
                 </div>
@@ -145,10 +167,20 @@ export default function DokumenteSeite() {
                 {d.notiz && <p className="text-[var(--fg-muted)] text-sm mt-1.5">{d.notiz}</p>}
               </div>
 
+              {vorschaubar(d.typ) && (
+                <button
+                  onClick={() => setVorschau(d)}
+                  aria-label="Vorschau öffnen"
+                  className="p-2 rounded-[8px] transition-colors hover:opacity-80 shrink-0"
+                  style={{ color: "var(--accent)" }}
+                >
+                  <Eye size={17} />
+                </button>
+              )}
               <a
-                href={`/api/admin/dokument?schluessel=${encodeURIComponent(d.schluessel)}`}
+                href={dokUrl(d.schluessel)}
                 target="_blank" rel="noopener noreferrer"
-                aria-label="Dokument öffnen"
+                aria-label="Dokument öffnen / herunterladen"
                 className="p-2 rounded-[8px] transition-colors hover:opacity-80 shrink-0"
                 style={{ color: "var(--accent)" }}
               >
@@ -162,6 +194,65 @@ export default function DokumenteSeite() {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Vorschau-Fenster */}
+      {vorschau && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8"
+          style={{ background: "rgba(7,26,43,0.72)" }}
+          onClick={() => setVorschau(null)}
+          role="dialog" aria-modal="true" aria-label={`Vorschau: ${vorschau.dateiname || "Dokument"}`}
+        >
+          <div
+            className="card w-full max-w-4xl h-full max-h-[88vh] flex flex-col overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 px-5 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+              <FileText size={17} style={{ color: "var(--accent)" }} className="shrink-0" />
+              <span className="flex-1 min-w-0 truncate text-sm font-medium text-[var(--fg)]"
+                title={vorschau.dateiname || ""}>
+                {vorschau.dateiname || "Dokument"}
+              </span>
+              <a
+                href={dokUrl(vorschau.schluessel)}
+                target="_blank" rel="noopener noreferrer"
+                aria-label="In neuem Tab öffnen"
+                className="p-1.5 rounded-[8px] hover:opacity-80 transition-opacity shrink-0"
+                style={{ color: "var(--accent)" }}
+              >
+                <ExternalLink size={16} />
+              </a>
+              <button
+                onClick={() => setVorschau(null)}
+                aria-label="Vorschau schließen"
+                className="p-1.5 rounded-[8px] text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors shrink-0"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0" style={{ background: "var(--surface-2)" }}>
+              {vorschau.typ === "application/pdf" ? (
+                <iframe
+                  title={`Vorschau: ${vorschau.dateiname || "Dokument"}`}
+                  src={dokUrl(vorschau.schluessel)}
+                  className="w-full h-full block"
+                  style={{ border: 0 }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={dokUrl(vorschau.schluessel)}
+                    alt={vorschau.dateiname || "Dokument"}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </AdminShell>
