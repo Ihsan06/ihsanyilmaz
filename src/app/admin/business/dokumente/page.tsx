@@ -60,26 +60,29 @@ export default function DokumenteSeite() {
 
   useEffect(() => { laden(); }, []);
 
+  // Jede Datei einzeln hochladen und bei Fehlern weitermachen —
+  // sonst reißt am Handy eine problematische Datei den ganzen Stapel ab.
   const hochladen = async (dateien: FileList | null) => {
     if (!dateien?.length) return;
     setFehler("");
     setLaedtHoch(true);
-    try {
-      for (const datei of Array.from(dateien)) {
+    const probleme: string[] = [];
+    for (const datei of Array.from(dateien)) {
+      try {
         const form = new FormData();
         form.append("datei", datei);
         form.append("kategorie", kategorie);
         const res = await fetch("/api/admin/dokument", { method: "POST", body: form });
         const d = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(d?.error || "Upload fehlgeschlagen.");
+        if (!res.ok) probleme.push(`${datei.name}: ${d?.error || `Fehler ${res.status}`}`);
+      } catch {
+        probleme.push(`${datei.name}: Verbindung abgebrochen — bitte erneut versuchen.`);
       }
-      laden();
-    } catch (err) {
-      setFehler(err instanceof Error ? err.message : "Upload fehlgeschlagen.");
-    } finally {
-      setLaedtHoch(false);
-      if (dateiFeld.current) dateiFeld.current.value = "";
     }
+    if (probleme.length) setFehler(probleme.join(" · "));
+    laden();
+    setLaedtHoch(false);
+    if (dateiFeld.current) dateiFeld.current.value = "";
   };
 
   const loeschen = async (schluessel: string) => {
@@ -123,7 +126,7 @@ export default function DokumenteSeite() {
         </button>
         <input
           ref={dateiFeld} type="file" multiple hidden
-          accept=".pdf,.jpg,.jpeg,.png,.webp,.docx,.odt,.xlsx,.csv"
+          accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.docx,.odt,.xlsx,.csv,application/pdf,image/*"
           onChange={e => hochladen(e.target.files)}
         />
         <span className="text-[var(--fg-subtle)] text-sm">PDF, Bilder, Word/ODT, Excel, CSV — bis 15 MB</span>

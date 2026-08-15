@@ -6,15 +6,23 @@
 import { json, nurAngemeldet, istAngemeldet } from '../../_lib/auth.js';
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15 MB je Dokument
+// iOS liefert je nach Quelle (Fotos, Dateien-App, Teilen-Menü) mal HEIC, mal einen
+// leeren MIME-Typ. Deshalb: bekannte MIME-Typen ODER bekannte Datei-Endung genügt.
 const ERLAUBTE_TYPEN = [
   'application/pdf',
-  'image/jpeg', 'image/png', 'image/webp',
+  'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
   'application/vnd.oasis.opendocument.text',                                  // .odt
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',        // .xlsx
   'text/csv',
 ];
+const ERLAUBTE_ENDUNGEN = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'docx', 'odt', 'xlsx', 'csv'];
 const KATEGORIEN = ['Rechnung', 'Beleg', 'Vertrag', 'Behörde', 'Sonstiges'];
+
+export function dateiErlaubt(datei) {
+  const endung = (datei.name?.split('.').pop() || '').toLowerCase();
+  return ERLAUBTE_TYPEN.includes(datei.type) || ERLAUBTE_ENDUNGEN.includes(endung);
+}
 
 // GET ohne ?schluessel= : Liste. Mit ?schluessel= : die Datei selbst (Download).
 export async function onRequestGet({ request, env }) {
@@ -71,8 +79,8 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   if (!datei || typeof datei === 'string') {
     return json({ ok: false, error: 'Keine Datei erhalten.' }, 400);
   }
-  if (!ERLAUBTE_TYPEN.includes(datei.type)) {
-    return json({ ok: false, error: 'Nur PDF, Bilder, Word/ODT, Excel oder CSV.' }, 415);
+  if (!dateiErlaubt(datei)) {
+    return json({ ok: false, error: `Dateityp nicht unterstützt (${datei.type || 'unbekannt'} / ${datei.name}). Erlaubt: PDF, Bilder, Word/ODT, Excel, CSV.` }, 415);
   }
   if (datei.size > MAX_BYTES) {
     return json({ ok: false, error: 'Dokument ist größer als 15 MB.' }, 413);

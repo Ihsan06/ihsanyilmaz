@@ -10,7 +10,9 @@
 import { json, nurAngemeldet, istAngemeldet } from '../../_lib/auth.js';
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB pro Bild
-const ERLAUBTE_TYPEN = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+// iOS liefert Fotos oft als HEIC oder ohne MIME-Typ — Endung als Rückfallebene zulassen.
+const ERLAUBTE_TYPEN = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/heic', 'image/heif'];
+const ERLAUBTE_ENDUNGEN = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'heic', 'heif'];
 
 // GET ohne ?schluessel= : Liste. Mit ?schluessel= : das Bild selbst.
 export async function onRequestGet({ request, env }) {
@@ -57,8 +59,9 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   if (!datei || typeof datei === 'string') {
     return json({ ok: false, error: 'Keine Datei erhalten.' }, 400);
   }
-  if (!ERLAUBTE_TYPEN.includes(datei.type)) {
-    return json({ ok: false, error: 'Nur JPG, PNG, WebP oder AVIF.' }, 415);
+  const endung = (datei.name?.split('.').pop() || '').toLowerCase();
+  if (!ERLAUBTE_TYPEN.includes(datei.type) && !ERLAUBTE_ENDUNGEN.includes(endung)) {
+    return json({ ok: false, error: `Dateityp nicht unterstützt (${datei.type || 'unbekannt'}). Erlaubt: JPG, PNG, WebP, AVIF, HEIC.` }, 415);
   }
   if (datei.size > MAX_BYTES) {
     return json({ ok: false, error: 'Bild ist größer als 8 MB.' }, 413);
@@ -66,8 +69,7 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
 
   // Dateiname niemals ungeprüft als Schlüssel verwenden — sonst ließe sich
   // über "../" aus dem Bilderbereich ausbrechen.
-  const endung = (datei.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const schluessel = `galerie/${crypto.randomUUID()}.${endung}`;
+  const schluessel = `galerie/${crypto.randomUUID()}.${(endung || 'jpg').replace(/[^a-z0-9]/g, '')}`;
 
   await env.BILDER.put(schluessel, datei.stream(), {
     httpMetadata: { contentType: datei.type },

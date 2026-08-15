@@ -96,7 +96,7 @@ export default function GalerieSeite() {
           <Upload size={16} /> {laedtHoch ? "Wird hochgeladen…" : "Bilder hinzufügen"}
         </button>
         <input
-          ref={dateiFeld} type="file" accept="image/jpeg,image/png,image/webp,image/avif"
+          ref={dateiFeld} type="file" accept="image/*,.heic,.heif"
           multiple hidden onChange={e => hochladen(e.target.files)}
         />
         <span className="text-[var(--fg-subtle)] text-sm">
