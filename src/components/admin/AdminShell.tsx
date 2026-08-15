@@ -20,8 +20,8 @@ const SEITEN: Seite[] = [
     icon: Euro,
     unter: [
       { pfad: "/admin/finanzen", titel: "Einnahmen & Ausgaben" },
-      { pfad: "/admin/finanzen/steuer", titel: "Steuer" },
       { pfad: "/admin/finanzen/api", titel: "API & Verbrauch" },
+      { pfad: "/admin/finanzen/steuer", titel: "Steuer" },
     ],
   },
   {
@@ -34,7 +34,15 @@ const SEITEN: Seite[] = [
       { pfad: "/admin/instagram/galerie", titel: "Galerie" },
     ],
   },
-  { pfad: "/admin/business", titel: "Selbständigkeit", icon: Briefcase },
+  {
+    pfad: "/admin/business",
+    titel: "Selbständigkeit",
+    icon: Briefcase,
+    unter: [
+      { pfad: "/admin/business", titel: "Aufgaben & Notizen" },
+      { pfad: "/admin/business/dokumente", titel: "Dokumente" },
+    ],
+  },
   { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
 ];
 

@@ -63,6 +63,20 @@ CREATE TABLE IF NOT EXISTS bilder (
 );
 CREATE INDEX IF NOT EXISTS idx_bilder_datum ON bilder(erstellt_am DESC);
 
+-- Dokumentenarchiv: Rechnungen, Belege, Verträge, Behördenpost.
+-- Dateien liegen wie die Galerie in R2 (Binding BILDER), unter dem Präfix "dokumente/".
+CREATE TABLE IF NOT EXISTS dokumente (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  schluessel   TEXT NOT NULL UNIQUE,
+  dateiname    TEXT,
+  kategorie    TEXT,                          -- Rechnung | Beleg | Vertrag | Behörde | Sonstiges
+  notiz        TEXT,
+  groesse      INTEGER NOT NULL DEFAULT 0,
+  typ          TEXT,
+  erstellt_am  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_dokumente_datum ON dokumente(erstellt_am DESC);
+
 -- Fehlgeschlagene Login-Versuche (Brute-Force-Bremse)
 CREATE TABLE IF NOT EXISTS login_versuche (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
