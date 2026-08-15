@@ -144,6 +144,9 @@ export default function AdminShell({
   const istAktiv = (s: Seite) =>
     pfad === s.pfad || (s.pfad !== "/admin" && pfad.startsWith(s.pfad + "/"));
 
+  // Für die Handy-Ansicht: die Unterpunkte des gerade offenen Bereichs
+  const aktiveUnter = SEITEN.find(s => istAktiv(s) && s.unter)?.unter;
+
   const jahr = new Date().getFullYear();
 
   return (
@@ -193,6 +196,24 @@ export default function AdminShell({
           })}
         </nav>
 
+        {/* Handy: Unterpunkte des offenen Bereichs als zweite Zeile */}
+        {aktiveUnter && (
+          <div className="flex lg:hidden gap-1.5 px-3 pb-3 pt-2.5 overflow-x-auto"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.09)" }}>
+            {aktiveUnter.map(u => (
+              <a
+                key={u.pfad}
+                href={u.pfad}
+                className="px-3 py-1.5 rounded-full text-[0.8rem] whitespace-nowrap no-underline transition-colors"
+                style={pfad === u.pfad
+                  ? { background: "var(--accent)", color: "#fff" }
+                  : { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.75)" }}
+              >
+                {u.titel}
+              </a>
+            ))}
+          </div>
+        )}
       </aside>
 
       <div className="admin-inhalt flex-1 flex flex-col">
@@ -200,7 +221,7 @@ export default function AdminShell({
         <div className="flex justify-end items-center gap-6 px-6 lg:px-8 pt-5">
           <a
             href="/" target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+            className="hidden lg:inline-flex items-center gap-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
           >
             Website ansehen <ExternalLink size={14} />
           </a>
