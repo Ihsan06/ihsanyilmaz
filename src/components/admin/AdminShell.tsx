@@ -24,7 +24,6 @@ const SEITEN: Seite[] = [
       { pfad: "/admin/finanzen/api", titel: "API & Verbrauch" },
     ],
   },
-  { pfad: "/admin/business", titel: "Selbständigkeit", icon: Briefcase },
   {
     pfad: "/admin/instagram",
     titel: "Instagram",
@@ -35,6 +34,7 @@ const SEITEN: Seite[] = [
       { pfad: "/admin/instagram/galerie", titel: "Galerie" },
     ],
   },
+  { pfad: "/admin/business", titel: "Selbständigkeit", icon: Briefcase },
   { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
 ];
 
@@ -185,18 +185,17 @@ export default function AdminShell({
           })}
         </nav>
 
-        <div className="hidden lg:block mt-auto px-6 pt-4 pb-2 text-xs"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.09)" }}>
-          <a href="/" target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 no-underline">
-            Website ansehen <ExternalLink size={12} />
-          </a>
-        </div>
       </aside>
 
       <div className="admin-inhalt flex-1 flex flex-col">
-        {/* Abmelden sitzt ganz außen am rechten Bildschirmrand */}
-        <div className="flex justify-end px-6 lg:px-8 pt-5">
+        {/* Beide Wege nach draußen sitzen ganz außen am rechten Bildschirmrand */}
+        <div className="flex justify-end items-center gap-6 px-6 lg:px-8 pt-5">
+          <a
+            href="/" target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
+          >
+            Website ansehen <ExternalLink size={14} />
+          </a>
           <button
             onClick={abmelden}
             className="inline-flex items-center gap-2 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
