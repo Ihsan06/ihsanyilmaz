@@ -14,7 +14,8 @@ type Seite = {
 // reine Wörterliste wie ein Inhaltsverzeichnis, nicht wie ein Menü.
 const SEITEN: Seite[] = [
   { pfad: "/admin", titel: "Übersicht", icon: LayoutDashboard },
-  { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
+  { pfad: "/admin/finanzen", titel: "Finanzen", icon: Euro },
+  { pfad: "/admin/business", titel: "Selbständigkeit", icon: Briefcase },
   {
     pfad: "/admin/instagram",
     titel: "Instagram",
@@ -25,8 +26,7 @@ const SEITEN: Seite[] = [
       { pfad: "/admin/instagram/galerie", titel: "Galerie" },
     ],
   },
-  { pfad: "/admin/finanzen", titel: "Finanzen", icon: Euro },
-  { pfad: "/admin/business", titel: "Selbständigkeit", icon: Briefcase },
+  { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
 ];
 
 export async function api(pfad: string, options: RequestInit = {}) {
