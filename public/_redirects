@@ -1,0 +1,7 @@
+# Cloudflare Pages Redirects
+# iPhones schreiben den ersten Buchstaben automatisch groß ("Admin") —
+# URLs sind aber case-sensitiv. Diese Regeln fangen die üblichen Varianten ab.
+/Admin /admin 301
+/Admin/* /admin/:splat 301
+/ADMIN /admin 301
+/ADMIN/* /admin/:splat 301
