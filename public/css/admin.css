@@ -2112,6 +2112,15 @@ a.admin-karte h2 { color: var(--text); }
 .btn-klein[data-posten]:disabled { opacity: .6; }
 .btn-klein[data-posten] svg { flex: none; }
 
+/* Planen: dunkel gefuellt, Zeichen links – gleiche Hoehe und Ausrichtung
+   wie die beiden Nachbarn, sonst haengt das Kalenderzeichen auf der
+   Textbasislinie und der Knopf faellt aus der Reihe. */
+.btn-klein[data-planen] {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 18px; font-size: .82rem;
+}
+.btn-klein[data-planen] svg { flex: none; }
+
 /* Teilen: schwarz auf weiss, Zeichen links. */
 .btn-klein.sm-teilen {
   display: inline-flex; align-items: center; gap: 8px;
