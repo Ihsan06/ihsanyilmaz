@@ -2496,28 +2496,22 @@ html.vp-offen { overflow: hidden; }
 }
 .vp-nein:hover { border-color: var(--muted) !important; }
 
-/* Einplanen im Rueckfrage-Kasten: bewusst unterhalb der beiden Knoepfe und
-   leiser gesetzt – der Normalfall bleibt das direkte Posten. */
-.vp-planen {
-  width: 100%; margin-top: 6px; padding-top: 14px;
-  border-top: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 8px;
+/* "Beitrag planen": das eigene, mittelgrosse Fenster mit Datum und Uhrzeit.
+   Was hier eingeplant wird, erscheint unter Content planen. */
+.vp-kasten.vp-mittel { width: min(28rem, 100%); }
+.vp-achtung.vp-uhr { background: rgba(18, 85, 127, .1); color: var(--gold, #12557F); }
+.vp-feld {
+  width: 100%; margin-top: 4px;
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
 }
-.vp-oder { font-size: .8rem; color: var(--muted); }
-.vp-plan-zeile { display: flex; gap: 8px; }
+.vp-feld > span { font-size: .8rem; font-weight: 600; color: var(--muted); }
 .vp-wann {
-  flex: 1; min-width: 0; font: inherit; font-size: .85rem;
-  padding: 9px 12px; border-radius: 10px;
+  width: 100%; font: inherit; font-size: .95rem;
+  padding: 11px 14px; border-radius: 10px;
   border: 1px solid var(--border); background: var(--off); color: var(--text);
   color-scheme: light;
 }
 .vp-wann:focus { outline: 2px solid var(--gold, #12557F); outline-offset: 1px; }
-.vp-plan {
-  border: 0; border-radius: 999px; cursor: pointer; font: inherit;
-  font-size: .85rem; font-weight: 700; padding: 9px 16px; flex: none;
-  background: var(--off); color: var(--text); border: 1px solid var(--border);
-}
-.vp-plan:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
 
 @media (prefers-reduced-motion: no-preference) {
   .vp-kasten { animation: vp-auf .16s ease-out; }

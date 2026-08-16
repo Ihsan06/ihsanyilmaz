@@ -316,6 +316,14 @@
                   stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <span>Beitrag teilen</span></button>
+        <button type="button" class="btn-klein" data-planen>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+               stroke-width="1.9" aria-hidden="true">
+            <rect x="3" y="4.5" width="18" height="16" rx="2.5"/>
+            <path d="M3 9.5h18M8 2.8v3.4M16 2.8v3.4" stroke-linecap="round"/>
+            <path d="M12 12.5v3l2 1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Beitrag planen</span></button>
         <span class="sm-meldung"></span>
       </div>`;
 
@@ -371,6 +379,7 @@
       const teilenKnopf = fuss.querySelector('[data-teilen]');
       if (teilenKnopf) teilenKnopf.addEventListener('click', () => teilen(feld, ziel, teilenKnopf));
       veroeffentlichenVerdrahten(feld, fuss, ziel);
+      planFensterVerdrahten(feld, fuss, ziel);
     } catch (err) {
       ziel.innerHTML = `<div class="gd-fehler"><b>Bilder konnten nicht geladen werden.</b>
         <span>${schuetzen(err.message)}</span></div>`;
@@ -651,13 +660,6 @@
           <button type="button" class="vp-ja">Ja, direkt veröffentlichen</button>
           <button type="button" class="vp-nein">Abbrechen</button>
         </div>
-        <div class="vp-planen">
-          <span class="vp-oder">oder erst später – automatisch:</span>
-          <div class="vp-plan-zeile">
-            <input type="datetime-local" class="vp-wann" aria-label="Wann posten" />
-            <button type="button" class="vp-plan">Einplanen</button>
-          </div>
-        </div>
       </div>`;
       document.body.append(schleier);
       document.documentElement.classList.add('vp-offen');
@@ -676,6 +678,58 @@
         zu();
         veroeffentlichen(feld, ziel, knopf, mitgegeben && mitgegeben());
       });
+      schleier.querySelector('.vp-ja').focus();
+    });
+  }
+
+  // Der dritte Knopf: "Beitrag planen". Ein eigenes Fenster mit Datum und
+  // Uhrzeit – was hier eingeplant wird, erscheint unter Content planen
+  // (/admin/planen) und laesst sich dort noch bearbeiten, verschieben oder
+  // sofort rausschicken.
+  function planFensterVerdrahten(feld, ort, ziel, mitgegeben) {
+    const knopf = ort.querySelector('[data-planen]');
+    if (!knopf) return;
+
+    knopf.addEventListener('click', () => {
+      if (document.querySelector('.vp-schleier')) return;
+      const was = format === 'story' ? 'Story' : 'Beitrag';
+
+      const schleier = document.createElement('div');
+      schleier.className = 'vp-schleier';
+      schleier.innerHTML = `<div class="vp-kasten vp-mittel" role="dialog" aria-modal="true"
+             aria-labelledby="vp-plan-titel">
+        <span class="vp-achtung vp-uhr" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+            <rect x="3" y="4.5" width="18" height="16" rx="2.5"/>
+            <path d="M3 9.5h18M8 2.8v3.4M16 2.8v3.4" stroke-linecap="round"/>
+            <path d="M12 12.5v3l2 1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <b id="vp-plan-titel">${was} planen</b>
+        <p>Geht zur gewählten Zeit automatisch auf <strong>@aiy.web</strong> raus.
+          Bis dahin steht ${format === 'story' ? 'die' : 'der'} ${was} unter
+          <strong>Content planen</strong> und lässt sich dort noch bearbeiten.</p>
+        <label class="vp-feld">
+          <span>Datum und Uhrzeit</span>
+          <input type="datetime-local" class="vp-wann" />
+        </label>
+        <div class="vp-knoepfe">
+          <button type="button" class="vp-ja vp-plan-los">Einplanen</button>
+          <button type="button" class="vp-nein">Abbrechen</button>
+        </div>
+      </div>`;
+      document.body.append(schleier);
+      document.documentElement.classList.add('vp-offen');
+
+      const zu = () => {
+        schleier.remove();
+        document.documentElement.classList.remove('vp-offen');
+        document.removeEventListener('keydown', taste);
+      };
+      const taste = e => { if (e.key === 'Escape') zu(); };
+      document.addEventListener('keydown', taste);
+      schleier.addEventListener('click', e => { if (e.target === schleier) zu(); });
+      schleier.querySelector('.vp-nein').addEventListener('click', zu);
 
       // Vorbelegt mit "morgen um 9" – ein brauchbarer Vorschlag statt eines
       // leeren Felds. Datetime-local will die oertliche Zeit ohne Zone.
@@ -685,7 +739,8 @@
       morgen.setHours(9, 0, 0, 0);
       wann.value = ortszeit(morgen);
       wann.min = ortszeit(new Date());
-      schleier.querySelector('.vp-plan').addEventListener('click', () => {
+
+      schleier.querySelector('.vp-plan-los').addEventListener('click', () => {
         const gewaehlt = new Date(wann.value);
         if (isNaN(gewaehlt.getTime())) { wann.focus(); return; }
         if (gewaehlt.getTime() < Date.now() - 60 * 1000) {
@@ -698,7 +753,7 @@
         einplanen(feld, ziel, knopf, mitgegeben && mitgegeben(), gewaehlt.toISOString());
       });
 
-      schleier.querySelector('.vp-ja').focus();
+      wann.focus();
     });
   }
 
@@ -2348,6 +2403,14 @@
                       stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>Beitrag teilen</span></button>
+            <button type="button" class="btn-klein" data-planen>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                   stroke-width="1.9" aria-hidden="true">
+                <rect x="3" y="4.5" width="18" height="16" rx="2.5"/>
+                <path d="M3 9.5h18M8 2.8v3.4M16 2.8v3.4" stroke-linecap="round"/>
+                <path d="M12 12.5v3l2 1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>${format === 'story' ? 'Story planen' : 'Beitrag planen'}</span></button>
             <span class="sm-meldung"></span>
           </div>
         </div>
@@ -2657,6 +2720,7 @@
     const t = fuss.querySelector('[data-teilen]');
     if (t) t.addEventListener('click', () => teilen(feld, ziel, t, [...wkAuswahl]));
     veroeffentlichenVerdrahten(feld, fuss, ziel, () => [...wkAuswahl]);
+    planFensterVerdrahten(feld, fuss, ziel, () => [...wkAuswahl]);
 
     feld.dataset.fahrzeug = '';
     // Zum Anfang ein Bild, damit die Vorschau nicht leer bleibt.

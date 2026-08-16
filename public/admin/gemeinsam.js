@@ -21,11 +21,19 @@ window.admin = (function () {
   // Jeder Punkt traegt sein Zeichen: in einer senkrechten Leiste liest sich
   // eine reine Woerterliste wie ein Inhaltsverzeichnis, nicht wie ein Menue.
   // AIY-Anpassung: Die Leiste zeigt die Bereiche des AIY-Adminbereichs.
-  // Übersicht/Profil/Galerie führen zurück in den React-Admin, "Content
-  // erstellen" ist dieses portierte Studio.
+  // Dieselben Bereiche wie die React-Leiste (AdminShell.tsx) — die Studio-
+  // Seiten sollen sich nicht wie ein anderes Programm anfuehlen. Alles ausser
+  // "Content erstellen" und "Content planen" fuehrt zurueck in den React-Admin.
   const SEITEN = [
     { pfad: '/admin', titel: 'Übersicht',
       symbol: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>' },
+    { pfad: '/admin/finanzen', titel: 'Finanzen',
+      symbol: '<path d="M4 10h11M4 14h8" stroke-linecap="round"/><path d="M18.6 7.2A7.3 7.3 0 0 0 13.5 5 7.2 7.2 0 0 0 6.3 12a7.2 7.2 0 0 0 7.2 7c2 0 3.7-.7 5.1-2.2" stroke-linecap="round"/>',
+      unter: [
+        { pfad: '/admin/finanzen', titel: 'Einnahmen & Ausgaben' },
+        { pfad: '/admin/finanzen/api', titel: 'API & Verbrauch' },
+        { pfad: '/admin/finanzen/steuer', titel: 'Steuer' }
+      ] },
     { pfad: '/admin/instagram', titel: 'Instagram',
       symbol: '<rect x="3" y="3" width="18" height="18" rx="4.5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/>',
       unter: [
@@ -33,7 +41,15 @@ window.admin = (function () {
         { pfad: '/admin/content', titel: 'Content erstellen' },
         { pfad: '/admin/planen', titel: 'Content planen' },
         { pfad: '/admin/instagram/galerie', titel: 'Galerie' }
-      ] }
+      ] },
+    { pfad: '/admin/business', titel: 'Selbständigkeit',
+      symbol: '<rect x="3" y="7.5" width="18" height="13" rx="2.2"/><path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5M3 12.5h18" stroke-linecap="round"/>',
+      unter: [
+        { pfad: '/admin/business', titel: 'Aufgaben & Notizen' },
+        { pfad: '/admin/business/dokumente', titel: 'Dokumente' }
+      ] },
+    { pfad: '/admin/anfragen', titel: 'Anfragen',
+      symbol: '<path d="M3 13.5h4.6l1.7 2.8h5.4l1.7-2.8H21" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.2 5.6 3 13.5V18a1.8 1.8 0 0 0 1.8 1.8h14.4A1.8 1.8 0 0 0 21 18v-4.5l-2.2-7.9A1.8 1.8 0 0 0 17.1 4H6.9a1.8 1.8 0 0 0-1.7 1.6z" stroke-linejoin="round"/>' }
   ];
 
   const SCHWUNG = 'M6.0,41.1 C7.5,40.8 11.9,40.2 14.9,39.2 C17.8,38.3 20.8,36.8 23.7,35.6 C26.6,34.2 29.6,32.9 32.6,31.7 C35.5,30.4 38.5,29.3 41.4,28.1 C44.3,26.9 47.3,25.7 50.3,24.7 C53.2,23.7 56.2,22.7 59.1,21.8 C62.0,21.0 65.0,20.2 68.0,19.4 C70.9,18.7 73.9,17.9 76.8,17.2 C79.7,16.7 82.7,16.2 85.7,15.9 C88.6,15.7 91.6,15.7 94.5,15.7 C97.4,15.7 100.4,15.6 103.4,15.9 C106.3,16.3 109.3,16.9 112.2,17.7 C115.1,18.6 118.1,19.6 121.1,21.0 C124.0,22.2 127.0,23.8 129.9,25.6 C132.8,27.3 135.8,29.5 138.8,31.4 C141.7,33.4 144.7,35.5 147.6,37.0 C150.5,38.4 153.5,39.4 156.5,40.0 C159.4,40.5 162.4,40.4 165.3,40.5 C168.2,40.6 171.2,40.5 174.2,40.7 C177.1,40.9 180.1,41.1 183.0,41.6 C185.9,41.9 189.0,42.4 191.9,43.0 C194.8,43.6 197.8,44.5 200.7,45.4 C203.6,46.3 207.4,47.7 209.6,48.4 C211.8,49.1 213.3,49.6 214.0,49.7';

@@ -37,15 +37,23 @@ export const TYPEN = {
 export async function onRequestPost({ request, env }) {
   if (!env.BILDER) return antwort({ ok: false, fehler: 'Bildspeicher nicht verbunden.' }, 503);
 
-  let datei;
+  let datei, formular;
   try {
-    const formular = await request.formData();
+    formular = await request.formData();
     datei = formular.get('datei');
-  } catch {
-    return antwort({ ok: false, fehler: 'Datei konnte nicht gelesen werden.' }, 400);
+  } catch (err) {
+    console.error('Bild formData:', err);
+    return antwort({ ok: false, fehler: 'Datei konnte nicht gelesen werden '
+      + `(${String(err && err.message || err).slice(0, 120)}).` }, 400);
   }
   if (!datei || typeof datei === 'string') {
-    return antwort({ ok: false, fehler: 'Keine Datei erhalten.' }, 400);
+    // Mit Befund statt blind: WAS kam an? Ohne das laesst sich ein Fehl-
+    // schlag, der nur in der Produktionsumgebung auftritt, nicht eingrenzen.
+    const felder = [...formular.keys()].join(', ') || 'keine Felder';
+    const art = datei === null ? 'fehlt' : typeof datei;
+    console.error('Bild ohne Datei:', felder, art, request.headers.get('content-type'));
+    return antwort({ ok: false, fehler:
+      `Keine Datei erhalten (Felder: ${felder}; datei: ${art}).` }, 400);
   }
 
   const endung = TYPEN[datei.type];
