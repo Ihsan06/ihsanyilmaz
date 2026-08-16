@@ -55,15 +55,33 @@
       .filter(Boolean)
       .sort((a, b) => b - a)[0];
 
+    // Unterzeilen nur, wenn sie etwas sagen – keine Fuellwoerter.
     ziel.innerHTML =
       kachel('Geplant', zahl(geplant.length),
-        naechster ? 'nächster am ' + schoen(new Date(naechster.zeitpunkt)) : 'nichts eingeplant') +
+        naechster ? 'nächster am ' + schoen(new Date(naechster.zeitpunkt)) : '') +
       kachel('Nächste 7 Tage', zahl(inSieben), 'gehen automatisch raus') +
       kachel('Versendet', zahl(gepostet.length),
-        letzter ? 'zuletzt am ' + schoen(letzter) : 'noch keiner draußen') +
+        letzter ? 'zuletzt am ' + schoen(letzter) : '') +
       kachel('Fehlgeschlagen', zahl(fehler.length),
-        fehler.length ? 'warten auf neuen Versuch' : 'alles glatt gelaufen');
+        fehler.length ? 'warten auf neuen Versuch' : '');
   }
+
+  // Datum UND Uhrzeit rechts im Kopf, ohne Sekunden – und jede Minute
+  // nachgefuehrt, damit die Zeile nicht luegt.
+  function heuteZeigen() {
+    const heute = document.getElementById('plan-heute');
+    if (!heute) return;
+    const jetzt = new Date();
+    heute.textContent = jetzt.toLocaleDateString('de-DE',
+      { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+      + ', ' + jetzt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      + ' Uhr';
+  }
+  setInterval(heuteZeigen, 60000);
+
+  // Die Eintraege des letzten Ladens, nach Kennung: die Bild-Vorschau
+  // braucht Text und Bilder, ohne sie erneut vom Server zu holen.
+  const eintraege = new Map();
 
   // ─── Delta zum Jetzt ───
   //
@@ -111,12 +129,11 @@
     // Sortierer zeigt sich erst, wenn es etwas zu sortieren gibt.
     const anzahl = document.getElementById('plan-anzahl');
     if (anzahl) anzahl.textContent = d.geplant.length ? `(${d.geplant.length})` : '';
-    const heute = document.getElementById('plan-heute');
-    if (heute) {
-      heute.textContent = new Date().toLocaleDateString('de-DE',
-        { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
-    }
+    heuteZeigen();
     if (sortierFeld) sortierFeld.hidden = d.geplant.length < 2;
+
+    eintraege.clear();
+    d.geplant.concat(d.erledigt).forEach(z => eintraege.set(z.id, z));
 
     const geplantSortiert = [...d.geplant].sort(SORTIERUNGEN[sortierung]);
 
@@ -134,6 +151,112 @@
     verdrahten(verlauf);
   }
 
+  // ─── Insta-Vorschau ───
+  //
+  // Klick auf die Bildkachel: der Beitrag so, wie er auf Instagram aussehen
+  // wird – dieselbe Nachbildung wie im Content-Studio (gleiche igv-Stile),
+  // nur aus den fertig zugeschnittenen Bildern der Warteschlange gebaut.
+  const VORSCHAU_ZEICHEN = 125;
+
+  function instaVorschau(z, stelle) {
+    const story = z.format === 'story';
+    const text = String(z.text || '');
+    const sichtbar = text.slice(0, VORSCHAU_ZEICHEN);
+    const rest = text.slice(VORSCHAU_ZEICHEN);
+    const bild = schuetzen(z.bilder[stelle] || z.bilder[0] || '');
+    const zaehler = z.bilder.length > 1
+      ? `<span class="igv-zaehler">${stelle + 1}/${z.bilder.length}</span>` : '';
+
+    if (story) {
+      return `<div class="igv igv-story">
+        <div class="igv-bild igv-hoch">
+          <span class="igs-balken"><i></i></span>
+          <img src="${bild}" alt="" data-schau-bild />
+          ${zaehler}
+        </div>
+        <p class="igv-datum">Vorschau · Sticker setzt du in der App</p>
+      </div>`;
+    }
+
+    return `<div class="igv">
+      <div class="igv-kopf">
+        <img class="igv-logo" src="/admin/icon.svg" alt="" />
+        <div class="igv-wer">
+          <b>aiy.web</b>
+          <span>Würzburg</span>
+        </div>
+        <span class="igv-punkt">···</span>
+      </div>
+      <div class="igv-bild">
+        <img src="${bild}" alt="" data-schau-bild />
+        ${zaehler}
+      </div>
+      <div class="igv-leiste">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.8 8.6c0 4.5-8.8 9.4-8.8 9.4s-8.8-4.9-8.8-9.4a4.6 4.6 0 0 1 8.8-1.8 4.6 4.6 0 0 1 8.8 1.8z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.5 9.5 0 0 1-3.5-.7L3 21l1.9-5.1A8.2 8.2 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 3 10.5 13.5M21 3l-6.8 18-3.7-7.5L3 9.8 21 3z"/></svg>
+        <svg class="igv-merken" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 21l-6-4.4L6 21V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21z"/></svg>
+      </div>
+      <p class="igv-text">
+        <b>aiy.web</b>
+        <span>${schuetzen(sichtbar)}</span><span class="igv-mehr"${rest ? '' : ' hidden'}>… mehr</span>
+      </p>
+      <p class="igv-datum">Vorschau</p>
+    </div>`;
+  }
+
+  function schauOeffnen(z) {
+    if (document.querySelector('.vp-schleier')) return;
+    let stelle = 0;
+    const postbar = z.status === 'geplant' || z.status === 'fehler';
+
+    const schleier = document.createElement('div');
+    schleier.className = 'vp-schleier';
+    schleier.innerHTML = `<div class="plan-schau" role="dialog" aria-modal="true" aria-label="Vorschau">
+      <div data-schau-igv>${instaVorschau(z, stelle)}</div>
+      <div class="vp-knoepfe plan-schau-knoepfe">
+        ${postbar ? '<button type="button" class="vp-ja" data-schau-posten>Jetzt posten</button>' : ''}
+        ${postbar ? '<button type="button" class="vp-nein" data-schau-bearbeiten>Bearbeiten</button>' : ''}
+        <button type="button" class="vp-nein" data-schau-zu>Schließen</button>
+      </div>
+    </div>`;
+    document.body.append(schleier);
+    document.documentElement.classList.add('vp-offen');
+
+    const zu = () => {
+      schleier.remove();
+      document.documentElement.classList.remove('vp-offen');
+      document.removeEventListener('keydown', taste);
+    };
+    const taste = e => { if (e.key === 'Escape') zu(); };
+    document.addEventListener('keydown', taste);
+    schleier.addEventListener('click', e => { if (e.target === schleier) zu(); });
+    schleier.querySelector('[data-schau-zu]').addEventListener('click', zu);
+
+    // Bei einer Galerie blaettert ein Klick aufs Bild zum naechsten.
+    if (z.bilder.length > 1) {
+      schleier.querySelector('[data-schau-igv]').addEventListener('click', e => {
+        if (!e.target.closest('[data-schau-bild]')) return;
+        stelle = (stelle + 1) % z.bilder.length;
+        schleier.querySelector('[data-schau-igv]').innerHTML = instaVorschau(z, stelle);
+      });
+    }
+
+    schleier.querySelector('[data-schau-posten]')?.addEventListener('click', async e => {
+      const knopf = e.currentTarget;
+      if (!confirm('Jetzt sofort auf @aiy.web veröffentlichen?')) return;
+      knopf.disabled = true;
+      knopf.textContent = 'Geht raus …';
+      await senden('POST', { id: z.id, aktion: 'sofort' });
+      zu();
+      laden();
+    });
+
+    schleier.querySelector('[data-schau-bearbeiten]')?.addEventListener('click', () => {
+      location.href = '/admin/content?bearbeiten=' + z.id;
+    });
+  }
+
   // ─── Eine Karte ───
 
   function karte(z) {
@@ -149,7 +272,7 @@
     }[z.status] || [z.status, ''];
 
     return `<article class="plan-karte" data-id="${z.id}">
-      <div class="plan-bilder">
+      <div class="plan-bilder" title="Vorschau ansehen">
         ${z.bilder.slice(0, 3).map((p, i) =>
           `<img src="${schuetzen(p)}" alt="" loading="lazy" style="z-index:${3 - i}" />`).join('')}
         ${z.bilder.length > 3 ? `<span class="plan-mehr">+${z.bilder.length - 3}</span>` : ''}
@@ -184,6 +307,8 @@
           ${geplant ? `<button type="button" class="plan-speichern" hidden>Änderung speichern</button>` : ''}
           ${geplant ? `<button type="button" class="plan-sofort">Jetzt posten</button>` : ''}
           ${z.status === 'fehler' ? `<button type="button" class="plan-nochmal">Noch einmal versuchen</button>` : ''}
+          ${geplant || z.status === 'fehler'
+            ? `<button type="button" class="plan-bearbeiten">Bearbeiten</button>` : ''}
           ${z.status !== 'laeuft' ? `<button type="button" class="plan-weg">Löschen</button>` : ''}
         </div>
       </div>
@@ -277,6 +402,16 @@
 
       k.querySelector('.plan-nochmal')?.addEventListener('click', async () => {
         if (await senden('POST', { id, aktion: 'nochmal' })) laden();
+      });
+
+      // Bild angeklickt: die Insta-Vorschau. Bearbeiten fuehrt ins Studio,
+      // das den Eintrag als Ausgangslage laedt (?bearbeiten=…).
+      k.querySelector('.plan-bilder')?.addEventListener('click', () => {
+        const z = eintraege.get(id);
+        if (z) schauOeffnen(z);
+      });
+      k.querySelector('.plan-bearbeiten')?.addEventListener('click', () => {
+        location.href = '/admin/content?bearbeiten=' + id;
       });
 
       k.querySelector('.plan-weg')?.addEventListener('click', async () => {

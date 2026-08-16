@@ -164,6 +164,20 @@
   } catch { /* egal */ }
   let quelle = QUELLE_JE_FORMAT[format];
 
+  // ?bearbeiten=<Nr>: ein Eintrag aus der Warteschlange (Content planen) als
+  // Ausgangslage – Format uebernehmen, Bilder vorwaehlen, Text einsetzen.
+  // Wird der ueberarbeitete Beitrag dann eingeplant oder direkt gepostet,
+  // raeumt sich der alte Eintrag selbst weg.
+  let bearbeitung = null;
+  let bearbeitungId = Number(new URLSearchParams(location.search).get('bearbeiten')) || 0;
+
+  function alteBearbeitungWegraeumen() {
+    if (!bearbeitungId) return;
+    fetch('/api/studio/warteschlange?id=' + bearbeitungId,
+      { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
+    bearbeitungId = 0;
+  }
+
   // Die vollen Fahrzeugdaten (Ausstattung, km, Erstzulassung) stehen nicht im
   // Gedaechtnis, sondern nur im Bestand – deshalb einmal nachladen und merken.
   let fahrzeuge = null;
@@ -514,6 +528,7 @@
 
       alsGepostetMerken(feld.dataset.fahrzeug || '', story ? 'story' : 'neuzugang');
       alsBenutztMerken(wege);
+      alteBearbeitungWegraeumen();
       knopfText(knopf, story ? 'Story steht ✓' : 'Beitrag steht ✓');
       if (d.weg) {
         const zeile = knopf.parentElement && knopf.parentElement.querySelector('.sm-meldung');
@@ -600,6 +615,7 @@
       if (!d || !d.ok) throw new Error((d && d.fehler) || 'HTTP ' + a.status);
 
       alsBenutztMerken(wege);
+      alteBearbeitungWegraeumen();
       const schoen = new Date(wann).toLocaleString('de-DE',
         { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
       knopfText(knopf, 'Eingeplant ✓');
@@ -2235,7 +2251,34 @@
 
   reiterZeichnen();
 
-  laden();
+  // Erst nachsehen, ob ein Warteschlangen-Eintrag zum Bearbeiten ansteht –
+  // sein Format entscheidet, welcher Reiter aufgeht. Dann normal laden.
+  (async () => {
+    if (bearbeitungId) {
+      try {
+        const a = await fetch('/api/studio/warteschlange', { credentials: 'same-origin' });
+        const d = await a.json();
+        const z = (d && d.ok ? d.geplant.concat(d.erledigt) : [])
+          .find(e => e.id === bearbeitungId);
+        if (z && Array.isArray(z.bilder) && z.bilder.length) {
+          bearbeitung = z;
+          format = z.format === 'story' ? 'story' : 'beitrag';
+          quelle = 'galerie';
+          // Logo, Angaben und Titel sind in diesen Bildern schon eingebrannt –
+          // die Schalter starten aus, sonst laege alles doppelt im Bild.
+          // Nur fuer diese Sitzung, gemerkt wird nichts.
+          schalter.logo = false;
+          schalter.angaben = false;
+          schalter.schrift = false;
+          schalter.zeile = false;
+          reiterZeichnen();
+        } else {
+          bearbeitungId = 0;
+        }
+      } catch { bearbeitungId = 0; }
+    }
+    laden();
+  })();
 
   // ─── Werkstatt, Team, Alltag ────────────────────────────────────────
   //
@@ -2723,6 +2766,15 @@
     planFensterVerdrahten(feld, fuss, ziel, () => [...wkAuswahl]);
 
     feld.dataset.fahrzeug = '';
+    // Ein Eintrag aus der Warteschlange als Ausgangslage: seine Bilder als
+    // Auswahl, sein Text im Kasten. Einmalig – danach arbeitet der Baukasten
+    // ganz normal weiter.
+    if (bearbeitung) {
+      auswahlSetzen(feld, bearbeitung.bilder);
+      const kopie = feld.querySelector('[data-kopie]');
+      if (kopie) kopie.textContent = bearbeitung.text || '';
+      bearbeitung = null;
+    }
     // Zum Anfang ein Bild, damit die Vorschau nicht leer bleibt.
     if (!wkAuswahl.size) vorschlagen(d, 1);
   }
