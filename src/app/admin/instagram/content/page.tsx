@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2, Copy, Check, Send, X } from "lucide-react";
 import AdminShell, { api, datum } from "@/components/admin/AdminShell";
+import BeitragBaukasten from "@/components/admin/BeitragBaukasten";
 
 type Post = {
   id: number;
@@ -135,6 +136,8 @@ export default function InstagramSeite() {
           </p>
         )}
       </div>
+
+      <BeitragBaukasten onGespeichert={laden} />
 
       <button onClick={() => setFormOffen(o => !o)} className="btn-primary px-5 py-2.5 text-sm mb-6">
         <Plus size={16} /> Neuer Beitrag
