@@ -56,36 +56,44 @@ export async function onRequestPost({ env, request }) {
     return antwort({ ok: false, fehler: 'Eine Story nimmt genau ein Bild.' }, 400);
   }
 
-  const token = await tokenHolen(db, env);
-  if (!token) return antwort({ ok: false, fehler: 'Kein Zugriffstoken hinterlegt.' }, 400);
-
   try {
-    const id = await kontoId(token);
-    const container = story
-      ? await anlegen(id, token, { image_url: bilder[0], media_type: 'STORIES' })
-      : (bilder.length === 1
-        ? await anlegen(id, token, { image_url: bilder[0], caption: text })
-        : await galerie(id, token, bilder, text));
-
-    await fertig(container, token);
-    const beitrag = await fragen(
-      `${BASIS}/${id}/media_publish?creation_id=${enc(container)}&access_token=${enc(token)}`,
-      'POST'
-    );
-    if (!beitrag || !beitrag.id) throw new Error('Instagram hat keine Beitrags-ID zurückgegeben.');
-
-    // Der Weg zum fertigen Beitrag – damit die Adminseite gleich hinzeigen kann.
-    let weg = '';
-    try {
-      const m = await fragen(`${BASIS}/${beitrag.id}?fields=permalink&access_token=${enc(token)}`);
-      weg = m.permalink || '';
-    } catch { /* der Beitrag steht trotzdem */ }
-
-    return antwort({ ok: true, id: beitrag.id, weg });
+    const { id, weg } = await beitragPosten(db, env, { bilder, text, story });
+    return antwort({ ok: true, id, weg });
   } catch (err) {
     console.error('Veroeffentlichen:', err);
     return antwort({ ok: false, fehler: String(err.message || err) }, 502);
   }
+}
+
+// Der eigentliche Weg zu Instagram – herausgeloest, damit die Warteschlange
+// (warteschlange.js, "Jetzt veröffentlichen") denselben Code nimmt und nicht
+// eine zweite, leicht andere Fassung entsteht.
+export async function beitragPosten(db, env, { bilder, text, story }) {
+  const token = await tokenHolen(db, env);
+  if (!token) throw new Error('Kein Zugriffstoken hinterlegt.');
+
+  const id = await kontoId(token);
+  const container = story
+    ? await anlegen(id, token, { image_url: bilder[0], media_type: 'STORIES' })
+    : (bilder.length === 1
+      ? await anlegen(id, token, { image_url: bilder[0], caption: text })
+      : await galerie(id, token, bilder, text));
+
+  await fertig(container, token);
+  const beitrag = await fragen(
+    `${BASIS}/${id}/media_publish?creation_id=${enc(container)}&access_token=${enc(token)}`,
+    'POST'
+  );
+  if (!beitrag || !beitrag.id) throw new Error('Instagram hat keine Beitrags-ID zurückgegeben.');
+
+  // Der Weg zum fertigen Beitrag – damit die Adminseite gleich hinzeigen kann.
+  let weg = '';
+  try {
+    const m = await fragen(`${BASIS}/${beitrag.id}?fields=permalink&access_token=${enc(token)}`);
+    weg = m.permalink || '';
+  } catch { /* der Beitrag steht trotzdem */ }
+
+  return { id: beitrag.id, weg };
 }
 
 // ─── Container ───
@@ -148,7 +156,14 @@ async function fragen(url, methode = 'GET') {
 
 async function tokenHolen(db, env) {
   const z = await db.prepare('SELECT wert FROM studio_zugaenge WHERE name = ?').bind('instagram').first();
-  return (z && z.wert) || env.INSTAGRAM_TOKEN || null;
+  if (z && z.wert) return z.wert;
+  // Die Profil-Seite verlaengert den Token still und legt ihn unter
+  // einstellungen/ig_token ab – der ist frischer als das Secret.
+  try {
+    const e = await db.prepare('SELECT wert FROM einstellungen WHERE schluessel = ?').bind('ig_token').first();
+    if (e && e.wert) return e.wert;
+  } catch { /* Tabelle kann in Testumgebungen fehlen */ }
+  return env.INSTAGRAM_TOKEN || null;
 }
 
 const enc = encodeURIComponent;

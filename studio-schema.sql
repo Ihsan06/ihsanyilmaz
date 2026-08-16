@@ -84,3 +84,21 @@ CREATE TABLE IF NOT EXISTS studio_eingaenge (
   zeitpunkt  TEXT NOT NULL DEFAULT (datetime('now')),
   inhalt     TEXT
 );
+
+-- Warteschlange fuer zeitversetztes Posten. Die Bilder sind beim Einplanen
+-- schon fertig zugeschnitten und liegen in R2 (Pfade als JSON-Array) — der
+-- Cron-Worker (worker/planer) muss sie nur noch bei Instagram einreichen.
+CREATE TABLE IF NOT EXISTS studio_warteschlange (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  zeitpunkt    TEXT NOT NULL,                       -- UTC, wann gepostet wird
+  format       TEXT NOT NULL DEFAULT 'beitrag',     -- beitrag | story
+  text         TEXT,
+  bilder       TEXT NOT NULL,                       -- JSON-Array von /bilder/-Pfaden
+  status       TEXT NOT NULL DEFAULT 'geplant',     -- geplant | laeuft | gepostet | fehler
+  fehler       TEXT,
+  beitrag_id   TEXT,
+  weg          TEXT,                                -- Permalink nach dem Posten
+  angelegt     TEXT NOT NULL DEFAULT (datetime('now')),
+  gepostet_am  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_warteschlange_faellig ON studio_warteschlange(status, zeitpunkt);

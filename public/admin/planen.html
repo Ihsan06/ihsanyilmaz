@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Content erstellen | AIY | Ihsan Yilmaz</title>
+  <title>Content planen | AIY | Ihsan Yilmaz</title>
   <link rel="icon" type="image/svg+xml" href="/admin/icon.svg" />
   <link rel="stylesheet" href="/css/fonts.css?v=3" />
   <link rel="stylesheet" href="/css/style.css?v=229" />
@@ -23,8 +23,8 @@
     <div class="container">
       <div class="admin-titel">
         <p class="admin-eyebrow">Instagram</p>
-        <h1>Content erstellen</h1>
-        <p class="lead">Beiträge und Stories – aus eigenen Fotos oder aus dem Bestand, gebaut und verschickt.</p>
+        <h1>Content planen</h1>
+        <p class="lead">Die Warteschlange: was wann automatisch auf @aiy.web erscheint – verschieben, umtexten oder sofort rausschicken.</p>
       </div>
 
       <section class="admin-karte mon-block">
@@ -32,32 +32,30 @@
           <h2 class="ig-titel">
             <svg class="ig-zeichen" viewBox="0 0 24 24" width="19" height="19" fill="none"
                  stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path d="M12 4v16M4 12h16" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="8.5"/>
+              <path d="M12 7.5V12l3 2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Neuer Content</h2>
-          <nav class="mf-reiter sm-reiter" role="tablist" aria-label="Was entsteht">
-            <button type="button" role="tab" data-art="beitrag" aria-selected="true">Beiträge</button>
-            <button type="button" role="tab" data-art="story" aria-selected="false">Stories</button>
-          </nav>
+            Eingeplant</h2>
         </div>
+        <div id="plan-liste" aria-live="polite"><p class="mon-laedt">Wird geladen …</p></div>
+      </section>
 
-        <!-- Zwei Reiter, zwei klare Aufgaben. Ein Beitrag entsteht aus den
-             eigenen Fotos, eine Story aus einem Fahrzeug des Bestands – sie
-             fuellt das Highlight "Aktuelle Fahrzeuge". Die Quelle steht damit
-             fest und muss nicht mehr gewaehlt werden. Reels sind raus:
-             ohne bewegtes Material ist ein Reel eine Diashow. -->
-
-        <div id="gd-liste" aria-live="polite"><p class="mon-laedt">Wird geladen …</p></div>
-        <div id="gd-aufraeumen" aria-live="polite"></div>
+      <section class="admin-karte mon-block">
+        <div class="ueb-kopf">
+          <h2 class="ig-titel">
+            <svg class="ig-zeichen" viewBox="0 0 24 24" width="19" height="19" fill="none"
+                 stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M4.5 12.5l5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Rausgegangen &amp; Gescheitertes</h2>
+        </div>
+        <div id="plan-verlauf" aria-live="polite"><p class="mon-laedt">Wird geladen …</p></div>
       </section>
 
     </div>
   </main>
 
   <script src="/admin/gemeinsam.js?v=27"></script>
-  <script src="/admin/beitrag-text.js?v=19"></script>
-  <script src="/admin/beitrag-stil.js?v=9"></script>
-  <script src="/admin/beitrag-schau.js?v=14"></script>
-  <script src="/admin/social-media.js?v=194"></script>
+  <script src="/admin/planen-seite.js?v=1"></script>
 </body>
 </html>

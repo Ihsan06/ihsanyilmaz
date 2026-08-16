@@ -502,27 +502,10 @@
     }
 
     knopf.disabled = true;
-    const abgelegt = [];
+    let abgelegt = [];
     try {
       knopfText(knopf, 'Bilder werden zugeschnitten …');
-      for (let i = 0; i < wege.length; i++) {
-        const quelle = wege[i].startsWith('/')
-          ? wege[i]
-          : '/api/studio/foto?u=' + encodeURIComponent(wege[i]);
-        // Wie beim Teilen: der Titel gehoert in beide Formate.
-        const b = await zuschneiden(quelle, standVon(wege[i]), hoch || story,
-          i === 0 ? labelVon(feld) : '', logoFuer(feld, wege[i], i),
-          zeilenVon(feld), stelleVon(feld), schriftVon(feld));
-        const formular = new FormData();
-        formular.append('datei', new File([b], `beitrag-${i + 1}.jpg`, { type: 'image/jpeg' }));
-        const a = await fetch('/api/studio/bild', {
-          method: 'POST', credentials: 'same-origin', body: formular
-        });
-        const d = await a.json();
-        if (!d || !d.ok) throw new Error((d && d.fehler) || 'Bild konnte nicht abgelegt werden.');
-        abgelegt.push(d.pfad);
-        knopfText(knopf, `Bild ${i + 1} von ${wege.length} abgelegt …`);
-      }
+      abgelegt = await zugeschnittenAblegen(feld, knopf, wege, story);
 
       knopfText(knopf, 'Wird veröffentlicht …');
       const a = await fetch('/api/studio/veroeffentlichen', {
@@ -562,6 +545,97 @@
     }
   }
 
+  // Zuschneiden und Ablegen, von beiden Wegen benutzt: dem direkten
+  // Veroeffentlichen und dem Einplanen. Liefert die abgelegten /bilder/-Pfade.
+  async function zugeschnittenAblegen(feld, knopf, wege, story) {
+    const hoch = !!feld.querySelector('.igv-hoch');
+    const abgelegt = [];
+    for (let i = 0; i < wege.length; i++) {
+      const quelle = wege[i].startsWith('/')
+        ? wege[i]
+        : '/api/studio/foto?u=' + encodeURIComponent(wege[i]);
+      // Wie beim Teilen: der Titel gehoert in beide Formate.
+      const b = await zuschneiden(quelle, standVon(wege[i]), hoch || story,
+        i === 0 ? labelVon(feld) : '', logoFuer(feld, wege[i], i),
+        zeilenVon(feld), stelleVon(feld), schriftVon(feld));
+      const formular = new FormData();
+      formular.append('datei', new File([b], `beitrag-${i + 1}.jpg`, { type: 'image/jpeg' }));
+      const a = await fetch('/api/studio/bild', {
+        method: 'POST', credentials: 'same-origin', body: formular
+      });
+      const d = await a.json();
+      if (!d || !d.ok) throw new Error((d && d.fehler) || 'Bild konnte nicht abgelegt werden.');
+      abgelegt.push(d.pfad);
+      knopfText(knopf, `Bild ${i + 1} von ${wege.length} abgelegt …`);
+    }
+    return abgelegt;
+  }
+
+  // Einplanen statt sofort posten: derselbe Zuschnitt, aber das Paket geht
+  // in die Warteschlange. Die Zwischenkopien BLEIBEN liegen – der
+  // Cron-Worker braucht sie zur geplanten Zeit noch. Weggeraeumt wird nach
+  // dem Posten (oder beim Loeschen des Eintrags).
+  async function einplanen(feld, ziel, knopf, mitgegeben, wann) {
+    const wege = mitgegeben || [...ziel.querySelectorAll('.sm-foto.aktiv')].map(k => k.dataset.u);
+    if (!wege.length) { knopfText(knopf, 'Erst Bilder auswählen'); return; }
+
+    const text = (feld.querySelector('[data-kopie]') || {}).textContent || '';
+    const story = format === 'story';
+    if (story && wege.length > 1) { knopfText(knopf, 'Eine Story nimmt genau ein Bild'); return; }
+    if (!story && wege.length > 10) {
+      knopfText(knopf, `Höchstens 10 Bilder – ausgewählt sind ${wege.length}`);
+      return;
+    }
+
+    knopf.disabled = true;
+    let abgelegt = [];
+    try {
+      knopfText(knopf, 'Bilder werden zugeschnitten …');
+      abgelegt = await zugeschnittenAblegen(feld, knopf, wege, story);
+
+      knopfText(knopf, 'Wird eingeplant …');
+      const a = await fetch('/api/studio/warteschlange', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          zeitpunkt: wann,
+          bilder: abgelegt.map(p => location.origin + p),
+          text, format: story ? 'story' : 'beitrag'
+        })
+      });
+      const d = await a.json();
+      if (!d || !d.ok) throw new Error((d && d.fehler) || 'HTTP ' + a.status);
+
+      alsBenutztMerken(wege);
+      const schoen = new Date(wann).toLocaleString('de-DE',
+        { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      knopfText(knopf, 'Eingeplant ✓');
+      const zeile = knopf.parentElement && knopf.parentElement.querySelector('.sm-meldung');
+      if (zeile) {
+        zeile.innerHTML = `Eingeplant für ${schuetzen(schoen)} Uhr ·
+          <a href="/admin/planen">zur Warteschlange ↗</a>`;
+      }
+    } catch (err) {
+      console.error('Einplanen:', err);
+      // Ein halb eingeplanter Beitrag hinterlaesst nichts: schon abgelegte
+      // Kopien wieder wegwerfen, sonst sammeln sich Waisen im Speicher.
+      for (const pfad of abgelegt) {
+        fetch('/api/studio/bild?pfad=' + encodeURIComponent(pfad),
+          { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
+      }
+      knopfText(knopf, 'Ging nicht: ' + err.message);
+    } finally {
+      knopf.disabled = false;
+    }
+  }
+
+  // Ein Date als Wert fuer datetime-local: oertliche Zeit, ohne Zone,
+  // minutengenau. toISOString() waere UTC und damit um Stunden daneben.
+  function ortszeit(d) {
+    const n = x => String(x).padStart(2, '0');
+    return `${d.getFullYear()}-${n(d.getMonth() + 1)}-${n(d.getDate())}T${n(d.getHours())}:${n(d.getMinutes())}`;
+  }
+
   // Die Rueckfrage legt sich ueber die ganze Seite und macht den Hintergrund
   // unscharf. Das ist Absicht: was hier bestaetigt wird, geht oeffentlich
   // raus und laesst sich nicht zurueckholen – dafuer soll man einen Moment
@@ -593,6 +667,13 @@
           <button type="button" class="vp-ja">Ja, direkt veröffentlichen</button>
           <button type="button" class="vp-nein">Abbrechen</button>
         </div>
+        <div class="vp-planen">
+          <span class="vp-oder">oder erst später – automatisch:</span>
+          <div class="vp-plan-zeile">
+            <input type="datetime-local" class="vp-wann" aria-label="Wann posten" />
+            <button type="button" class="vp-plan">Einplanen</button>
+          </div>
+        </div>
       </div>`;
       document.body.append(schleier);
       document.documentElement.classList.add('vp-offen');
@@ -611,6 +692,28 @@
         zu();
         veroeffentlichen(feld, ziel, knopf, mitgegeben && mitgegeben());
       });
+
+      // Vorbelegt mit "morgen um 9" – ein brauchbarer Vorschlag statt eines
+      // leeren Felds. Datetime-local will die oertliche Zeit ohne Zone.
+      const wann = schleier.querySelector('.vp-wann');
+      const morgen = new Date();
+      morgen.setDate(morgen.getDate() + 1);
+      morgen.setHours(9, 0, 0, 0);
+      wann.value = ortszeit(morgen);
+      wann.min = ortszeit(new Date());
+      schleier.querySelector('.vp-plan').addEventListener('click', () => {
+        const gewaehlt = new Date(wann.value);
+        if (isNaN(gewaehlt.getTime())) { wann.focus(); return; }
+        if (gewaehlt.getTime() < Date.now() - 60 * 1000) {
+          wann.setCustomValidity('Der Zeitpunkt liegt in der Vergangenheit.');
+          wann.reportValidity();
+          wann.setCustomValidity('');
+          return;
+        }
+        zu();
+        einplanen(feld, ziel, knopf, mitgegeben && mitgegeben(), gewaehlt.toISOString());
+      });
+
       schleier.querySelector('.vp-ja').focus();
     });
   }

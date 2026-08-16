@@ -1,0 +1,31 @@
+// Der Zeitplan-Worker: postet faellige Eintraege der studio_warteschlange.
+//
+// Eigenstaendiger Cloudflare Worker NEBEN dem Pages-Projekt, weil Pages
+// selbst keine Cron-Trigger kann. Er teilt sich die D1-Datenbank und den
+// R2-Bucket mit dem Adminbereich. Keine Geheimnisse in dieser Datei –
+// der Instagram-Token kommt aus der Datenbank (einstellungen/ig_token);
+// nur als Rueckfalloption kann ein Secret INSTAGRAM_TOKEN gesetzt werden:
+//   npx wrangler secret put INSTAGRAM_TOKEN   (im Ordner worker/planer)
+//
+// Deployen:  cd worker/planer && npx wrangler deploy
+{
+  "name": "aiy-planer",
+  "main": "planer.js",
+  "compatibility_date": "2026-06-23",
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "aiy-dashboard",
+      "database_id": "1e61f87f-53ba-4d7c-9288-56775168a65b"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BILDER",
+      "bucket_name": "aiy-bilder"
+    }
+  ]
+}

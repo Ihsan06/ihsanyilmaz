@@ -2489,12 +2489,35 @@ html.vp-offen { overflow: hidden; }
   font-size: .88rem; padding: 12px 18px; width: 100%;
 }
 .vp-knoepfe .vp-ja { background: var(--gold, #12557F); color: #fff; font-weight: 700; }
-.vp-ja:hover { background: #8f2a34; }
+.vp-ja:hover { background: #0D3F5F; }
 .vp-knoepfe .vp-nein {
   background: var(--off); color: var(--text); font-weight: 500;
   border: 1px solid var(--border);
 }
 .vp-nein:hover { border-color: var(--muted) !important; }
+
+/* Einplanen im Rueckfrage-Kasten: bewusst unterhalb der beiden Knoepfe und
+   leiser gesetzt – der Normalfall bleibt das direkte Posten. */
+.vp-planen {
+  width: 100%; margin-top: 6px; padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.vp-oder { font-size: .8rem; color: var(--muted); }
+.vp-plan-zeile { display: flex; gap: 8px; }
+.vp-wann {
+  flex: 1; min-width: 0; font: inherit; font-size: .85rem;
+  padding: 9px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--off); color: var(--text);
+  color-scheme: light;
+}
+.vp-wann:focus { outline: 2px solid var(--gold, #12557F); outline-offset: 1px; }
+.vp-plan {
+  border: 0; border-radius: 999px; cursor: pointer; font: inherit;
+  font-size: .85rem; font-weight: 700; padding: 9px 16px; flex: none;
+  background: var(--off); color: var(--text); border: 1px solid var(--border);
+}
+.vp-plan:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
 
 @media (prefers-reduced-motion: no-preference) {
   .vp-kasten { animation: vp-auf .16s ease-out; }
@@ -3494,3 +3517,67 @@ html.leiste-zu .admin-unter { display: none; }
    ringsum die Bildfarbe. Bei einer Story ist das ein gaengiger Look, sonst
    holt man das ganze Fahrzeug nie ins Hochformat. */
 .igv-bild { background: #071A2B; }
+
+/* ─── Content planen: die Warteschlange ─────────────────────────────── */
+
+.plan-karte {
+  display: flex; gap: 16px; align-items: flex-start;
+  padding: 16px 0; border-top: 1px solid var(--border);
+}
+.plan-karte:first-child { border-top: 0; padding-top: 4px; }
+
+/* Bis zu drei Vorschaubilder, leicht gefaechert wie ein Kartenstapel. */
+.plan-bilder { display: flex; flex: none; align-items: center; }
+.plan-bilder img {
+  width: 64px; height: 64px; object-fit: cover; border-radius: 10px;
+  border: 2px solid var(--white, #fff);
+  box-shadow: 0 2px 8px rgba(0,0,0,.14);
+}
+.plan-bilder img + img { margin-left: -46px; transform: rotate(3deg); }
+.plan-bilder img + img + img { transform: rotate(-3deg); }
+.plan-mehr { margin-left: 6px; font-size: .78rem; color: var(--muted); }
+
+.plan-mitte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.plan-kopfzeile {
+  margin: 0; display: flex; align-items: center; gap: 7px;
+  font-size: .88rem; color: var(--text);
+}
+.plan-stand { color: var(--muted); }
+.plan-kopfzeile .mf-punkt.gelb  { background: #d99114; }
+.plan-kopfzeile .mf-punkt.gruen { background: #1d8a52; }
+.plan-kopfzeile .mf-punkt.rot   { background: #c23b3b; }
+
+.plan-wann-zeile {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .82rem; color: var(--muted);
+}
+.plan-wann {
+  font: inherit; font-size: .84rem; padding: 7px 10px;
+  border-radius: 9px; border: 1px solid var(--border);
+  background: var(--off); color: var(--text); color-scheme: light;
+}
+.plan-wann-fest { margin: 0; font-size: .82rem; color: var(--muted); }
+.plan-fehler { margin: 0; font-size: .8rem; color: #c23b3b; }
+.plan-text {
+  width: 100%; resize: vertical; font: inherit; font-size: .84rem;
+  line-height: 1.5; padding: 8px 11px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--off); color: var(--text);
+}
+.plan-text[readonly] { color: var(--muted); background: transparent; }
+
+.plan-knoepfe { display: flex; flex-direction: column; gap: 7px; flex: none; min-width: 172px; }
+.plan-knoepfe button {
+  border: 1px solid var(--border); border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: .8rem; font-weight: 600; padding: 8px 14px;
+  background: var(--off); color: var(--text);
+}
+.plan-knoepfe button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+.plan-knoepfe .plan-sofort { background: var(--gold, #12557F); border-color: var(--gold, #12557F); color: #fff; }
+.plan-knoepfe .plan-sofort:hover { background: #0D3F5F; color: #fff; }
+.plan-knoepfe .plan-speichern { border-color: #1d8a52; color: #1d8a52; }
+.plan-knoepfe .plan-weg:hover { border-color: #c23b3b; color: #c23b3b; }
+
+@media (max-width: 640px) {
+  .plan-karte { flex-wrap: wrap; }
+  .plan-knoepfe { flex-direction: row; flex-wrap: wrap; min-width: 0; width: 100%; }
+}

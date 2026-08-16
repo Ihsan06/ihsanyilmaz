@@ -31,6 +31,7 @@ const SEITEN: Seite[] = [
     unter: [
       { pfad: "/admin/instagram", titel: "Profil" },
       { pfad: "/admin/content", titel: "Content erstellen" },
+      { pfad: "/admin/planen", titel: "Content planen" },
       { pfad: "/admin/instagram/galerie", titel: "Galerie" },
     ],
   },
