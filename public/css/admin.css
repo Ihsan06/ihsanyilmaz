@@ -3529,20 +3529,23 @@ html.leiste-zu .admin-unter { display: none; }
 }
 .plan-karte:first-child { border-top: 0; padding-top: 4px; }
 
-/* Bis zu drei Vorschaubilder, leicht gefaechert wie ein Kartenstapel. */
+/* Bis zu drei Vorschaubilder, leicht gefaechert wie ein Kartenstapel.
+   Gross genug, dass man das Motiv wirklich erkennt. */
 .plan-bilder { display: flex; flex: none; align-items: center; }
 .plan-bilder img {
-  width: 64px; height: 64px; object-fit: cover; border-radius: 10px;
+  width: 128px; height: 128px; object-fit: cover; border-radius: 12px;
   border: 2px solid var(--white, #fff);
-  box-shadow: 0 2px 8px rgba(0,0,0,.14);
+  box-shadow: 0 2px 10px rgba(0,0,0,.16);
 }
-.plan-bilder img + img { margin-left: -46px; transform: rotate(3deg); }
+.plan-bilder img + img { margin-left: -96px; transform: rotate(3deg); }
 .plan-bilder img + img + img { transform: rotate(-3deg); }
 .plan-mehr { margin-left: 6px; font-size: .78rem; color: var(--muted); }
 
-.plan-mitte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.plan-mitte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+/* Stand und Zeitpunkt in EINER Zeile: "Beitrag wartet · Geht raus am …" */
 .plan-kopfzeile {
-  margin: 0; display: flex; align-items: center; gap: 7px;
+  margin: 0; display: flex; flex-wrap: wrap; align-items: center;
+  gap: 7px; row-gap: 6px;
   font-size: .88rem; color: var(--text);
 }
 .plan-stand { color: var(--muted); }
@@ -3551,7 +3554,7 @@ html.leiste-zu .admin-unter { display: none; }
 .plan-kopfzeile .mf-punkt.rot   { background: #c23b3b; }
 
 .plan-wann-zeile {
-  display: flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; gap: 8px;
   font-size: .82rem; color: var(--muted);
 }
 .plan-wann {
@@ -3559,19 +3562,24 @@ html.leiste-zu .admin-unter { display: none; }
   border-radius: 9px; border: 1px solid var(--border);
   background: var(--off); color: var(--text); color-scheme: light;
 }
-.plan-wann-fest { margin: 0; font-size: .82rem; color: var(--muted); }
+.plan-wann-fest { font-size: .82rem; color: var(--muted); }
 .plan-fehler { margin: 0; font-size: .8rem; color: #c23b3b; }
+/* Das Feld waechst per Skript mit dem Text (textfeldWachsen) – hier steht
+   nur die Untergrenze. Kein inneres Scrollen: der ganze Beitragstext soll
+   ohne Guckloch lesbar sein. */
 .plan-text {
-  width: 100%; resize: vertical; font: inherit; font-size: .84rem;
-  line-height: 1.5; padding: 8px 11px; border-radius: 9px;
+  width: 100%; resize: none; overflow: hidden; font: inherit; font-size: .84rem;
+  line-height: 1.55; padding: 10px 12px; border-radius: 9px; min-height: 72px;
   border: 1px solid var(--border); background: var(--off); color: var(--text);
 }
 .plan-text[readonly] { color: var(--muted); background: transparent; }
 
-.plan-knoepfe { display: flex; flex-direction: column; gap: 7px; flex: none; min-width: 172px; }
+/* Nebeneinander statt uebereinander: "Jetzt posten" und "Löschen" sind ein
+   Paar, keine Liste. */
+.plan-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; }
 .plan-knoepfe button {
   border: 1px solid var(--border); border-radius: 999px; cursor: pointer;
-  font: inherit; font-size: .8rem; font-weight: 600; padding: 8px 14px;
+  font: inherit; font-size: .8rem; font-weight: 600; padding: 8px 16px;
   background: var(--off); color: var(--text);
 }
 .plan-knoepfe button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
@@ -3582,5 +3590,6 @@ html.leiste-zu .admin-unter { display: none; }
 
 @media (max-width: 640px) {
   .plan-karte { flex-wrap: wrap; }
-  .plan-knoepfe { flex-direction: row; flex-wrap: wrap; min-width: 0; width: 100%; }
+  .plan-bilder img { width: 96px; height: 96px; }
+  .plan-bilder img + img { margin-left: -72px; }
 }

@@ -68,33 +68,45 @@
           <span class="mf-punkt ${stand[1]}"></span>
           <b>${story ? 'Story' : 'Beitrag'}</b>
           <span class="plan-stand">${schuetzen(stand[0])}</span>
+          ${geplant
+            ? `<label class="plan-wann-zeile">· Geht raus am
+                 <input type="datetime-local" class="plan-wann" value="${ortszeit(wann)}" min="${ortszeit(new Date())}" />
+               </label>`
+            : `<span class="plan-wann-fest">· ${z.status === 'gepostet'
+                ? 'Gepostet am ' + schoen(alsDatum(z.gepostet_am) || wann)
+                : 'War geplant für ' + schoen(wann)}</span>`}
           ${z.weg ? ` · <a href="${schuetzen(z.weg)}" target="_blank" rel="noopener">ansehen ↗</a>` : ''}
         </p>
-        ${geplant
-          ? `<label class="plan-wann-zeile">Geht raus am
-               <input type="datetime-local" class="plan-wann" value="${ortszeit(wann)}" min="${ortszeit(new Date())}" />
-             </label>`
-          : `<p class="plan-wann-fest">${z.status === 'gepostet'
-              ? 'Gepostet am ' + schoen(alsDatum(z.gepostet_am) || wann)
-              : 'War geplant für ' + schoen(wann)}</p>`}
         ${z.fehler ? `<p class="plan-fehler">${schuetzen(z.fehler)}</p>` : ''}
         ${geplant || !story
-          ? `<textarea class="plan-text" rows="2" ${geplant ? '' : 'readonly'}
+          ? `<textarea class="plan-text" rows="3" ${geplant ? '' : 'readonly'}
                placeholder="Ohne Bildunterschrift">${schuetzen(z.text || '')}</textarea>`
           : ''}
-      </div>
-      <div class="plan-knoepfe">
-        ${geplant ? `<button type="button" class="plan-speichern" hidden>Änderung speichern</button>` : ''}
-        ${geplant ? `<button type="button" class="plan-sofort">Jetzt veröffentlichen</button>` : ''}
-        ${z.status === 'fehler' ? `<button type="button" class="plan-nochmal">Noch einmal versuchen</button>` : ''}
-        ${z.status !== 'laeuft' ? `<button type="button" class="plan-weg">Löschen</button>` : ''}
+        <div class="plan-knoepfe">
+          ${geplant ? `<button type="button" class="plan-speichern" hidden>Änderung speichern</button>` : ''}
+          ${geplant ? `<button type="button" class="plan-sofort">Jetzt posten</button>` : ''}
+          ${z.status === 'fehler' ? `<button type="button" class="plan-nochmal">Noch einmal versuchen</button>` : ''}
+          ${z.status !== 'laeuft' ? `<button type="button" class="plan-weg">Löschen</button>` : ''}
+        </div>
       </div>
     </article>`;
   }
 
   // ─── Verdrahten ───
 
+  // Die Bildunterschrift soll ganz lesbar sein, nicht in einem Guckloch
+  // stecken: das Feld waechst mit dem Text.
+  function textfeldWachsen(t) {
+    t.style.height = 'auto';
+    t.style.height = (t.scrollHeight + 2) + 'px';
+  }
+
   function verdrahten(wurzel) {
+    wurzel.querySelectorAll('.plan-text').forEach(t => {
+      textfeldWachsen(t);
+      t.addEventListener('input', () => textfeldWachsen(t));
+    });
+
     wurzel.querySelectorAll('.plan-karte').forEach(k => {
       const id = Number(k.dataset.id);
       const speichern = k.querySelector('.plan-speichern');
@@ -124,7 +136,7 @@
         knopf.disabled = true;
         knopf.textContent = 'Geht raus …';
         const ok = await senden('POST', { id, aktion: 'sofort' });
-        if (!ok) { knopf.disabled = false; knopf.textContent = 'Jetzt veröffentlichen'; }
+        if (!ok) { knopf.disabled = false; knopf.textContent = 'Jetzt posten'; }
         laden();
       });
 
