@@ -69,8 +69,14 @@
           <b>${story ? 'Story' : 'Beitrag'}</b>
           <span class="plan-stand">${schuetzen(stand[0])}</span>
           ${geplant
-            ? `<label class="plan-wann-zeile">· Geht raus am
-                 <input type="datetime-local" class="plan-wann" value="${ortszeit(wann)}" min="${ortszeit(new Date())}" />
+            ? `<label class="plan-wann-zeile" title="Geht raus am">
+                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                      stroke-width="1.9" aria-hidden="true">
+                   <circle cx="12" cy="12" r="8.5"/>
+                   <path d="M12 7.5V12l3 2" stroke-linecap="round" stroke-linejoin="round"/>
+                 </svg>
+                 <input type="datetime-local" class="plan-wann" aria-label="Geht raus am"
+                        value="${ortszeit(wann)}" min="${ortszeit(new Date())}" />
                </label>`
             : `<span class="plan-wann-fest">· ${z.status === 'gepostet'
                 ? 'Gepostet am ' + schoen(alsDatum(z.gepostet_am) || wann)
@@ -97,13 +103,39 @@
   // Die Bildunterschrift soll ganz lesbar sein, nicht in einem Guckloch
   // stecken: das Feld waechst mit dem Text.
   function textfeldWachsen(t) {
+    // Solange das Layout der Karte noch keine echte Breite hat (beim ersten
+    // Aufbau kurz der Fall), waere die Messung Unsinn: ein Zeichen je Zeile,
+    // 4000 Pixel Hoehe. Dann lieber warten – der Beobachter unten kommt
+    // wieder, sobald die Breite steht.
+    if (t.offsetWidth < 80) return;
     t.style.height = 'auto';
     t.style.height = (t.scrollHeight + 2) + 'px';
+  }
+
+  // Misst nach, sobald sich die BREITE eines Feldes aendert – erster Aufbau,
+  // Seitenleiste auf/zu, Fenstergroesse. Nur Breite: die Hoehe aendern wir
+  // selbst, darauf zu reagieren waere eine Endlosschleife.
+  const feldBeobachter = new ResizeObserver(eintraege => {
+    for (const e of eintraege) {
+      const t = e.target;
+      if (t.dataset.breite !== String(t.offsetWidth)) {
+        t.dataset.breite = String(t.offsetWidth);
+        textfeldWachsen(t);
+      }
+    }
+  });
+
+  // Nach dem Laden der Schriften einmal nachmessen: mit der endgueltigen
+  // Schrift brechen die Zeilen anders um als beim ersten Zeichnen.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() =>
+      document.querySelectorAll('.plan-text').forEach(textfeldWachsen));
   }
 
   function verdrahten(wurzel) {
     wurzel.querySelectorAll('.plan-text').forEach(t => {
       textfeldWachsen(t);
+      feldBeobachter.observe(t);
       t.addEventListener('input', () => textfeldWachsen(t));
     });
 
