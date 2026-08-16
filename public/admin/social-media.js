@@ -148,37 +148,21 @@
   // Story aus eigenen Fotos gar nicht bauen: die Kombination war im Aufbau
   // nicht vorgesehen.
   // Jedes Format hat genau eine Quelle, deshalb gibt es keine Wahl mehr:
-  // ein Beitrag entsteht aus den eigenen Fotos, eine Story aus einem Fahrzeug
-  // des Bestands – sie fuellt das Highlight "Aktuelle Fahrzeuge".
+  // Beitraege UND Stories entstehen aus den eigenen Fotos der Galerie.
+  // Der fruehere Nebenweg ueber den Fahrzeug-Bestand (samt Wechseln-Knopf)
+  // ist raus – hier gibt es keinen Fahrzeugbestand.
   //
   // Reels sind raus. Ohne bewegtes Material ist ein Reel eine Diashow, und die
   // faellt bei Instagram durch; kommt Videomaterial dazu, kommt der Reiter
   // zurueck.
   const FORMATE = ['beitrag', 'story'];
-  const QUELLE_JE_FORMAT = { beitrag: 'galerie', story: 'bestand' };
-  // Woraus gebaut wird, ist eine Ansage – aber bei Beitraegen keine Sackgasse:
-  // ein Fahrzeug aus dem Bestand geht auch, nur ist es der seltenere Fall und
-  // steht deshalb als leiser Nebenweg da, nicht als gleichwertiger Schalter.
-  // Kein erklaerender Satz mehr, nur der Weg zur anderen Quelle – und der
-  // klein und rechts. Welche Quelle gerade dran ist, sieht man am Baukasten
-  // darunter; das noch einmal hinzuschreiben war eine Zeile zu viel.
-  const WECHSEL_JE_LAGE = {
-    'beitrag-galerie': ['bestand', 'Fahrzeug aus dem Bestand'],
-    'beitrag-bestand': ['galerie', 'Eigene Fotos'],
-    'story-bestand': ['galerie', 'Eigene Fotos'],
-    'story-galerie': ['bestand', 'Fahrzeug aus dem Bestand']
-  };
+  const QUELLE_JE_FORMAT = { beitrag: 'galerie', story: 'galerie' };
   let format = 'beitrag';
   try {
     const f = localStorage.getItem('sm-format');
     if (FORMATE.includes(f)) format = f;
   } catch { /* egal */ }
-  const QUELLEN = ['bestand', 'galerie'];
   let quelle = QUELLE_JE_FORMAT[format];
-  try {
-    const q = localStorage.getItem('sm-quelle-' + format);
-    if (QUELLEN.includes(q)) quelle = q;
-  } catch { /* egal */ }
 
   // Die vollen Fahrzeugdaten (Ausstattung, km, Erstzulassung) stehen nicht im
   // Gedaechtnis, sondern nur im Bestand – deshalb einmal nachladen und merken.
@@ -925,17 +909,6 @@
     </div>`;
   }
 
-  function wechselKnopf() {
-    const [hin, dazu] = WECHSEL_JE_LAGE[`${format}-${quelle}`] || [null, ''];
-    if (!hin) return '';
-    return `<button type="button" class="sm-quelle-weg" data-wechseln="${hin}">
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
-           stroke-width="2.2" aria-hidden="true">
-        <path d="M4 8h13m0 0-3.5-3.5M17 8l-3.5 3.5M20 16H7m0 0 3.5-3.5M7 16l3.5 3.5"
-              stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>${schuetzen(dazu)}</button>`;
-  }
-
   function zerlegen(wert) {
     const t = String(wert || 'unten-links').split('-');
     return [SENKRECHT.includes(t[0]) ? t[0] : 'unten',
@@ -951,7 +924,6 @@
         </svg>
         <span>${format === 'story' ? 'Story generieren' : 'Beitrag generieren'}</span>
       </button>
-      <p class="sm-quelle-notiz">${wechselKnopf()}</p>
     </div>`;
   }
 
@@ -2136,9 +2108,6 @@
   function reiterZeichnen() {
     document.querySelectorAll('[data-art]').forEach(b =>
       b.setAttribute('aria-selected', String(b.dataset.art === format)));
-    document.querySelectorAll('[data-quelle-notiz]').forEach(notiz => {
-      notiz.innerHTML = wechselKnopf();
-    });
   }
 
   function neuZeigen() {
@@ -2157,11 +2126,7 @@
     // mit dem groesstmoeglichen Ausschnitt.
     bildStand.clear();
     quelle = QUELLE_JE_FORMAT[format];
-    try {
-      localStorage.setItem('sm-format', format);
-      const q = localStorage.getItem('sm-quelle-' + format);
-      if (QUELLEN.includes(q)) quelle = q;
-    } catch { /* egal */ }
+    try { localStorage.setItem('sm-format', format); } catch { /* egal */ }
     neuZeigen();
   }));
 
@@ -2187,14 +2152,6 @@
       const block = sch.closest('.sm-block') || document;
       const wort = block.querySelector('.igv-wort');
       if (wort) wort.hidden = !an;
-      return;
-    }
-
-    const w = ev.target.closest('[data-wechseln]');
-    if (w) {
-      quelle = w.dataset.wechseln;
-      try { localStorage.setItem('sm-quelle-' + format, quelle); } catch { /* egal */ }
-      neuZeigen();
       return;
     }
 
