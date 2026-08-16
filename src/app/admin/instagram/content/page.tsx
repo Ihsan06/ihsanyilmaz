@@ -154,10 +154,34 @@ export default function InstagramSeite() {
             />
           </div>
           <div>
-            <label className="block text-sm text-[var(--fg-muted)] mb-1.5">Caption</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm text-[var(--fg-muted)]">Caption</label>
+              <button
+                type="button"
+                onClick={async () => {
+                  const thema = neu.caption.trim() || neu.titel.trim();
+                  if (!thema) { setFehler("Erst Titel oder Caption-Stichwort eintippen."); return; }
+                  setFehler("");
+                  setSendet(true);
+                  try {
+                    const d = await api("/api/admin/texten", {
+                      method: "POST", body: JSON.stringify({ thema }),
+                    });
+                    setNeu(n => ({ ...n, caption: d.caption, hashtags: d.hashtags }));
+                  } catch (err) {
+                    setFehler(err instanceof Error ? err.message : "Vorschlag fehlgeschlagen.");
+                  } finally { setSendet(false); }
+                }}
+                disabled={sendet}
+                className="inline-flex items-center gap-1 text-xs font-medium hover:opacity-80 disabled:opacity-50"
+                style={{ color: "var(--accent)" }}
+              >
+                ✨ {sendet ? "Schreibt…" : "Vorschlagen"}
+              </button>
+            </div>
             <textarea
               rows={4} value={neu.caption} onChange={e => setNeu({ ...neu, caption: e.target.value })}
-              placeholder="Text für den Beitrag…"
+              placeholder="Text für den Beitrag — oder Titel eintippen und ✨ Vorschlagen drücken"
               className="field px-4 py-2.5 text-sm resize-none"
             />
           </div>

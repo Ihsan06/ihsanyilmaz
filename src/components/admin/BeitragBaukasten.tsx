@@ -329,11 +329,35 @@ export default function BeitragBaukasten({ onGespeichert }: { onGespeichert?: ()
               {/* Caption fürs Direkt-Posten */}
               {e.format === "beitrag" && (
                 <div>
-                  <label className="block text-sm text-[var(--fg-muted)] mb-1.5">
-                    Caption (fürs Direkt-Posten)
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-sm text-[var(--fg-muted)]">
+                      Caption (fürs Direkt-Posten)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const thema = caption.trim() || e.text.trim();
+                        if (!thema) { setFehler("Erst kurz ein Thema in Caption oder Text eintippen."); return; }
+                        setFehler(""); setLaeuft("speichern");
+                        try {
+                          const d = await api("/api/admin/texten", {
+                            method: "POST", body: JSON.stringify({ thema }),
+                          });
+                          setCaption(`${d.caption}\n\n${d.hashtags}`);
+                        } catch (err) {
+                          setFehler(err instanceof Error ? err.message : "Vorschlag fehlgeschlagen.");
+                        } finally { setLaeuft(""); }
+                      }}
+                      disabled={laeuft !== ""}
+                      className="inline-flex items-center gap-1 text-xs font-medium hover:opacity-80 disabled:opacity-50"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      ✨ {laeuft === "speichern" ? "Schreibt…" : "Vorschlagen"}
+                    </button>
+                  </div>
                   <textarea rows={3} value={caption} onChange={ev => setCaption(ev.target.value)}
-                    placeholder="Text + #hashtags…" className="field px-4 py-2.5 text-sm resize-none" />
+                    placeholder="Text + #hashtags… — oder Thema eintippen und ✨ Vorschlagen drücken"
+                    className="field px-4 py-2.5 text-sm resize-none" />
                 </div>
               )}
 
