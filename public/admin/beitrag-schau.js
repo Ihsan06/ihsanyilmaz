@@ -90,7 +90,7 @@ window.beitragSchau = (function () {
         <span class="igs-zeile igs-kasten pos-oben-mitte" hidden></span>
         <span class="igv-label" hidden></span>
         <span class="igv-marke" hidden aria-hidden="true">
-          <span class="igv-marke-bild" data-marke-svg>${window.aiyMarke.svg(true)}</span>
+          <span class="igv-marke-bild" data-marke-svg>${window.aiyMarke.svg(true, true)}</span>
         </span>
         </button>
 

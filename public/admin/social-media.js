@@ -446,7 +446,7 @@
         // Titelfeld gibt (Beitrag aus dem Bestand), liefert zeilenVon() null.
         const b = await zuschneiden(quelle, standVon(wege[i]), hoch,
           i === 0 ? labelVon(feld) : '', logoFuer(feld, wege[i], i),
-          zeilenVon(feld), stelleVon(feld), schriftVon(feld));
+          zeilenVon(feld), stelleVon(feld), schriftVon(feld), aiyVon(feld));
         dateien.push(new File([b], `bild-${i + 1}.jpg`, { type: 'image/jpeg' }));
       }
 
@@ -568,7 +568,7 @@
       // Wie beim Teilen: der Titel gehoert in beide Formate.
       const b = await zuschneiden(quelle, standVon(wege[i]), hoch || story,
         i === 0 ? labelVon(feld) : '', logoFuer(feld, wege[i], i),
-        zeilenVon(feld), stelleVon(feld), schriftVon(feld));
+        zeilenVon(feld), stelleVon(feld), schriftVon(feld), aiyVon(feld));
       const formular = new FormData();
       formular.append('datei', new File([b], `beitrag-${i + 1}.jpg`, { type: 'image/jpeg' }));
       const a = await fetch('/api/studio/bild', {
@@ -794,6 +794,7 @@
     const angabenAn = schalter.angaben === null ? !!vorschlag : schalter.angaben;
     const logoAn = schalter.logo === null ? true : schalter.logo;
     const schriftAn = schalter.schrift === null ? true : schalter.schrift;
+    const aiyAn = schalter.aiy === null ? true : schalter.aiy;
     return `<div class="sm-label">
       <div class="sm-logo-zeile">
         <label class="sm-label-an">
@@ -812,6 +813,8 @@
           <input type="checkbox" data-logo-an ${logoAn ? 'checked' : ''} />
           <span>Logo</span>
         </label>
+        <button type="button" class="sm-schrift" data-aiy-an aria-pressed="${aiyAn}"
+                title="Wortmarke AIY neben der Bildmarke">AIY</button>
         <button type="button" class="sm-schrift" data-schrift-an aria-pressed="${schriftAn}">+ Schrift</button>
         ${stellenWahl('logo', 'unten-rechts')}
       </div>
@@ -838,6 +841,12 @@
   function schriftVon(feld) {
     const k = feld && feld.querySelector('[data-schrift-an]');
     return !!(k && k.getAttribute('aria-pressed') === 'true');
+  }
+
+  function aiyVon(feld) {
+    const k = feld && feld.querySelector('[data-aiy-an]');
+    // Ohne Knopf gilt die Vollform – so verhaelt sich alter Aufruf wie bisher.
+    return !k || k.getAttribute('aria-pressed') === 'true';
   }
 
   // Das Zeichen kommt auf jedes Bild – ausser dort, wo man es in der Bildfolge
@@ -924,7 +933,8 @@
       <p class="gd-notiz plan-notiz" data-plan-notiz hidden></p>
       <div class="sm-kopf" style="margin-top:18px"><b>Bilder</b>
         <span class="sm-stand"></span></div>
-      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>`, true);
+      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>
+      <p class="sm-schaerfe" data-schaerfe hidden></p>`, true);
   }
 
   // Gemeinsamer Rahmen: Vorschau links, Werkzeug rechts, oben rechts zu.
@@ -965,7 +975,7 @@
   // An/aus ueberlebt den Wechsel zwischen Beitrag und Story (und den Neustart):
   // wer das Logo abwaehlt, meint das nicht nur fuer genau dieses eine Bild.
   // null heisst "noch nie angefasst" – dann gilt weiter die Vorgabe.
-  const schalter = { angaben: null, logo: null, schrift: null, zeile: null };
+  const schalter = { angaben: null, logo: null, schrift: null, zeile: null, aiy: null };
   try {
     const s = JSON.parse(localStorage.getItem('sm-schalter') || '{}');
     Object.keys(schalter).forEach(k => {
@@ -1085,7 +1095,8 @@
       ${labelHtml(labelVorschlag(v))}
       <div class="sm-kopf" style="margin-top:18px"><b>Bild</b>
         <span class="sm-stand"></span></div>
-      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>`);
+      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>
+      <p class="sm-schaerfe" data-schaerfe hidden></p>`);
   }
 
   // Eine Story aus eigenen Fotos: die Zeile kommt aus dem Thema oder – wenn
@@ -1157,6 +1168,34 @@
   const standVon = u => bildStand.get(u) || { z: 100, x: 0, y: 0 };
 
 
+  // Ausgegeben wird auf 1440 px Breite. Ist die Vorlage kleiner, wird sie
+  // hochgerechnet – und genau das sieht man auf Instagram als Matsch. Der
+  // Hinweis kommt VOR dem Posten, weil er danach nichts mehr nuetzt.
+  const AUSGABE_BREIT = 1440;
+
+  function schaerfePruefen(feld, bild) {
+    const ziel = feld.querySelector('[data-schaerfe]');
+    if (!ziel) return;
+
+    const pruefen = () => {
+      const bw = bild.naturalWidth, bh = bild.naturalHeight;
+      if (!bw || !bh) { ziel.hidden = true; return; }
+      const hoch = !!feld.querySelector('.igv-hoch') || format === 'story';
+      const zh = Math.round(hoch ? AUSGABE_BREIT * 16 / 9 : AUSGABE_BREIT * 5 / 4);
+      // Dasselbe Einpassen wie beim Zuschneiden: fuellend, also die groessere
+      // der beiden Streckungen zaehlt.
+      const streckung = Math.max(AUSGABE_BREIT / bw, zh / bh);
+      if (streckung <= 1.25) { ziel.hidden = true; return; }
+      ziel.hidden = false;
+      ziel.textContent = `Dieses Bild ist mit ${bw} × ${bh} px kleiner als die Ausgabe `
+        + `(${AUSGABE_BREIT} × ${zh}) und wird ${streckung.toFixed(1)}-fach hochgerechnet – `
+        + `auf Instagram sieht das unscharf aus.`;
+    };
+
+    if (bild.complete && bild.naturalWidth) pruefen();
+    else bild.addEventListener('load', pruefen, { once: true });
+  }
+
   function vorschauBild(feld) {
     const v = feld.querySelector('[data-vorschau]');
     if (!v) return;
@@ -1215,6 +1254,7 @@
       punkte.querySelectorAll('span').forEach((p, n) => p.classList.toggle('hier', n === lauf.i));
       anwenden();
       markeAbgleichen(feld, lauf.gewaehlt[lauf.i]);
+      schaerfePruefen(feld, lauf.bild);
     };
     lauf.anwenden = anwenden;
     lauf.zeigen = zeigen;
@@ -1374,7 +1414,7 @@
   // Bewusst KEINE KI am Bild: seit dem 2. August 2026 muss gekennzeichnet
   // werden, wer Fahrzeugbilder mit KI erzeugt oder veraendert (EU AI Act).
   // Wir schreiben nur Text darauf, den der Betrieb selbst kennt.
-  function labelZeichnen(g, breite, hoehe, text, logo, stelle, schrift) {
+  function labelZeichnen(g, breite, hoehe, text, logo, stelle, schrift, aiy) {
     if (!text && !logo) return;
     const rand = Math.round(breite * 0.045);
     // Steht die Marke unten rechts, endet der Text davor. Sonst laeuft ein
@@ -1453,23 +1493,32 @@
     // Kreis: auf einem dunklen Verlauf wuerde ein dunkles Logo verschwinden,
     // und ein Kreis liest sich als Siegel statt als vergessener Ausschnitt.
     if (logo) {
-      const w = Math.round(breite * 0.204);
-      const h = Math.round(w * LOGO_HOCH / LOGO_BREIT);
+      // Die vier Fassungen haben verschiedene Seitenverhaeltnisse. Bezugs-
+      // groesse bleibt die Vollform: eine schmalere Fassung wird deshalb
+      // auch schmaler gezeichnet und nicht auf dieselbe Breite gestreckt.
+      const f = window.aiyMarke.fassung(!!aiy, !!schrift);
+      const w = Math.round(breite * 0.204 * (f.breit / 254.51));
+      const h = Math.round(w * f.hoch / f.breit);
       const ly = lv === 'oben' ? rand
         : (lv === 'mitte' ? Math.round((hoehe - h) / 2) : hoehe - rand - h);
       const lx = lh === 'links' ? rand
         : (lh === 'mitte' ? Math.round((breite - w) / 2) : breite - rand - w);
       g.save();
       g.translate(lx, ly);
-      g.scale(w / LOGO_BREIT, h / LOGO_HOCH);
+      g.scale(w / f.breit, h / f.hoch);
       g.fillStyle = '#ffffff';
       // Ein weicher Schatten darunter: auf einem hellen Foto wuerde die
       // Marke sonst mit dem Hintergrund verschwimmen.
       g.shadowColor = 'rgba(0,0,0,.45)';
       g.shadowBlur = 10;
-      // Mit Namen nur, wenn der Schrift-Schalter an ist – dieselben Pfade,
-      // aus denen auch die Vorschau gebaut wird.
-      window.aiyMarke.pfade(!!schrift).forEach(d => g.fill(new Path2D(d)));
+      // Dieselben Teile, aus denen auch die Vorschau gebaut wird – jedes mit
+      // seiner Verschiebung, damit die gestapelte Fassung wirklich stapelt.
+      f.teile.forEach(t => {
+        g.save();
+        if (t.dx || t.dy) g.translate(t.dx || 0, t.dy || 0);
+        g.fill(new Path2D(t.d));
+        g.restore();
+      });
       g.restore();
 
     }
@@ -1557,7 +1606,7 @@
     g.textBaseline = 'alphabetic';
   }
 
-  async function zuschneiden(quelle, stand, hoch, label, logo, story, stelle, schrift) {
+  async function zuschneiden(quelle, stand, hoch, label, logo, story, stelle, schrift, aiy) {
     return new Promise((fertig, schief) => {
       const bild = new Image();
       bild.crossOrigin = 'anonymous';
@@ -1580,10 +1629,14 @@
           (hoehe - bh) / 2 + (stand.y || 0) * hoehe,
           bw, bh);
 
-        labelZeichnen(g, breite, hoehe, label, logo, stelle, schrift);
+        labelZeichnen(g, breite, hoehe, label, logo, stelle, schrift, aiy);
         storyZeichnen(g, breite, hoehe, story);
 
-        c.toBlob(b => (b ? fertig(b) : schief(new Error('Bild ließ sich nicht erzeugen.'))), 'image/jpeg', 0.92);
+        // 0.95 statt 0.92: Instagram rechnet das Bild ohnehin noch einmal
+        // durch seine eigene Kompression. Was hier schon Artefakte hat,
+        // bekommt dort weitere dazu – die paar hundert KB sind der
+        // sichtbar sauberere Verlauf wert.
+        c.toBlob(b => (b ? fertig(b) : schief(new Error('Bild ließ sich nicht erzeugen.'))), 'image/jpeg', 0.95);
       };
       bild.onerror = () => schief(new Error('Bild ließ sich nicht laden.'));
       bild.src = quelle;
@@ -1625,7 +1678,8 @@
       <div class="sm-kopf" style="margin-top:18px"><b>Titelbild</b></div>
       ${labelHtml(labelVorschlag(v))}
       <p class="gd-notiz plan-notiz" data-plan-notiz hidden></p>
-      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>`, true);
+      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>
+      <p class="sm-schaerfe" data-schaerfe hidden></p>`, true);
   }
 
   function verdrahten(feld, id, variante) {
@@ -1789,9 +1843,18 @@
   // Bildmarke + AIY + Ihsan Yilmaz, ohne nur Bildmarke + AIY. Neu zeichnen
   // statt etwas zu verstecken – die beiden Fassungen setzen "AIY"
   // unterschiedlich hoch, ein blosses Ausblenden liesse eine Luecke.
-  function markeZeichnen(wurzel, mitName) {
-    (wurzel || document).querySelectorAll('[data-marke-svg]').forEach(ziel => {
-      ziel.innerHTML = window.aiyMarke.svg(!!mitName);
+  function markeZeichnen(wurzel) {
+    const w = wurzel || document;
+    const mitAIY = aiyVon(w.querySelector ? w : document);
+    const mitName = schriftVon(w.querySelector ? w : document);
+    w.querySelectorAll('[data-marke-svg]').forEach(ziel => {
+      ziel.innerHTML = window.aiyMarke.svg(mitAIY, mitName);
+      // Die Fassungen sind unterschiedlich breit im Verhaeltnis zur Hoehe.
+      // Ohne Nachziehen sitzt die gestapelte Fassung sonst so breit wie die
+      // Vollform und wird dadurch riesig.
+      const f = window.aiyMarke.fassung(mitAIY, mitName);
+      const marke = ziel.closest('.igv-marke');
+      if (marke) marke.style.width = (f.breit / 254.51 * 20.4).toFixed(2) + '%';
     });
   }
 
@@ -1893,8 +1956,7 @@
 
     // Auch der Schrift-Knopf kommt gemerkt aus der Vorlage – das Wort in der
     // Vorschau muss nach dem Neuzeichnen einmal nachziehen.
-    const schriftKnopf = feld.querySelector('[data-schrift-an]');
-    if (schriftKnopf) markeZeichnen(feld, schriftKnopf.getAttribute('aria-pressed') === 'true');
+    markeZeichnen(feld);
   }
 
   // "… mehr" klappt den Rest des Textes auf – wie in der App. Zusammen
@@ -2214,13 +2276,22 @@
       return;
     }
 
+    const wm = ev.target.closest('[data-aiy-an]');
+    if (wm) {
+      const an = wm.getAttribute('aria-pressed') !== 'true';
+      wm.setAttribute('aria-pressed', String(an));
+      schalterMerken('aiy', an);
+      markeZeichnen(wm.closest('.sm-block') || document);
+      return;
+    }
+
     const sch = ev.target.closest('[data-schrift-an]');
     if (sch) {
       const an = sch.getAttribute('aria-pressed') !== 'true';
       sch.setAttribute('aria-pressed', String(an));
       schalterMerken('schrift', an);
       const block = sch.closest('.sm-block') || document;
-      markeZeichnen(block, an);
+      markeZeichnen(block);
       return;
     }
 
@@ -2413,7 +2484,11 @@
             <input type="checkbox" data-logo-an checked />
             <span>Logo</span>
           </label>
-          <button type="button" class="sm-schrift" data-schrift-an aria-pressed="true">+ Schrift</button>
+          <button type="button" class="sm-schrift" data-aiy-an
+                  aria-pressed="${schalter.aiy === null ? true : schalter.aiy}"
+                  title="Wortmarke AIY neben der Bildmarke">AIY</button>
+          <button type="button" class="sm-schrift" data-schrift-an
+                  aria-pressed="${schalter.schrift === null ? true : schalter.schrift}">+ Schrift</button>
           ${stellenWahl('logo', 'unten-rechts')}
         </div>
         <div class="sm-kopf" style="margin-top:18px"><b>Bilder</b>
@@ -2424,6 +2499,7 @@
           <div class="sm-raster wk-raster"></div>
           <div class="wk-blatt"></div>
         </div>
+        <p class="sm-schaerfe" data-schaerfe hidden></p>
         <div data-reihe></div>
       </div>
       <div class="sm-fuss">
