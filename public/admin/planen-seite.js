@@ -8,10 +8,86 @@
 (function () {
   'use strict';
 
-  const { schuetzen } = window.admin;
+  const { schuetzen, kachel, zahl } = window.admin;
   const liste = document.getElementById('plan-liste');
   const verlauf = document.getElementById('plan-verlauf');
   if (!liste || !verlauf) return;
+
+  // ─── Sortierung der Warteschlange ───
+  //
+  // Standard ist "Nächste zuerst" – das ist die Reihenfolge, in der die
+  // Beitraege wirklich rausgehen. Die Wahl bleibt gemerkt.
+  const SORTIERUNGEN = {
+    'zeit-auf': (a, b) => String(a.zeitpunkt).localeCompare(String(b.zeitpunkt)),
+    'zeit-ab':  (a, b) => String(b.zeitpunkt).localeCompare(String(a.zeitpunkt)),
+    'neu':      (a, b) => String(b.angelegt || '').localeCompare(String(a.angelegt || ''))
+  };
+  const sortierFeld = document.getElementById('plan-sortierung');
+  let sortierung = 'zeit-auf';
+  try {
+    const s = localStorage.getItem('plan-sortierung');
+    if (SORTIERUNGEN[s]) sortierung = s;
+  } catch { /* egal */ }
+  if (sortierFeld) {
+    sortierFeld.value = sortierung;
+    sortierFeld.addEventListener('change', () => {
+      sortierung = SORTIERUNGEN[sortierFeld.value] ? sortierFeld.value : 'zeit-auf';
+      try { localStorage.setItem('plan-sortierung', sortierung); } catch { /* egal */ }
+      laden();
+    });
+  }
+
+  // ─── Kennzahl-Kacheln ───
+
+  function zahlenZeichnen(d) {
+    const ziel = document.getElementById('plan-zahlen');
+    if (!ziel) return;
+
+    const geplant = d.geplant;
+    const gepostet = d.erledigt.filter(z => z.status === 'gepostet');
+    const fehler = d.erledigt.filter(z => z.status === 'fehler');
+
+    const naechster = [...geplant].sort(SORTIERUNGEN['zeit-auf'])[0];
+    const inSieben = geplant.filter(z =>
+      new Date(z.zeitpunkt).getTime() - Date.now() < 7 * 86400000).length;
+    const letzter = gepostet
+      .map(z => alsDatum(z.gepostet_am))
+      .filter(Boolean)
+      .sort((a, b) => b - a)[0];
+
+    ziel.innerHTML =
+      kachel('Geplant', zahl(geplant.length),
+        naechster ? 'nächster am ' + schoen(new Date(naechster.zeitpunkt)) : 'nichts eingeplant') +
+      kachel('Nächste 7 Tage', zahl(inSieben), 'gehen automatisch raus') +
+      kachel('Versendet', zahl(gepostet.length),
+        letzter ? 'zuletzt am ' + schoen(letzter) : 'noch keiner draußen') +
+      kachel('Fehlgeschlagen', zahl(fehler.length),
+        fehler.length ? 'warten auf neuen Versuch' : 'alles glatt gelaufen');
+  }
+
+  // ─── Delta zum Jetzt ───
+  //
+  // Neben jedem Zeitfeld steht klein, wie weit der Zeitpunkt von jetzt
+  // entfernt ist – mit Dreieck: ▲ liegt vorn, ▼ ist schon vorbei.
+  function deltaWort(ms) {
+    const min = Math.round(Math.abs(ms) / 60000);
+    if (min < 1) return 'jetzt';
+    if (min < 60) return `${min} Min.`;
+    const std = Math.floor(min / 60);
+    if (std < 48) {
+      const rest = min % 60;
+      return rest && std < 10 ? `${std} Std. ${rest} Min.` : `${std} Std.`;
+    }
+    return `${Math.round(std / 24)} Tagen`;
+  }
+
+  function deltaChip(datum) {
+    const diff = datum.getTime() - Date.now();
+    if (Math.abs(diff) < 60000) return `<span class="plan-delta gleich">jetzt</span>`;
+    return diff > 0
+      ? `<span class="plan-delta vorn">▲ in ${deltaWort(diff)}</span>`
+      : `<span class="plan-delta vorbei">▼ vor ${deltaWort(diff)}</span>`;
+  }
 
   // ─── Laden ───
 
@@ -29,11 +105,26 @@
       return;
     }
 
-    liste.innerHTML = d.geplant.length
-      ? d.geplant.map(karte).join('')
+    zahlenZeichnen(d);
+
+    // Zaehler in der Ueberschrift, aktuelles Datum rechts daneben – und der
+    // Sortierer zeigt sich erst, wenn es etwas zu sortieren gibt.
+    const anzahl = document.getElementById('plan-anzahl');
+    if (anzahl) anzahl.textContent = d.geplant.length ? `(${d.geplant.length})` : '';
+    const heute = document.getElementById('plan-heute');
+    if (heute) {
+      heute.textContent = new Date().toLocaleDateString('de-DE',
+        { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+    if (sortierFeld) sortierFeld.hidden = d.geplant.length < 2;
+
+    const geplantSortiert = [...d.geplant].sort(SORTIERUNGEN[sortierung]);
+
+    liste.innerHTML = geplantSortiert.length
+      ? geplantSortiert.map(karte).join('')
       : `<p class="mon-leer">Nichts eingeplant. Im
            <a href="/admin/content">Content-Studio</a> einen Beitrag bauen und
-           im Posten-Dialog „Einplanen“ wählen.</p>`;
+           „Beitrag planen“ wählen.</p>`;
 
     verlauf.innerHTML = d.erledigt.length
       ? d.erledigt.slice(0, 30).map(karte).join('')
@@ -77,7 +168,8 @@
                  </svg>
                  <input type="datetime-local" class="plan-wann" aria-label="Geht raus am"
                         value="${ortszeit(wann)}" min="${ortszeit(new Date())}" />
-               </label>`
+               </label>
+               <span data-delta>${deltaChip(wann)}</span>`
             : `<span class="plan-wann-fest">· ${z.status === 'gepostet'
                 ? 'Gepostet am ' + schoen(alsDatum(z.gepostet_am) || wann)
                 : 'War geplant für ' + schoen(wann)}</span>`}
@@ -148,6 +240,17 @@
       const geaendert = () => { if (speichern) speichern.hidden = false; };
       k.querySelector('.plan-wann')?.addEventListener('input', geaendert);
       k.querySelector('.plan-text')?.addEventListener('input', geaendert);
+
+      // Das Delta neben dem Zeitfeld zieht beim Umstellen sofort mit –
+      // so sieht man schon vor dem Speichern, wie weit weg der Termin liegt.
+      const wannFeld = k.querySelector('.plan-wann');
+      const deltaZiel = k.querySelector('[data-delta]');
+      if (wannFeld && deltaZiel) {
+        wannFeld.addEventListener('input', () => {
+          const d = new Date(wannFeld.value);
+          deltaZiel.innerHTML = isNaN(d.getTime()) ? '' : deltaChip(d);
+        });
+      }
 
       speichern?.addEventListener('click', async () => {
         const wann = k.querySelector('.plan-wann');

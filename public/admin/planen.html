@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/admin/icon.svg" />
   <link rel="stylesheet" href="/css/fonts.css?v=3" />
   <link rel="stylesheet" href="/css/style.css?v=229" />
-  <link rel="stylesheet" href="/css/admin.css?v=283" />
+  <link rel="stylesheet" href="/css/admin.css?v=284" />
   <script>
     /* Muss im Kopf stehen, nicht in gemeinsam.js: das laeuft erst am Ende
        der Seite, und bis dahin waere die Leiste offen gezeichnet. */
@@ -27,6 +27,9 @@
         <p class="lead">Die Warteschlange: was wann automatisch auf @aiy.web erscheint – verschieben, umtexten oder sofort rausschicken.</p>
       </div>
 
+      <!-- Die Lage auf einen Blick, bevor man in die Liste einsteigt. -->
+      <div class="mon-kennzahlen" id="plan-zahlen"></div>
+
       <section class="admin-karte mon-block">
         <div class="ueb-kopf">
           <h2 class="ig-titel">
@@ -35,7 +38,15 @@
               <circle cx="12" cy="12" r="8.5"/>
               <path d="M12 7.5V12l3 2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Eingeplant</h2>
+            Geplant <span class="plan-anzahl" id="plan-anzahl"></span></h2>
+          <span class="plan-kopf-rechts">
+            <select id="plan-sortierung" class="plan-sortierung" aria-label="Sortierung" hidden>
+              <option value="zeit-auf">Nächste zuerst</option>
+              <option value="zeit-ab">Späteste zuerst</option>
+              <option value="neu">Zuletzt angelegt</option>
+            </select>
+            <span class="plan-heute" id="plan-heute"></span>
+          </span>
         </div>
         <div id="plan-liste" aria-live="polite"><p class="mon-laedt">Wird geladen …</p></div>
       </section>
@@ -47,7 +58,7 @@
                  stroke="currentColor" stroke-width="1.8" aria-hidden="true">
               <path d="M4.5 12.5l5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Rausgegangen &amp; Gescheitertes</h2>
+            Versendet &amp; Fehlgeschlagen</h2>
         </div>
         <div id="plan-verlauf" aria-live="polite"><p class="mon-laedt">Wird geladen …</p></div>
       </section>
@@ -56,6 +67,6 @@
   </main>
 
   <script src="/admin/gemeinsam.js?v=28"></script>
-  <script src="/admin/planen-seite.js?v=5"></script>
+  <script src="/admin/planen-seite.js?v=7"></script>
 </body>
 </html>

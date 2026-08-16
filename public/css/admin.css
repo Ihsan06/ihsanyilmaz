@@ -3555,6 +3555,17 @@ html.leiste-zu .admin-unter { display: none; }
 .plan-kopfzeile .mf-punkt.gruen { background: #1d8a52; }
 .plan-kopfzeile .mf-punkt.rot   { background: #c23b3b; }
 
+/* Zaehler hinter der Ueberschrift und das heutige Datum rechts aussen. */
+.plan-anzahl { font-family: inherit; font-size: .95rem; font-weight: 600; color: var(--muted); }
+.plan-kopf-rechts { display: inline-flex; align-items: center; gap: 14px; }
+.plan-heute { font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.plan-sortierung {
+  font: inherit; font-size: .8rem; font-weight: 600;
+  padding: 6px 10px; border-radius: 9px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--off); color: var(--text);
+}
+.plan-sortierung:focus { outline: 2px solid var(--gold, #12557F); outline-offset: 1px; }
+
 /* Nur das Uhr-Zeichen neben dem Feld – "Geht raus am" steht als title/
    aria-label dahinter, nicht als Wortkette in der Zeile. */
 .plan-wann-zeile {
@@ -3562,6 +3573,15 @@ html.leiste-zu .admin-unter { display: none; }
   color: var(--muted);
 }
 .plan-wann-zeile svg { flex: none; }
+
+/* Der Abstand zum Jetzt, klein neben dem Zeitfeld: ▲ liegt vorn, ▼ vorbei. */
+.plan-delta {
+  font-size: .75rem; font-weight: 700; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.plan-delta.vorn   { color: #1d8a52; }
+.plan-delta.vorbei { color: #c23b3b; }
+.plan-delta.gleich { color: var(--muted); }
 .plan-wann {
   font: inherit; font-size: .84rem; padding: 7px 10px;
   border-radius: 9px; border: 1px solid var(--border);
