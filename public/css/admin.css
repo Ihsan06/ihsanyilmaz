@@ -3603,9 +3603,9 @@ html.leiste-zu .admin-unter { display: none; }
 .plan-text[readonly] { color: var(--muted); background: transparent; }
 
 /* Nebeneinander statt uebereinander: "Jetzt posten" und "Löschen" sind ein
-   Paar, keine Liste – mittig unter dem Text, mit Luft drumherum. */
+   Paar, keine Liste – linksbuendig unter dem Text, mit Luft drumherum. */
 .plan-knoepfe {
-  display: flex; flex-wrap: wrap; justify-content: center;
+  display: flex; flex-wrap: wrap; justify-content: flex-start;
   gap: 12px; margin-top: 4px;
 }
 .plan-knoepfe button {
