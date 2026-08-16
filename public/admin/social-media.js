@@ -854,8 +854,9 @@
   // Die Schwungkurve aus dem Logo, dieselbe wie im Kopf der Website. Als Pfad
   // statt als Bilddatei: scharf in jeder Groesse, kein Ladevorgang, und die
   // Hausfarbe stimmt immer.
-  const LOGO_PFAD = 'M6.0,41.1 C7.5,40.8 11.9,40.2 14.9,39.2 C17.8,38.3 20.8,36.8 23.7,35.6 C26.6,34.2 29.6,32.9 32.6,31.7 C35.5,30.4 38.5,29.3 41.4,28.1 C44.3,26.9 47.3,25.7 50.3,24.7 C53.2,23.7 56.2,22.7 59.1,21.8 C62.0,21.0 65.0,20.2 68.0,19.4 C70.9,18.7 73.9,17.9 76.8,17.2 C79.7,16.7 82.7,16.2 85.7,15.9 C88.6,15.7 91.6,15.7 94.5,15.7 C97.4,15.7 100.4,15.6 103.4,15.9 C106.3,16.3 109.3,16.9 112.2,17.7 C115.1,18.6 118.1,19.6 121.1,21.0 C124.0,22.2 127.0,23.8 129.9,25.6 C132.8,27.3 135.8,29.5 138.8,31.4 C141.7,33.4 144.7,35.5 147.6,37.0 C150.5,38.4 153.5,39.4 156.5,40.0 C159.4,40.5 162.4,40.4 165.3,40.5 C168.2,40.6 171.2,40.5 174.2,40.7 C177.1,40.9 180.1,41.1 183.0,41.6 C185.9,41.9 189.0,42.4 191.9,43.0 C194.8,43.6 197.8,44.5 200.7,45.4 C203.6,46.3 207.4,47.7 209.6,48.4 C211.8,49.1 213.3,49.6 214.0,49.7';
-  const LOGO_BREIT = 220, LOGO_HOCH = 64;
+  // Masse der Marke – die Pfade selbst stehen in marke.js, damit Vorschau
+  // und gerechnetes Bild nicht auseinanderlaufen.
+  const LOGO_BREIT = window.aiyMarke.BREIT, LOGO_HOCH = window.aiyMarke.HOCH;
 
   // Was in der Vorschau steht, gilt: die Klasse ist die Wahrheit.
   function posVon(el, ersatz) {
@@ -1461,38 +1462,16 @@
       g.save();
       g.translate(lx, ly);
       g.scale(w / LOGO_BREIT, h / LOGO_HOCH);
-      g.strokeStyle = '#3D7EA6';
-      g.lineWidth = 6.5;
-      g.lineCap = 'round';
-      g.lineJoin = 'round';
-      // Ein weicher Schatten darunter: auf einem hellen Foto wuerde die Kurve
-      // sonst mit dem Hintergrund verschwimmen.
+      g.fillStyle = '#ffffff';
+      // Ein weicher Schatten darunter: auf einem hellen Foto wuerde die
+      // Marke sonst mit dem Hintergrund verschwimmen.
       g.shadowColor = 'rgba(0,0,0,.45)';
       g.shadowBlur = 10;
-      g.stroke(new Path2D(LOGO_PFAD));
+      // Mit Namen nur, wenn der Schrift-Schalter an ist – dieselben Pfade,
+      // aus denen auch die Vorschau gebaut wird.
+      window.aiyMarke.pfade(!!schrift).forEach(d => g.fill(new Path2D(d)));
       g.restore();
 
-      // Die Wortmarke unter der Kurve, wie im Kopf der Website.
-      if (schrift) {
-        // So gross, dass der Zug genau so breit wird wie die Kurve darueber –
-        // gemessen, nicht geschaetzt: 'AIY · Ihsan Yilmaz' ist bei jeder
-        // Schrift anders breit.
-        const setz = px =>
-          (g.font = `600 ${px}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`);
-        g.save();
-        setz(100);
-        const px = Math.max(8, Math.floor(100 * w / g.measureText('AIY · Ihsan Yilmaz').width));
-        setz(px);
-        g.textAlign = 'center';
-        g.textBaseline = 'top';
-        g.shadowColor = 'rgba(0,0,0,.5)';
-        g.shadowBlur = 8;
-        g.fillStyle = '#ffffff';
-        g.fillText('AIY · Ihsan Yilmaz', lx + w / 2, ly + h - Math.round(px * 0.55));
-        g.restore();
-        g.textAlign = 'left';
-        g.textBaseline = 'alphabetic';
-      }
     }
   }
 
@@ -1806,6 +1785,16 @@
 
   // Ohne Haken kein Text – und die Vorschau zeigt beides sofort, sonst sieht
   // man erst beim Veroeffentlichen, was man gebaut hat.
+  // Die Marke in der Vorschau neu setzen: mit Namen (Schrift an) zeigt sie
+  // Bildmarke + AIY + Ihsan Yilmaz, ohne nur Bildmarke + AIY. Neu zeichnen
+  // statt etwas zu verstecken – die beiden Fassungen setzen "AIY"
+  // unterschiedlich hoch, ein blosses Ausblenden liesse eine Luecke.
+  function markeZeichnen(wurzel, mitName) {
+    (wurzel || document).querySelectorAll('[data-marke-svg]').forEach(ziel => {
+      ziel.innerHTML = window.aiyMarke.svg(!!mitName);
+    });
+  }
+
   function logoVerdrahten(feld) {
     const an = feld.querySelector('[data-logo-an]');
     const v = feld.querySelector('[data-vorschau] .igv-marke');
@@ -1905,8 +1894,7 @@
     // Auch der Schrift-Knopf kommt gemerkt aus der Vorlage – das Wort in der
     // Vorschau muss nach dem Neuzeichnen einmal nachziehen.
     const schriftKnopf = feld.querySelector('[data-schrift-an]');
-    const wort = feld.querySelector('.igv-wort');
-    if (schriftKnopf && wort) wort.hidden = schriftKnopf.getAttribute('aria-pressed') !== 'true';
+    if (schriftKnopf) markeZeichnen(feld, schriftKnopf.getAttribute('aria-pressed') === 'true');
   }
 
   // "… mehr" klappt den Rest des Textes auf – wie in der App. Zusammen
@@ -2232,8 +2220,7 @@
       sch.setAttribute('aria-pressed', String(an));
       schalterMerken('schrift', an);
       const block = sch.closest('.sm-block') || document;
-      const wort = block.querySelector('.igv-wort');
-      if (wort) wort.hidden = !an;
+      markeZeichnen(block, an);
       return;
     }
 

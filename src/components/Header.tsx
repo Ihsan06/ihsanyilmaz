@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
+import Logo from "./Logo";
 
 const navLinks = [
   { href: "#leistungen", label: "Leistungen" },
@@ -26,10 +27,8 @@ export default function Header() {
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <a href="#" className="flex items-center gap-2 font-display text-[var(--fg)]">
-            <span className="text-xl font-bold tracking-tight">AIY</span>
-            <span className="text-lg font-light" style={{ color: "var(--accent)" }}>|</span>
-            <span className="text-sm font-medium text-[var(--fg-muted)]">Ihsan Yilmaz</span>
+          <a href="#" className="text-[var(--fg)]" aria-label="AIY · Ihsan Yilmaz — zum Seitenanfang">
+            <Logo size={30} />
           </a>
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map(l => (

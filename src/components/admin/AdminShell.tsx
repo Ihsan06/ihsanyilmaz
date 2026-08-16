@@ -2,6 +2,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 // Hinweis: lucide-react hat in dieser Version keine Marken-Icons (kein "Instagram") — daher Camera.
 import { LayoutDashboard, Inbox, Camera, Euro, Briefcase, LogOut, Lock, ExternalLink } from "lucide-react";
+import { Bildmarke } from "../Logo";
 
 type Seite = {
   pfad: string;
@@ -91,7 +92,10 @@ function Login({ onErfolg }: { onErfolg: () => void }) {
     <div className="admin-theme min-h-screen flex items-center justify-center px-6"
       style={{ background: "var(--tief)" }}>
       <form onSubmit={absenden} className="card w-full max-w-sm p-8">
-        <div className="icon-tile w-11 h-11 mb-5"><Lock size={20} /></div>
+        <div className="flex items-center gap-3 mb-5">
+          <Bildmarke size={34} className="shrink-0 text-[var(--accent)]" />
+          <div className="icon-tile w-9 h-9 ml-auto"><Lock size={17} /></div>
+        </div>
         <h1 className="display-h text-2xl font-semibold text-[var(--fg)] mb-1">Adminbereich</h1>
         <p className="text-[var(--fg-muted)] text-sm mb-6">AIY · Ihsan Yilmaz</p>
 
@@ -153,11 +157,14 @@ export default function AdminShell({
   return (
     <div className="admin-theme min-h-screen flex flex-col">
       <aside className="admin-leiste">
-        <a href="/admin" className="flex flex-col gap-0.5 px-6 py-5 no-underline" style={{ color: "#fff" }}>
-          <span className="font-display text-xl font-bold tracking-tight">AIY</span>
-          <span className="text-[0.64rem] font-semibold uppercase tracking-[0.06em]"
-            style={{ color: "rgba(255,255,255,0.6)" }}>
-            Verwaltung
+        <a href="/admin" className="flex items-center gap-2.5 px-6 py-5 no-underline" style={{ color: "#fff" }}>
+          <Bildmarke size={30} className="shrink-0" />
+          <span className="flex flex-col leading-none">
+            <span className="font-display text-xl font-bold tracking-tight">AIY</span>
+            <span className="text-[0.62rem] font-semibold uppercase tracking-[0.1em] mt-1"
+              style={{ color: "rgba(255,255,255,0.6)" }}>
+              Verwaltung
+            </span>
           </span>
         </a>
 

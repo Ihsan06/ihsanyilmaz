@@ -90,18 +90,8 @@ window.beitragSchau = (function () {
         <span class="igs-zeile igs-kasten pos-oben-mitte" hidden></span>
         <span class="igv-label" hidden></span>
         <span class="igv-marke" hidden aria-hidden="true">
-          <svg viewBox="0 0 220 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6.0,41.1 C7.5,40.8 11.9,40.2 14.9,39.2 C17.8,38.3 20.8,36.8 23.7,35.6 C26.6,34.2 29.6,32.9 32.6,31.7 C35.5,30.4 38.5,29.3 41.4,28.1 C44.3,26.9 47.3,25.7 50.3,24.7 C53.2,23.7 56.2,22.7 59.1,21.8 C62.0,21.0 65.0,20.2 68.0,19.4 C70.9,18.7 73.9,17.9 76.8,17.2 C79.7,16.7 82.7,16.2 85.7,15.9 C88.6,15.7 91.6,15.7 94.5,15.7 C97.4,15.7 100.4,15.6 103.4,15.9 C106.3,16.3 109.3,16.9 112.2,17.7 C115.1,18.6 118.1,19.6 121.1,21.0 C124.0,22.2 127.0,23.8 129.9,25.6 C132.8,27.3 135.8,29.5 138.8,31.4 C141.7,33.4 144.7,35.5 147.6,37.0 C150.5,38.4 153.5,39.4 156.5,40.0 C159.4,40.5 162.4,40.4 165.3,40.5 C168.2,40.6 171.2,40.5 174.2,40.7 C177.1,40.9 180.1,41.1 183.0,41.6 C185.9,41.9 189.0,42.4 191.9,43.0 C194.8,43.6 197.8,44.5 200.7,45.4 C203.6,46.3 207.4,47.7 209.6,48.4 C211.8,49.1 213.3,49.6 214.0,49.7" stroke="#3D7EA6" stroke-width="5.8" stroke-linecap="round"/>
-          </svg>
-          <i class="igv-wort">AIY · Ihsan Yilmaz</i>
+          <span class="igv-marke-bild" data-marke-svg>${window.aiyMarke.svg(true)}</span>
         </span>
-
-        <button type="button" class="igv-stift" data-bild-bearbeiten
-                title="Ausschnitt und Zoom anpassen">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z" stroke-linejoin="round"/>
-          </svg>
-          <span>Bearbeiten</span>
         </button>
 
         <div class="igv-werkzeug" hidden>

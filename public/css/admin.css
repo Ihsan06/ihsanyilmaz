@@ -75,9 +75,12 @@ body.admin { background: var(--off, #F5F7F9); min-height: 100vh; }
   transition: width .18s ease;
 }
 /* Schwung ueber dem Wort, genau wie die Wortmarke im Website-Header (.logo). */
-.admin-marke { display: flex; flex-direction: column; line-height: 1; gap: 2px; text-decoration: none; padding: 0 26px; flex: none; }
-.admin-marke .logo-mark { width: 96px; height: auto; }
-.admin-marke span { font-size: .64rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.6); }
+/* Bildmarke links, Schriftzug rechts – wie im Kopf der Website. */
+.admin-marke { display: flex; align-items: center; gap: 10px; line-height: 1; text-decoration: none; padding: 0 26px; flex: none; }
+.admin-marke .logo-mark { width: 30px; height: 30px; flex: none; }
+.admin-marke-wort { display: flex; flex-direction: column; gap: 4px; }
+.admin-marke-wort b { font-size: 1.24rem; font-weight: 800; letter-spacing: -.01em; color: #fff; font-style: normal; }
+.admin-marke-wort i { font-size: .6rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.6); font-style: normal; }
 
 .admin-nav { display: flex; flex-direction: column; gap: 4px; padding: 0 14px; }
 .admin-nav a {
@@ -116,8 +119,9 @@ body.admin { background: var(--off, #F5F7F9); min-height: 100vh; }
    sucht, klappt auf. */
 html.leiste-zu .admin-kopf { width: 68px; }
 html.leiste-zu .admin-marke { padding: 0 14px; }
-html.leiste-zu .admin-marke .logo-mark { width: 40px; }
-html.leiste-zu .admin-marke span,
+html.leiste-zu .admin-marke { justify-content: center; }
+html.leiste-zu .admin-marke .logo-mark { width: 32px; height: 32px; }
+html.leiste-zu .admin-marke-wort,
 html.leiste-zu .admin-nav a span,
 html.leiste-zu .admin-rand { display: none; }
 html.leiste-zu .admin-nav { padding: 0 10px; }
@@ -2923,6 +2927,7 @@ html.leiste-zu .admin-unter { display: none; }
 }
 .igv-marke[hidden] { display: none; }
 .igv-marke svg { display: block; width: 100%; height: auto; }
+.igv-marke-bild { display: block; }
 
 /* Die Plus-Kachel steht vorn im Raster – dort, wo man Bilder aussucht,
    gehoert das Hinzufuegen hin. Gestrichelt, damit sie nicht wie ein Foto
@@ -3091,15 +3096,6 @@ html.leiste-zu .admin-unter { display: none; }
   background: var(--carbon, #071A2B); border-style: solid;
   border-color: var(--carbon, #071A2B); color: #fff;
 }
-/* Genau so breit wie die Kurve darueber – deshalb eine Groesse, die sich an
-   der Breite der Marke bemisst, und kein Umbruch. */
-.igv-wort {
-  display: block; margin-top: -4px; text-align: center; white-space: nowrap;
-  font-style: normal; font-size: 6.4cqw; font-weight: 600; color: #fff;
-  letter-spacing: .005em; text-shadow: 0 1px 4px rgba(0,0,0,.6);
-}
-.igv-wort em { font-style: normal; font-weight: 400; font-size: .9em; opacity: .8; }
-.igv-wort[hidden] { display: none; }
 
 /* Der gemeinsame Schluss und der Knopf, der ihn mitnimmt, tragen dieselbe
    blasse Farbe – so sieht man ohne Erklaerung, was zusammengehoert. */
