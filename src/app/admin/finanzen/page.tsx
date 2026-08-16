@@ -14,6 +14,64 @@ type Transaktion = {
 
 const KATEGORIEN = ["Website-Projekt", "Wartung", "KI-Abos (Anthropic & Co.)", "Software / Tools", "Hardware", "Fahrtkosten", "Sonstiges"];
 
+// Marken-Logos wie beim Banking: Firma aus der Beschreibung erkennen und deren
+// echtes Favicon zeigen. Reihenfolge zählt — Apple-Produkte VOR dem Händler,
+// damit z. B. "MacBook … Cyberport" das Apple-Logo bekommt.
+const MARKEN: [RegExp, string][] = [
+  [/macbook|imac|ipad|iphone|airpods|applecare|apple/i, "apple.com"],
+  [/anthropic|claude/i, "anthropic.com"],
+  [/diezmann/i, "autohaus-diezmann.de"],
+  [/cyberport/i, "cyberport.de"],
+  [/consors/i, "consorsfinanz.de"],
+  [/media\s*markt/i, "mediamarkt.de"],
+  [/cloudflare/i, "cloudflare.com"],
+  [/resend/i, "resend.com"],
+  [/telegram/i, "telegram.org"],
+  [/instagram|meta\b/i, "instagram.com"],
+  [/google/i, "google.com"],
+  [/openai|chatgpt/i, "openai.com"],
+];
+
+function markenDomain(beschreibung: string): string | null {
+  for (const [muster, domain] of MARKEN) {
+    if (muster.test(beschreibung)) return domain;
+  }
+  return null;
+}
+
+function Logo({ beschreibung }: { beschreibung: string }) {
+  const [kaputt, setKaputt] = useState(false);
+  const domain = markenDomain(beschreibung);
+
+  if (domain && !kaputt) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+        alt=""
+        aria-hidden="true"
+        width={22}
+        height={22}
+        loading="lazy"
+        onError={() => setKaputt(true)}
+        className="rounded-[5px] shrink-0"
+        style={{ background: "var(--surface-2)" }}
+      />
+    );
+  }
+
+  // Rückfall: Kreis mit Anfangsbuchstaben
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex items-center justify-center rounded-[5px] text-[0.65rem] font-bold shrink-0"
+      style={{ width: 22, height: 22, background: "var(--accent-soft)", color: "var(--accent)" }}
+    >
+      {(beschreibung.trim()[0] || "•").toUpperCase()}
+    </span>
+  );
+}
+
 const heute = () => new Date().toISOString().slice(0, 10);
 const LEER = { art: "einnahme", betrag: "", beschreibung: "", kategorie: "", datum: heute() };
 
@@ -183,7 +241,12 @@ export default function FinanzenSeite() {
               {alle.map(t => (
                 <tr key={t.id} className="border-b border-[var(--border)] last:border-0">
                   <td className="px-5 py-3 text-[var(--fg-muted)] whitespace-nowrap">{datum(t.datum)}</td>
-                  <td className="px-5 py-3 text-[var(--fg)]">{t.beschreibung}</td>
+                  <td className="px-5 py-3 text-[var(--fg)]">
+                    <span className="inline-flex items-center gap-2.5">
+                      <Logo beschreibung={t.beschreibung} />
+                      {t.beschreibung}
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-[var(--fg-subtle)] whitespace-nowrap">{t.kategorie || "—"}</td>
                   <td className="px-5 py-3 text-right font-medium whitespace-nowrap"
                     style={{ color: t.art === "einnahme" ? "var(--accent)" : "#ef4444" }}>
