@@ -170,6 +170,9 @@
   // raeumt sich der alte Eintrag selbst weg.
   let bearbeitung = null;
   let bearbeitungId = Number(new URLSearchParams(location.search).get('bearbeiten')) || 0;
+  // Der urspruengliche Zeitpunkt des Eintrags: das Planen-Fenster schlaegt
+  // ihn wieder vor, solange er nicht schon vorbei ist.
+  let bearbeitungZeit = null;
 
   function alteBearbeitungWegraeumen() {
     if (!bearbeitungId) return;
@@ -748,12 +751,20 @@
       schleier.querySelector('.vp-nein').addEventListener('click', zu);
 
       // Vorbelegt mit "morgen um 9" – ein brauchbarer Vorschlag statt eines
-      // leeren Felds. Datetime-local will die oertliche Zeit ohne Zone.
+      // leeren Felds. Wird gerade ein Warteschlangen-Eintrag ueberarbeitet,
+      // steht stattdessen dessen urspruenglicher Zeitpunkt wieder drin
+      // (sofern er noch nicht vorbei ist). Datetime-local will die
+      // oertliche Zeit ohne Zone.
       const wann = schleier.querySelector('.vp-wann');
       const morgen = new Date();
       morgen.setDate(morgen.getDate() + 1);
       morgen.setHours(9, 0, 0, 0);
-      wann.value = ortszeit(morgen);
+      let vorgabe = morgen;
+      if (bearbeitungId && bearbeitungZeit) {
+        const alt = new Date(bearbeitungZeit);
+        if (!isNaN(alt.getTime()) && alt.getTime() > Date.now() + 60 * 1000) vorgabe = alt;
+      }
+      wann.value = ortszeit(vorgabe);
       wann.min = ortszeit(new Date());
 
       schleier.querySelector('.vp-plan-los').addEventListener('click', () => {
@@ -2262,6 +2273,7 @@
           .find(e => e.id === bearbeitungId);
         if (z && Array.isArray(z.bilder) && z.bilder.length) {
           bearbeitung = z;
+          bearbeitungZeit = z.zeitpunkt || null;
           format = z.format === 'story' ? 'story' : 'beitrag';
           quelle = 'galerie';
           // Logo, Angaben und Titel sind in diesen Bildern schon eingebrannt –
