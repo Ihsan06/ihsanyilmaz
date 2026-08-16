@@ -59,7 +59,7 @@
     ziel.innerHTML =
       kachel('Geplant', zahl(geplant.length),
         naechster ? 'nächster am ' + schoen(new Date(naechster.zeitpunkt)) : '') +
-      kachel('Nächste 7 Tage', zahl(inSieben), 'gehen automatisch raus') +
+      kachel('Nächste 7 Tage', zahl(inSieben), '') +
       kachel('Versendet', zahl(gepostet.length),
         letzter ? 'zuletzt am ' + schoen(letzter) : '') +
       kachel('Fehlgeschlagen', zahl(fehler.length),
