@@ -1575,10 +1575,24 @@
   function storyZeichnen(g, breite, hoehe, st) {
     if (!st || !st.zeile) return;
 
+    // Der Titel traegt denselben Stil, den "Gestalten …" einstellt – frueher
+    // stand hier fest schwarzer Kasten mit weisser Schrift. Die Vorschau
+    // zeigte den eingestellten Stil, das gerechnete Bild nicht: was man sah,
+    // war nicht, was gepostet wurde.
+    const stil = (window.beitragStil && window.beitragStil.jetzt('titel')) || {};
+    const familie = stil.schrift
+      || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const dicke = stil.dicke || 800;
+    const farbe = stil.farbe || '#ffffff';
+    const grund = stil.grund || 'kasten';
+    const grundfarbe = (window.beitragStil && window.beitragStil.mitDeckung)
+      ? window.beitragStil.mitDeckung(stil.grundfarbe || '#000000',
+          stil.deckung == null ? 72 : stil.deckung)
+      : 'rgba(0,0,0,.72)';
+
     const rand = Math.round(breite * 0.075);
     const platz = breite - rand * 2;
-    const schrift = (px, dick) =>
-      `${dick} ${px}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    const schrift = (px, dick) => `${dick} ${px}px ${familie}`;
 
     // Eine Zeile, die nicht passt, wird umbrochen – nicht abgeschnitten und
     // nicht endlos verkleinert.
@@ -1599,17 +1613,22 @@
     // Deutlich kleiner als zuvor. Ein Textsticker in Instagram ist etwa so
     // gross wie zwei Zeilen Bildunterschrift – wird er groesser, sieht er
     // aufgeklebt aus statt getippt.
-    const grossPx = Math.round(breite * 0.052);
-    const kleinPx = Math.round(breite * 0.032);
+    // Die eingestellte Groesse gilt in Promille der Bildbreite – wie bei den
+    // Angaben. Die Unterzeile behaelt ihr Groessenverhaeltnis zur Hauptzeile.
+    const grossPx = Math.round(breite * (stil.groesse || 52) / 1000);
+    const kleinPx = Math.round(grossPx * 0.62);
     const bloecke = [
-      ...brechen(st.zeile, grossPx, 800).map(t => ({ t, px: grossPx, dick: 800 })),
-      ...(st.unterzeile ? brechen(st.unterzeile, kleinPx, 600)
-        .map(t => ({ t, px: kleinPx, dick: 600 })) : [])
+      ...brechen(st.zeile, grossPx, dicke).map(t => ({ t, px: grossPx, dick: dicke })),
+      ...(st.unterzeile ? brechen(st.unterzeile, kleinPx, Math.max(400, dicke - 200))
+        .map(t => ({ t, px: kleinPx, dick: Math.max(400, dicke - 200) })) : [])
     ];
 
     // Enge Kaesten: sie sollen am Text liegen, nicht um ihn herum stehen.
     const luftY = Math.round(breite * 0.009);
-    const luftX = Math.round(breite * 0.016);
+    // Polster nur, wo auch eine Flaeche liegt: bei "Kein Grund" und
+    // "Schatten" wuerde der Text sonst gegen nichts einruecken.
+    const luftX = (grund === 'kasten' || grund === 'band')
+      ? Math.round(breite * 0.016) : 0;
     const abstand = Math.round(breite * 0.008);
     bloecke.forEach(b => {
       g.font = schrift(b.px, b.dick);
@@ -1632,17 +1651,33 @@
     bloecke.forEach(b => {
       const x = h === 'links' ? rand
         : (h === 'mitte' ? Math.round((breite - b.breite) / 2) : breite - rand - b.breite);
-      g.beginPath();
-      if (g.roundRect) g.roundRect(x, y, b.breite, b.hoehe, r);
-      else g.rect(x, y, b.breite, b.hoehe);
-      g.fillStyle = 'rgba(0,0,0,.72)';
-      g.fill();
+      if (grund === 'kasten') {
+        g.beginPath();
+        if (g.roundRect) g.roundRect(x, y, b.breite, b.hoehe, r);
+        else g.rect(x, y, b.breite, b.hoehe);
+        g.fillStyle = grundfarbe;
+        g.fill();
+      } else if (grund === 'band') {
+        // Ueber die ganze Breite, nicht nur unter dem Wort.
+        g.fillStyle = grundfarbe;
+        g.fillRect(0, y, breite, b.hoehe);
+      }
 
       g.font = schrift(b.px, b.dick);
-      g.fillStyle = '#ffffff';
       g.textBaseline = 'middle';
       g.textAlign = 'left';
+      if (grund === 'schatten') {
+        g.shadowColor = 'rgba(0,0,0,.72)';
+        g.shadowBlur = Math.round(breite * 0.018);
+        g.shadowOffsetY = Math.round(breite * 0.002);
+      }
+      g.fillStyle = farbe;
       g.fillText(b.t, x + luftX, y + b.hoehe / 2 + 1);
+      // Zweiter Zug ohne Schatten: sonst wirkt die Kante verwaschen.
+      if (grund === 'schatten') {
+        g.shadowBlur = 0; g.shadowOffsetY = 0;
+        g.fillText(b.t, x + luftX, y + b.hoehe / 2 + 1);
+      }
       y += b.hoehe + abstand;
     });
     g.textAlign = 'left';
@@ -2366,6 +2401,14 @@
   // Erst nachsehen, ob ein Warteschlangen-Eintrag zum Bearbeiten ansteht –
   // sein Format entscheidet, welcher Reiter aufgeht. Dann normal laden.
   (async () => {
+    // Der gespeicherte Stil zuerst: er lag bisher nur nach einem Reiter-
+    // Wechsel vor. Beim ersten Aufruf zeichneten Vorschau UND fertiges Bild
+    // deshalb mit der Vorgabe – die Einstellung aus "Gestalten …" wirkte
+    // erst nach einem Klick auf Beiträge/Stories.
+    if (window.beitragStil) {
+      try { await window.beitragStil.holen(); } catch { /* dann die Vorgabe */ }
+    }
+
     if (bearbeitungId) {
       try {
         const a = await fetch('/api/studio/warteschlange', { credentials: 'same-origin' });

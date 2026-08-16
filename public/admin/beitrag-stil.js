@@ -289,5 +289,5 @@
     });
   }
 
-  window.beitragStil = { holen, jetzt, alsCss, zeichnen, oeffnen };
+  window.beitragStil = { holen, jetzt, alsCss, zeichnen, oeffnen, mitDeckung };
 })();

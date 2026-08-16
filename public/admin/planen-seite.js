@@ -151,6 +151,53 @@
     verdrahten(verlauf);
   }
 
+  // ─── Nach dem Posten ───
+  //
+  // Dasselbe Fenster wie im Content-Studio: gruener Haken, der Weg zum
+  // Beitrag als Hauptknopf, daneben Schliessen.
+  function erfolgZeigen(was, weg) {
+    document.querySelectorAll('.vp-schleier').forEach(e => e.remove());
+
+    const schleier = document.createElement('div');
+    schleier.className = 'vp-schleier';
+    schleier.innerHTML = `<div class="vp-kasten" role="dialog" aria-modal="true"
+           aria-labelledby="vp-fertig-titel">
+      <span class="vp-achtung vp-fertig" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M4.5 12.5l5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <b id="vp-fertig-titel">${schuetzen(was)} veröffentlicht</b>
+      <p>${was === 'Story' ? 'Sie steht' : 'Er steht'} jetzt öffentlich auf
+        <strong>@aiy.web</strong>.</p>
+      <div class="vp-knoepfe">
+        ${weg ? `<a class="vp-ja" href="${schuetzen(weg)}" target="_blank" rel="noopener">
+          ${schuetzen(was)} ansehen
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+               stroke-width="2" aria-hidden="true">
+            <path d="M14 4h6v6M20 4l-8.5 8.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 19V8a1.5 1.5 0 0 1 1.5-1.5H10"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>` : ''}
+        <button type="button" class="vp-nein">Schließen</button>
+      </div>
+    </div>`;
+    document.body.append(schleier);
+    document.documentElement.classList.add('vp-offen');
+
+    const zu = () => {
+      schleier.remove();
+      document.documentElement.classList.remove('vp-offen');
+      document.removeEventListener('keydown', taste);
+    };
+    const taste = e => { if (e.key === 'Escape') zu(); };
+    document.addEventListener('keydown', taste);
+    schleier.addEventListener('click', e => { if (e.target === schleier) zu(); });
+    schleier.querySelector('.vp-nein').addEventListener('click', zu);
+    (schleier.querySelector('.vp-ja') || schleier.querySelector('.vp-nein')).focus();
+  }
+
   // ─── Insta-Vorschau ───
   //
   // Klick auf die Bildkachel: der Beitrag so, wie er auf Instagram aussehen
@@ -247,8 +294,9 @@
       if (!confirm('Jetzt sofort auf @aiy.web veröffentlichen?')) return;
       knopf.disabled = true;
       knopf.textContent = 'Geht raus …';
-      await senden('POST', { id: z.id, aktion: 'sofort' });
+      const d = await senden('POST', { id: z.id, aktion: 'sofort' });
       zu();
+      if (d) erfolgZeigen(z.format === 'story' ? 'Story' : 'Beitrag', d.weg);
       laden();
     });
 
@@ -395,8 +443,9 @@
         if (!confirm('Jetzt sofort auf @aiy.web veröffentlichen?')) return;
         knopf.disabled = true;
         knopf.textContent = 'Geht raus …';
-        const ok = await senden('POST', { id, aktion: 'sofort' });
-        if (!ok) { knopf.disabled = false; knopf.textContent = 'Jetzt posten'; }
+        const d = await senden('POST', { id, aktion: 'sofort' });
+        if (!d) { knopf.disabled = false; knopf.textContent = 'Jetzt posten'; }
+        else erfolgZeigen(eintraege.get(id)?.format === 'story' ? 'Story' : 'Beitrag', d.weg);
         laden();
       });
 
@@ -436,10 +485,10 @@
       });
       const d = await a.json();
       if (!d || !d.ok) throw new Error((d && d.fehler) || 'HTTP ' + a.status);
-      return true;
+      return d;
     } catch (err) {
       alert('Ging nicht: ' + err.message);
-      return false;
+      return null;
     }
   }
 

@@ -2497,7 +2497,8 @@ html.vp-offen { overflow: hidden; }
 }
 .vp-kasten p strong { color: var(--text); font-weight: 700; }
 .vp-knoepfe { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px; }
-.vp-knoepfe button {
+.vp-knoepfe button,
+.vp-knoepfe a {
   border: 0; border-radius: 999px; cursor: pointer; font: inherit;
   font-size: .88rem; padding: 12px 18px; width: 100%;
 }
@@ -2507,7 +2508,7 @@ html.vp-offen { overflow: hidden; }
    er ist der eine Schritt, den man nach dem Posten gehen will. */
 .vp-knoepfe a.vp-ja {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  text-decoration: none; box-sizing: border-box;
+  text-decoration: none; box-sizing: border-box; font-weight: 700;
 }
 .vp-knoepfe a.vp-ja:hover { color: #fff; }
 /* Geschafft statt Achtung: dasselbe Rund, andere Farbe. */
