@@ -533,13 +533,7 @@
       alsBenutztMerken(wege);
       alteBearbeitungWegraeumen();
       knopfText(knopf, story ? 'Story steht ✓' : 'Beitrag steht ✓');
-      if (d.weg) {
-        const zeile = knopf.parentElement && knopf.parentElement.querySelector('.sm-meldung');
-        if (zeile) {
-          zeile.innerHTML = `${schuetzen(story ? 'Story steht' : 'Beitrag steht')} ·
-            <a href="${schuetzen(d.weg)}" target="_blank" rel="noopener">ansehen ↗</a>`;
-        }
-      }
+      erfolgZeigen(story ? 'Story' : 'Beitrag', d.weg);
       igLaden();
     } catch (err) {
       console.error('Veroeffentlichen:', err);
@@ -699,6 +693,55 @@
       });
       schleier.querySelector('.vp-ja').focus();
     });
+  }
+
+  // Nach dem Posten dasselbe Fenster wie vor dem Posten, nur andersherum:
+  // erst die Rueckfrage, dann die Bestaetigung. Eine Zeile im Fuss war zu
+  // leise fuer etwas, das gerade oeffentlich geworden ist – und der Weg zum
+  // Beitrag ist der eine Schritt, den man jetzt gehen will.
+  function erfolgZeigen(was, weg) {
+    const vorhandener = document.querySelector('.vp-schleier');
+    if (vorhandener) vorhandener.remove();
+
+    const schleier = document.createElement('div');
+    schleier.className = 'vp-schleier';
+    schleier.innerHTML = `<div class="vp-kasten" role="dialog" aria-modal="true"
+           aria-labelledby="vp-fertig-titel">
+      <span class="vp-achtung vp-fertig" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M4.5 12.5l5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <b id="vp-fertig-titel">${schuetzen(was)} veröffentlicht</b>
+      <p>${was === 'Story' ? 'Sie steht' : 'Er steht'} jetzt öffentlich auf
+        <strong>@aiy.web</strong>.</p>
+      <div class="vp-knoepfe">
+        ${weg ? `<a class="vp-ja" href="${schuetzen(weg)}" target="_blank" rel="noopener">
+          ${schuetzen(was)} ansehen
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+               stroke-width="2" aria-hidden="true">
+            <path d="M14 4h6v6M20 4l-8.5 8.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18 14.5V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 19V8a1.5 1.5 0 0 1 1.5-1.5H10"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>` : ''}
+        <button type="button" class="vp-nein">Schließen</button>
+      </div>
+    </div>`;
+    document.body.append(schleier);
+    document.documentElement.classList.add('vp-offen');
+
+    const zu = () => {
+      schleier.remove();
+      document.documentElement.classList.remove('vp-offen');
+      document.removeEventListener('keydown', taste);
+    };
+    const taste = e => { if (e.key === 'Escape') zu(); };
+    document.addEventListener('keydown', taste);
+    schleier.addEventListener('click', e => { if (e.target === schleier) zu(); });
+    schleier.querySelector('.vp-nein').addEventListener('click', zu);
+    // Der Weg zum Beitrag bekommt den Fokus, nicht das Schliessen.
+    (schleier.querySelector('.vp-ja') || schleier.querySelector('.vp-nein')).focus();
   }
 
   // Der dritte Knopf: "Beitrag planen". Ein eigenes Fenster mit Datum und

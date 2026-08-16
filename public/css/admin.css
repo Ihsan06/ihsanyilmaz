@@ -2503,6 +2503,15 @@ html.vp-offen { overflow: hidden; }
 }
 .vp-knoepfe .vp-ja { background: var(--gold, #12557F); color: #fff; font-weight: 700; }
 .vp-ja:hover { background: #0D3F5F; }
+/* Der Weg zum Beitrag ist ein Verweis, sieht aber aus wie der Hauptknopf –
+   er ist der eine Schritt, den man nach dem Posten gehen will. */
+.vp-knoepfe a.vp-ja {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  text-decoration: none; box-sizing: border-box;
+}
+.vp-knoepfe a.vp-ja:hover { color: #fff; }
+/* Geschafft statt Achtung: dasselbe Rund, andere Farbe. */
+.vp-achtung.vp-fertig { background: rgba(29, 138, 82, .12); color: #1d8a52; }
 .vp-knoepfe .vp-nein {
   background: var(--off); color: var(--text); font-weight: 500;
   border: 1px solid var(--border);
