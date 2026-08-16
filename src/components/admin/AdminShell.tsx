@@ -30,7 +30,7 @@ const SEITEN: Seite[] = [
     icon: Camera,
     unter: [
       { pfad: "/admin/instagram", titel: "Profil" },
-      { pfad: "/admin/instagram/content", titel: "Content erstellen" },
+      { pfad: "/admin/content", titel: "Content erstellen" },
       { pfad: "/admin/instagram/galerie", titel: "Galerie" },
     ],
   },

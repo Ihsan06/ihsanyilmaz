@@ -1,0 +1,3496 @@
+/* ============================================================
+   ADMINBEREICH
+   Baut auf style.css auf (Farben, Schriften, .btn) und ergaenzt nur,
+   was der Verwaltungsbereich zusaetzlich braucht.
+   Liegt unter /css statt /admin, weil /admin ohne Login gesperrt ist –
+   die Anmeldemaske braucht ihr Stylesheet aber vorher.
+   ============================================================ */
+
+/* ─── Anmeldemaske ─── */
+
+body.admin-login {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: var(--carbon, #071A2B);
+}
+
+.login-karte {
+  width: 100%; max-width: 380px;
+  background: var(--white, #fff);
+  border-radius: var(--radius, 14px);
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  padding: 40px 36px 32px;
+  text-align: center;
+}
+/* .logo-mark ist in style.css display:block – das text-align:center der Karte
+   greift dort nicht, deshalb per auto-Rand mittig setzen. */
+.login-karte .logo-mark { width: 132px; height: auto; margin: 0 auto 18px; }
+.login-karte h1 { font-size: 1.6rem; margin: 0 0 4px; }
+.login-karte .unter { color: var(--muted); font-size: .86rem; margin: 0 0 26px; }
+
+.login-karte form { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.login-karte label { font-size: .8rem; font-weight: 600; color: var(--text); }
+.login-karte input {
+  width: 100%; padding: 11px 13px; font: inherit; font-size: .95rem;
+  border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text);
+}
+.login-karte input:focus {
+  outline: none; border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(168,50,61,.15);
+}
+.login-karte button { margin-top: 10px; width: 100%; justify-content: center; }
+
+.login-karte .fehler {
+  background: rgba(168,50,61,.08);
+  border: 1px solid rgba(168,50,61,.28);
+  color: var(--gold);
+  border-radius: 8px; padding: 10px 13px; margin: 0 0 18px;
+  font-size: .86rem; text-align: left;
+}
+
+.login-karte .zurueck { margin: 22px 0 0; font-size: .8rem; }
+.login-karte .zurueck a { color: var(--muted); text-decoration: none; }
+.login-karte .zurueck a:hover { color: var(--gold); text-decoration: underline; }
+
+/* ─── Grundgeruest des Adminbereichs ─── */
+
+/* Der cremefarbene Grund muss auf <html> liegen, nicht nur auf <body>:
+   style.css faerbt <html> dunkel, und ein Hintergrund am Body wird dann NICHT
+   mehr auf die Seitenflaeche uebertragen. Ohne das hier blitzt beim Ueber-
+   scrollen und unterhalb kurzer Seiten das dunkle Grundlayout durch. */
+html.admin { background: var(--off, #F5F7F9); }
+body.admin { background: var(--off, #F5F7F9); min-height: 100vh; }
+
+/* Die Verwaltung ist ein Dashboard: die dunkle Leiste steht senkrecht am
+   linken Rand, der Inhalt bekommt die uebrige Breite. Kopf- und Fusszeile
+   im Stil der Website gibt es hier nicht mehr – was die Fusszeile trug,
+   steht jetzt unten in der Leiste. */
+.admin-kopf {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 236px; z-index: 60;
+  background: var(--carbon, #071A2B); color: #fff;
+  display: flex; flex-direction: column; gap: 26px;
+  padding: 24px 0 14px;
+  overflow-y: auto;
+  transition: width .18s ease;
+}
+/* Schwung ueber dem Wort, genau wie die Wortmarke im Website-Header (.logo). */
+.admin-marke { display: flex; flex-direction: column; line-height: 1; gap: 2px; text-decoration: none; padding: 0 26px; flex: none; }
+.admin-marke .logo-mark { width: 96px; height: auto; }
+.admin-marke span { font-size: .64rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.6); }
+
+.admin-nav { display: flex; flex-direction: column; gap: 4px; padding: 0 14px; }
+.admin-nav a {
+  display: flex; align-items: center; gap: 12px;
+  color: rgba(255,255,255,.72); text-decoration: none;
+  font-size: .91rem; font-weight: 500; padding: 10px 13px; border-radius: 9px;
+  transition: var(--transition, .2s ease);
+}
+.admin-nav a svg { width: 18px; height: 18px; flex: none; opacity: .75; }
+.admin-nav a:hover { color: #fff; background: rgba(255,255,255,.07); }
+.admin-nav a.active { color: #fff; background: var(--gold, #12557F); }
+.admin-nav a.active svg { opacity: 1; }
+
+/* Unten in der Leiste: der Weg zur Website, die Pflichtseiten, Abmelden. */
+.admin-rand {
+  margin-top: auto; display: flex; flex-direction: column; gap: 9px;
+  padding: 18px 26px 0; border-top: 1px solid rgba(255,255,255,.09);
+  font-size: .8rem;
+}
+.admin-rand-hinweis { color: rgba(255,255,255,.3); font-size: .72rem; line-height: 1.5; }
+
+/* Der Klapp-Knopf am Fuss der Leiste. */
+.admin-klapp {
+  display: flex; align-items: center; justify-content: center;
+  margin: 12px 14px 0; padding: 9px 0;
+  border: 0; border-radius: 9px; background: none; cursor: pointer;
+  color: rgba(255,255,255,.5); font: inherit;
+  transition: var(--transition, .2s ease);
+}
+.admin-klapp:hover { color: #fff; background: rgba(255,255,255,.07); }
+.admin-klapp svg { width: 16px; height: 16px; flex: none; transition: transform .18s ease; }
+
+/* ─── Eingeklappte Leiste ───
+   Nur noch die Zeichen, 68 px breit. Die Titel stehen als title an den
+   Punkten, Abmelden und Hinweis brauchen die offene Leiste – wer sie
+   sucht, klappt auf. */
+html.leiste-zu .admin-kopf { width: 68px; }
+html.leiste-zu .admin-marke { padding: 0 14px; }
+html.leiste-zu .admin-marke .logo-mark { width: 40px; }
+html.leiste-zu .admin-marke span,
+html.leiste-zu .admin-nav a span,
+html.leiste-zu .admin-rand { display: none; }
+html.leiste-zu .admin-nav { padding: 0 10px; }
+html.leiste-zu .admin-nav a { justify-content: center; padding: 11px 0; }
+html.leiste-zu .admin-klapp { margin-top: auto; }
+html.leiste-zu .admin-klapp svg { transform: rotate(180deg); }
+/* Abmelden ist ein <button> in einem POST-Formular (GET waere per fremdem
+   <img> ausloesbar) – deshalb hier die Button-Vorgaben des Browsers abraeumen. */
+.admin-abmelden {
+  display: flex; align-items: center; gap: 9px;
+  border: 0; background: none; padding: 0; font: inherit; cursor: pointer;
+  font-size: .8rem; color: rgba(255,255,255,.55); text-align: left; white-space: nowrap;
+  transition: var(--transition, .2s ease);
+}
+.admin-abmelden svg { width: 15px; height: 15px; flex: none; }
+.admin-abmelden:hover { color: #fff; }
+.admin-abmelden:hover span { text-decoration: underline; }
+
+/* Auf schmalen Schirmen wird die Leiste zum Kopfblock: Marke und Abmelden
+   oben, die Bereiche als Zeile darunter. Pflichtseiten und Hinweis treten
+   zurueck – dafuer ist am Handy kein Platz, und noetig sind sie dort nicht. */
+@media (max-width: 940px) {
+  .admin-kopf {
+    position: static; width: auto; overflow: visible;
+    flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+    padding: 12px 16px;
+  }
+  .admin-marke { padding: 0; }
+  .admin-rand { margin: 0 0 0 auto; padding: 0; border: 0; order: 2; flex-direction: row; align-items: center; gap: 16px; }
+  .admin-rand-hinweis, .admin-klapp { display: none; }
+  /* Umbrechen statt seitwaerts scrollen: bei fuenf Punkten lag der letzte
+     ausserhalb des Bildschirms, und ein Menue, das man wegwischen muss,
+     findet niemand. Zwei Zeilen sind haesslicher und funktionieren. */
+  .admin-nav {
+    order: 3; flex: 1 1 100%; flex-direction: row; flex-wrap: wrap;
+    overflow: visible; padding: 0; gap: 4px;
+  }
+  .admin-nav a { white-space: nowrap; padding: 8px 11px; font-size: .85rem; }
+  .admin-nav a svg { width: 17px; height: 17px; }
+
+  /* Eingeklappt gibt es hier nicht: die Leiste steht quer, da ist nichts zum
+     Einklappen. Die Regeln dafuer haben aber "html.leiste-zu" davor und damit
+     mehr Gewicht als die Regeln hier – ohne diesen Block blieb die Leiste
+     68 px schmal, sobald man sie am Rechner einmal eingeklappt hatte, und die
+     Punkte waren nicht mehr zu erreichen. */
+  html.leiste-zu .admin-kopf {
+    position: static; width: auto; overflow: visible;
+    flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+    padding: 12px 16px;
+  }
+  html.leiste-zu .admin-marke { padding: 0; }
+  html.leiste-zu .admin-marke .logo-mark { width: 96px; }
+  html.leiste-zu .admin-marke span,
+  html.leiste-zu .admin-nav a span { display: inline; }
+  html.leiste-zu .admin-rand {
+    display: flex; margin: 0 0 0 auto; padding: 0; border: 0; order: 2;
+    flex-direction: row; align-items: center; gap: 16px;
+  }
+  html.leiste-zu .admin-nav { padding: 0; }
+  html.leiste-zu .admin-nav a { justify-content: flex-start; padding: 8px 11px; }
+  html.leiste-zu .admin-inhalt,
+  html.leiste-zu .admin-fuss { margin-left: 0; }
+}
+
+/* Unter 700 px passen fuenf Punkte nicht mehr in eine Zeile. Sie bleiben in
+   einer und werden gewischt – nur muss man sehen, DASS da noch etwas kommt.
+   Genau das fehlte: der letzte Punkt endete am Rand und sah abgeschnitten
+   aus. Der Verlauf rechts sagt jetzt, dass es weitergeht, und verschwindet,
+   sobald man am Ende angekommen ist. */
+@media (max-width: 700px) {
+  .admin-kopf { position: sticky; top: 0; z-index: 60; }
+  .admin-nav {
+    flex-wrap: nowrap; gap: 4px; padding: 0 24px 0 0;
+    overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    scroll-padding-inline: 16px;
+    /* Der weiche rechte Rand ist der Hinweis: da kommt noch etwas. Als
+       Maske statt als Verlaufsflaeche – so braucht es kein zusaetzliches
+       Element um die Leiste herum. */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 38px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 38px), transparent);
+    transition: mask-image .15s ease;
+  }
+  /* Am Ende der Strecke gibt es nichts mehr anzudeuten – dann steht der
+     letzte Punkt wieder klar da. */
+  .admin-nav.am-ende {
+    -webkit-mask-image: none; mask-image: none;
+  }
+  .admin-nav::-webkit-scrollbar { display: none; }
+
+  html.leiste-zu .admin-nav {
+    flex-wrap: nowrap; padding: 0 24px 0 0;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  html.leiste-zu .admin-klapp { display: none; }
+}
+
+/* Mehr Luft nach oben, weniger zur Leiste: der Inhalt klebte in der linken
+   oberen Ecke seiner Flaeche. Oben traegt der Abstand, seitlich reichen
+   28 px – die dunkle Leiste ist Kante genug. */
+.admin-inhalt { margin-left: 236px; padding: 64px 0 72px; transition: margin-left .18s ease; }
+html.leiste-zu .admin-inhalt { margin-left: 68px; }
+
+/* Fusszeile im Stil des Dashboards: eine leise Zeile unter dem Inhalt statt
+   der dunklen Leiste der Website – dunkel saehe neben der Seitenleiste nach
+   einem zweiten Rahmen aus. Bei kurzen Seiten steht sie trotzdem unten,
+   siehe die Flex-Regeln am body. */
+.admin-fuss {
+  margin-left: 236px; padding: 16px 0;
+  border-top: 1px solid var(--border);
+  transition: margin-left .18s ease;
+}
+html.leiste-zu .admin-fuss { margin-left: 68px; }
+.admin-fuss .container {
+  max-width: 1340px;
+  padding-left: 20px;
+  padding-right: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px 24px; flex-wrap: wrap;
+  font-size: .78rem; color: var(--muted);
+}
+.admin-fuss-wege { display: flex; gap: 18px; flex-wrap: wrap; }
+.admin-fuss-wege a { color: var(--muted); text-decoration: none; transition: var(--transition, .2s ease); }
+.admin-fuss-wege a:hover { color: var(--gold, #12557F); }
+/* Damit die Fusszeile bei kurzen Seiten unten steht: die feste Leiste
+   nimmt am Flex nicht teil, uebrig bleiben Inhalt und Fusszeile. */
+body.admin { display: flex; flex-direction: column; }
+body.admin .admin-inhalt { flex: 1; }
+
+/* Steht NACH der Grundregel: gleiche Spezifitaet, spaeter gewinnt. */
+@media (max-width: 940px) {
+  .admin-inhalt { margin-left: 0; padding-top: 30px; }
+  .admin-inhalt .container { padding-left: 16px; padding-right: 16px; }
+  .admin-fuss { margin-left: 0; }
+}
+/* Mit der Leiste daneben darf der Inhalt breiter laufen als die 1160 der
+   Website – sonst bliebe rechts ein toter Streifen. */
+.admin-inhalt .container {
+  max-width: 1340px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+.admin-inhalt h1 { font-size: 1.75rem; margin: 0 0 6px; }
+.admin-inhalt .lead { color: var(--muted); margin: 0 0 32px; font-size: .96rem; }
+
+/* ─── Seitenkopf ─── */
+
+/* Vorher begann jede Seite mit einer fetten Zeile und ging sofort in den
+   Inhalt ueber – das las sich wie ein Formular, nicht wie eine Oberflaeche.
+   Jetzt derselbe Aufbau wie in den Unterlagen fuer Flo: eine kleine Zeile
+   darueber, die sagt worum es geht, der Titel in der Hausschrift, ein Satz
+   dazu und ein kurzer Strich in Bordeaux als Abschluss. */
+.admin-titel { margin: 0 0 36px; }
+.admin-eyebrow {
+  font-size: .7rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--gold, #12557F); margin: 0 0 11px;
+}
+.admin-inhalt .admin-titel h1 {
+  font-family: 'Playfair Display', Georgia, serif; font-weight: 700;
+  font-size: clamp(1.9rem, 3.4vw, 2.4rem); line-height: 1.15;
+  color: var(--text); margin: 0 0 8px;
+}
+.admin-inhalt .admin-titel .lead { margin: 0; max-width: 62ch; }
+.admin-titel::after {
+  content: ''; display: block; width: 56px; height: 2px; border-radius: 2px;
+  background: var(--gold, #12557F); margin-top: 20px;
+}
+
+/* Abschnitte der Uebersicht: Ueberschrift links, Verweis auf die Unterseite
+   rechts – so ist an jeder Gruppe klar, wo es weitergeht. Dazwischen eine
+   Haarlinie: sie bindet Ueberschrift und Verweis zu einer Zeile zusammen und
+   trennt die Abschnitte sichtbar, ohne dass es nach Tabelle aussieht. */
+.ueb-abschnitt { margin-bottom: 52px; }
+.ueb-kopf {
+  display: flex; align-items: center; gap: 18px; margin-bottom: 18px;
+}
+.ueb-kopf h2 {
+  order: 0; flex: none; margin: 0;
+  font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 1.28rem;
+}
+/* Das Pseudo-Element ist ein eigenes Flex-Kind – deshalb laesst es sich per
+   order zwischen Ueberschrift und Verweis schieben. */
+.ueb-kopf::before {
+  content: ''; order: 1; flex: 1 1 auto; min-width: 20px;
+  height: 1px; background: var(--border);
+}
+.ueb-kopf > a, .ueb-kopf > button, .ueb-kopf > span { order: 2; flex: none; }
+.ueb-kopf > span { font-size: .82rem; color: var(--muted); }
+.ueb-kopf a { font-size: .85rem; font-weight: 600; color: var(--gold, #12557F); text-decoration: none; white-space: nowrap; }
+.ueb-kopf a:hover { text-decoration: underline; }
+/* Auf schmalen Schirmen ist fuer die Linie kein Platz mehr – dann lieber
+   umbrechen als beides zusammenquetschen. */
+@media (max-width: 560px) {
+  .ueb-kopf { flex-wrap: wrap; }
+  .ueb-kopf::before { display: none; }
+  .ueb-kopf > a, .ueb-kopf > button { margin-left: auto; }
+}
+/* In den Abschnitten sitzt die Ueberschrift der Karte eine Ebene tiefer. */
+.ueb-abschnitt .admin-karte h3 { font-size: 1.02rem; margin: 0 0 6px; color: var(--text); }
+
+.admin-karte {
+  background: var(--white, #fff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 14px);
+  box-shadow: var(--shadow);
+  padding: 26px 28px;
+}
+.admin-karten { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.admin-karte h2 { font-size: 1.05rem; margin: 0 0 6px; }
+.admin-karte p { color: var(--muted); font-size: .89rem; line-height: 1.6; margin: 0; }
+
+/* Die Kacheln der Uebersicht sind Links – die ganze Flaeche ist anklickbar,
+   nicht nur ein kleines "mehr". */
+a.admin-karte { display: block; text-decoration: none; transition: var(--transition, .2s ease); }
+a.admin-karte:hover { border-color: var(--gold, #12557F); transform: translateY(-2px); }
+a.admin-karte h2 { color: var(--text); }
+
+.admin-pill {
+  display: inline-block; font-size: .7rem; font-weight: 600;
+  letter-spacing: .03em; padding: 3px 10px; border-radius: 999px;
+  margin-bottom: 12px;
+}
+.admin-pill.bereit { background: #e3f2e9; color: #1d8a52; }
+.admin-pill.folgt { background: var(--off, #f0eee9); color: var(--muted); }
+
+/* Nummerierte "was hier hinkommt"-Listen auf den Platzhalterseiten. */
+.admin-schritte { list-style: none; margin: 0; padding: 0; counter-reset: schritt; display: flex; flex-direction: column; gap: 18px; }
+.admin-schritte li { counter-increment: schritt; display: grid; grid-template-columns: 30px 1fr; gap: 4px 14px; }
+.admin-schritte li::before {
+  content: counter(schritt); grid-row: 1 / span 2;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--off, #f0eee9); color: var(--gold, #12557F);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .84rem; font-weight: 700;
+}
+/* Erledigte Schritte tragen ein Haekchen statt ihrer Nummer – die Liste
+   zeigt damit den Fortschritt, nicht nur die Reihenfolge. */
+.admin-schritte li.erledigt::before {
+  content: "\2713"; background: #e3f2e9; color: #1d8a52; font-size: .95rem;
+}
+.admin-schritte li.erledigt b { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--border); }
+.admin-schritte b { font-size: .94rem; color: var(--text); align-self: center; }
+.admin-schritte span { color: var(--muted); font-size: .88rem; line-height: 1.6; }
+
+.mon-text { color: var(--muted); font-size: .9rem; line-height: 1.7; margin: 0; }
+
+/* ─── Monitoring ─── */
+
+.mon-kopfzeile {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap; margin-bottom: 28px;
+}
+.mon-kopfzeile h1 { margin-bottom: 6px; }
+.mon-kopfzeile .lead { margin: 0; }
+
+/* ─── Zeitraumwahl ─── */
+
+/* Frueher eine zweizeilige Leiste aus Datumsfeldern und Pillen – die nahm
+   oben so viel Platz ein wie die Ueberschrift selbst, fuer eine Einstellung,
+   die man selten aendert. Jetzt ein Knopf, der zeigt was gilt, und eine
+   Tafel, die sich nur bei Bedarf oeffnet. */
+.zeitwahl { position: relative; }
+
+.zeitwahl-knopf {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 999px; padding: 9px 16px;
+  font: inherit; font-size: .87rem; color: var(--text); cursor: pointer;
+  transition: var(--transition, .2s ease);
+  white-space: nowrap;
+}
+.zeitwahl-knopf:hover { border-color: var(--gold, #12557F); }
+.zeitwahl-knopf svg:first-child { color: var(--gold, #12557F); flex: none; }
+.zeitwahl-pfeil { color: var(--muted); transition: transform .2s ease; }
+.zeitwahl.offen .zeitwahl-pfeil { transform: rotate(180deg); }
+.zeitwahl.offen .zeitwahl-knopf { border-color: var(--gold, #12557F); }
+
+.zeitwahl-tafel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 30;
+  min-width: 268px;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: var(--radius, 14px);
+  box-shadow: 0 16px 44px rgba(0,0,0,.16);
+  padding: 6px;
+}
+.zeitwahl-tafel[hidden] { display: none; }
+
+/* Voreinstellungen als Zeilen – niemand kaempft mit einem Kalenderraster,
+   wenn er "letzte 30 Tage" meint. */
+.zeitwahl-reihe {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: .88rem; color: var(--text); text-align: left;
+  padding: 9px 12px; border-radius: 9px;
+  transition: background .15s ease;
+}
+.zeitwahl-reihe:hover { background: var(--off, #F5F7F9); }
+.zeitwahl-reihe.aktiv { font-weight: 700; }
+/* Haken statt Farbflaeche: die Auswahl bleibt auch beim Ueberfahren einer
+   anderen Zeile erkennbar. */
+.zeitwahl-reihe.aktiv::after {
+  content: "✓"; color: var(--gold, #12557F); font-size: 1rem; font-weight: 700;
+}
+
+.zeitwahl-frei { border-top: 1px solid var(--border); margin-top: 6px; padding: 14px 12px 10px; }
+.zeitwahl-frei-titel {
+  margin: 0 0 10px; font-size: .7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+}
+.zeitwahl-felder { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px 10px; }
+.zeitwahl-felder label { font-size: .8rem; color: var(--muted); }
+.zeitwahl-felder input[type="date"] {
+  width: 100%; font: inherit; font-size: .84rem; color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px;
+  background: #fff; color-scheme: light;
+}
+.zeitwahl-felder input[type="date"]:focus {
+  outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(168,50,61,.15);
+}
+.zeitwahl-felder input.fehlt { border-color: var(--gold, #12557F); background: rgba(168,50,61,.05); }
+
+.zeitwahl-anwenden {
+  width: 100%; margin-top: 12px;
+  border: 0; background: var(--carbon, #071A2B); color: #fff;
+  font: inherit; font-size: .84rem; cursor: pointer;
+  padding: 9px 16px; border-radius: 999px;
+  transition: var(--transition, .2s ease);
+}
+.zeitwahl-anwenden:hover { background: var(--gold, #12557F); }
+
+.mon-laedt { color: var(--muted); }
+
+.mon-kennzahlen {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px; margin-bottom: 22px;
+}
+.mon-kachel {
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: var(--radius, 14px); box-shadow: var(--shadow); padding: 20px 22px;
+}
+.mon-kachel-titel { margin: 0 0 6px; font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.mon-kachel-wert { margin: 0; font-size: 1.9rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--text); }
+.mon-kachel-unter { margin: 6px 0 0; font-size: .78rem; color: var(--muted); display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+
+/* Vergleich zum gleich langen Zeitraum davor. Bewusst mit Pfeil UND Wort –
+   Farbe allein waere fuer rot-gruen-schwache Augen keine Information. */
+.mon-trend { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mon-trend.hoch   { color: #1d8a52; }
+.mon-trend.runter { color: var(--gold, #12557F); }
+.mon-trend.gleich { color: var(--muted); font-weight: 600; }
+
+/* Waehrend nachgeladen wird, bleibt die alte Ansicht blass stehen – kein
+   Geflacker, kein Sprung in der Seitenhoehe. */
+#mon-inhalt.laedt { opacity: .45; transition: opacity .15s ease; }
+
+/* Steht schon der letzte Stand da, wird NICHT abgeblendet – dann liefe ein
+   Blaettern zwischen den Seiten auf dasselbe Warten hinaus wie vorher. Statt
+   dessen ein duenner Strich am oberen Rand, der sagt: die Zahlen sind da,
+   sie werden gerade nur aufgefrischt. Liegt absolut ueber dem Inhalt und
+   verschiebt deshalb nichts. */
+.wird-frisch { position: relative; }
+.wird-frisch::before {
+  content: ''; position: absolute; left: 0; right: 0; top: -8px; height: 2px;
+  border-radius: 2px; overflow: hidden; z-index: 2;
+  background: linear-gradient(90deg,
+    transparent 0%, var(--gold, #12557F) 35%, var(--gold, #12557F) 65%, transparent 100%);
+  background-size: 45% 100%; background-repeat: no-repeat;
+  animation: frisch-lauf 1.1s ease-in-out infinite;
+}
+@keyframes frisch-lauf {
+  0%   { background-position: -45% 0; }
+  100% { background-position: 145% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wird-frisch::before { animation: none; background: var(--border); background-size: 100% 100%; }
+}
+
+.mon-block { margin-bottom: 22px; }
+.mon-block h2 { font-size: 1.05rem; margin: 0 0 16px; display: flex; align-items: center; gap: 4px; }
+.mon-leer { color: var(--muted); font-size: .89rem; margin: 0; }
+
+/* Zwei Karten nebeneinander (Seiten / Herkunft). */
+.mon-zwei { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; align-items: start; }
+.mon-zwei .mon-block { margin-bottom: 22px; }
+
+/* ─── Info-Punkte ─── */
+
+/* Kleines "i" neben einer Ueberschrift. Zeigt beim Ueberfahren und beim
+   Tabben den Zusammenhang – die Zahl allein sagt oft das Falsche. */
+.info { position: relative; display: inline-flex; margin-left: 6px; vertical-align: middle; cursor: help; }
+.info-zeichen {
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--off, #f0eee9); color: var(--muted);
+  font-size: .62rem; font-weight: 700; font-style: italic;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition, .2s ease);
+}
+.info:hover .info-zeichen, .info:focus .info-zeichen { background: var(--gold, #12557F); color: #fff; }
+.info:focus { outline: none; }
+.info:focus-visible .info-zeichen { box-shadow: 0 0 0 3px rgba(168,50,61,.25); }
+
+.info-blase {
+  position: absolute; bottom: calc(100% + 9px); left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: min(300px, 78vw);
+  background: var(--carbon, #071A2B); color: rgba(255,255,255,.9);
+  font-size: .77rem; font-weight: 400; line-height: 1.55; letter-spacing: 0;
+  text-transform: none; text-align: left;
+  padding: 10px 13px; border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.28);
+  opacity: 0; visibility: hidden; transition: opacity .15s ease;
+  z-index: 20; pointer-events: none;
+}
+.info:hover .info-blase, .info:focus .info-blase { opacity: 1; visibility: visible; }
+
+/* Breite Tabelle scrollt in ihrer eigenen Huelle – die Seite selbst nie. */
+.mon-tabelle-huelle { overflow-x: auto; }
+.mon-tabelle { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.mon-tabelle th, .mon-tabelle td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.mon-tabelle th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+.mon-tabelle tbody tr:last-child td { border-bottom: 0; }
+.mon-tabelle .num { text-align: right; font-variant-numeric: tabular-nums; }
+.mon-tabelle .stark { font-weight: 700; color: var(--text); }
+.mon-tabelle .leise { color: var(--muted); }
+.mon-tabelle .warn { color: var(--gold, #12557F); font-weight: 700; }
+
+.mon-fussnote { margin: 14px 0 0; font-size: .78rem; line-height: 1.6; color: var(--muted); }
+/* Steht unter einer Karte statt darin – deshalb eigener Abstand. */
+.mon-fussnote-frei { margin: -8px 4px 22px; }
+
+/* Erklaerungen unter einer Tabelle. Abgesetzter Kasten mit fetten
+   Stichworten links: als blosser Fliesstext darunter las sich "jemand hat
+   abgeschickt, ohne ein Pflichtfeld auszufuellen" wie die Meldung ueber
+   einen Vorfall – dabei erklaert der Satz nur die Spalte. Der Kasten sagt
+   das von selbst, deshalb steht keine Ueberschrift darueber. */
+.mon-legende {
+  margin: 18px 0 0; padding: 12px 15px 13px;
+  background: var(--off); border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+/* Stichwort und Erklaerung in einer Zeile, das Stichwort in fester Breite –
+   so entsteht eine Spalte, an der das Auge entlanglaeuft. */
+.mon-legende > div { display: flex; gap: 10px; font-size: .78rem; line-height: 1.55; }
+.mon-legende dt { flex: 0 0 116px; font-weight: 700; color: var(--text); }
+.mon-legende dd { margin: 0; color: var(--muted); }
+@media (max-width: 620px) {
+  .mon-legende > div { flex-direction: column; gap: 1px; }
+  .mon-legende dt { flex: none; }
+}
+
+.mon-balken { display: flex; align-items: flex-end; gap: 6px; height: 150px; overflow-x: auto; padding-bottom: 4px; }
+/* max-width, weil bei wenigen Tagen sonst handbreite Bloecke entstehen –
+   die lesen sich nicht mehr als Verlauf, sondern als Farbflaeche. */
+.mon-balken-spalte {
+  flex: 1 0 26px; max-width: 64px;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  height: 100%; gap: 6px;
+}
+.mon-balken-wert { width: 100%; min-height: 3px; background: var(--gold, #12557F); border-radius: 4px 4px 0 0; }
+.mon-balken-tag { font-size: .64rem; color: var(--muted); white-space: nowrap; }
+
+.mon-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.mon-liste li { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .88rem; }
+.mon-liste li:last-child { border-bottom: 0; }
+.mon-liste-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mon-liste-wert { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ─── Mietflotte pflegen ─── */
+
+/* Drei Zahlen statt eines Satzes. Der Papierkorb ist eine davon und damit
+   genauso sichtbar wie der Rest – als Textlink darunter ging er unter. */
+/* Eine zusammenhaengende Leiste statt einzelner Pillen: die drei Zahlen
+   gehoeren zusammen, und "+ Fahrzeug hinzufügen" gehoert dazu. Getrennt
+   werden sie nur durch Haarlinien, der Knopf sitzt am rechten Ende. */
+.mf-kpi {
+  display: flex; align-items: stretch; flex-wrap: wrap; margin-bottom: 20px;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 999px; padding: 5px;
+}
+.mf-kpi-feld {
+  display: flex; align-items: baseline; gap: 9px;
+  background: none; border: 0; border-radius: 999px; padding: 8px 20px;
+  font: inherit; text-align: left;
+}
+/* Die Trennlinie war ein inset-Schatten – der folgt der Rundung des Feldes
+   und wurde dadurch links zum Bogen. Jetzt eine gerade Haarlinie, die oben
+   und unten Luft laesst. */
+.mf-kpi-feld { position: relative; }
+.mf-kpi-feld + .mf-kpi-feld::before {
+  content: ''; position: absolute; left: 0; top: 22%; bottom: 22%;
+  width: 1px; background: var(--border);
+}
+.mf-kpi-feld b { font-size: 1.15rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; }
+.mf-kpi-feld span { display: inline-flex; align-items: center; gap: 6px; font-size: .84rem; color: var(--muted); }
+.mf-punkt { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.mf-punkt.live { background: #1d8a52; }
+.mf-punkt.entwurf { background: var(--border); border: 1px solid var(--muted); }
+
+.mf-kpi-korb { cursor: pointer; transition: var(--transition, .2s ease); }
+.mf-kpi-korb:hover:not(:disabled) { background: var(--off, #F5F7F9); }
+.mf-kpi-korb:disabled { cursor: default; opacity: .55; }
+.mf-kpi-korb svg { transition: transform .2s ease; }
+.mf-kpi-korb.offen { background: var(--off, #F5F7F9); }
+.mf-kpi-korb.offen span { color: var(--gold, #12557F); }
+.mf-kpi-korb.offen svg { transform: rotate(180deg); }
+
+/* Auf schmalen Schirmen untereinander – Haarlinien dann waagerecht. */
+@media (max-width: 620px) {
+  .mf-kpi { border-radius: var(--radius, 14px); padding: 6px; }
+  .mf-kpi-feld { flex: 1 1 100%; }
+  .mf-kpi-feld + .mf-kpi-feld::before { left: 12%; right: 12%; top: 0; bottom: auto; width: auto; height: 1px; }
+  .mf-kpi-neu { margin: 6px 0 0; width: 100%; justify-content: center; }
+}
+
+.mf-kpi-hinweis { margin: -8px 4px 20px; font-size: .82rem; line-height: 1.6; color: var(--muted); }
+
+.mf-karten { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+
+.mf-karte {
+  display: flex; flex-direction: column; text-align: left; gap: 0;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: var(--radius, 14px); box-shadow: var(--shadow);
+  padding: 0; overflow: hidden; cursor: pointer; font: inherit;
+  transition: var(--transition, .2s ease);
+}
+.mf-karte:hover { border-color: var(--gold, #12557F); transform: translateY(-2px); }
+
+/* Durch die Fotos blaettern, ohne die Kachel zu oeffnen. Gedaempft sichtbar,
+   damit erkennbar ist, dass es mehr als ein Bild gibt. */
+.mf-blaettern {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+  width: 30px; height: 30px; border: 0; border-radius: 50%; cursor: pointer;
+  background: rgba(21,21,26,.55); color: #fff; font-size: 1.2rem; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  opacity: .45; transition: opacity .18s ease, background .18s ease;
+}
+.mf-blaettern.zurueck { left: 8px; }
+.mf-blaettern.vor { right: 8px; }
+.mf-blaettern:hover { background: rgba(21,21,26,.8); }
+.mf-karte:hover .mf-blaettern, .mf-blaettern:focus-visible { opacity: 1; }
+.mf-karte-fotos {
+  position: absolute; right: 10px; bottom: 10px; z-index: 2;
+  background: rgba(21,21,26,.72); color: #fff;
+  font-size: .68rem; font-weight: 600; padding: 4px 9px; border-radius: 999px;
+}
+
+.mf-karte-bild { position: relative; display: block; aspect-ratio: 2 / 1; background: var(--off, #f0eee9); overflow: hidden; }
+/* Absolut positioniert, damit das Bild die Hoehe des Kastens NICHT beeinflusst.
+   Mit height:100% gegen eine per aspect-ratio berechnete Hoehe zog es die
+   Kachel auseinander – Karten mit Bild waren dadurch hoeher als die ohne. */
+.mf-karte-bild img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.mf-kein-bild {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px;
+  color: var(--muted); font-size: .76rem;
+}
+.mf-kein-bild svg { width: 34px; height: 34px; opacity: .45; }
+.mf-pill {
+  position: absolute; top: 10px; left: 10px;
+  font-size: .68rem; font-weight: 600; letter-spacing: .02em;
+  padding: 4px 10px; border-radius: 999px;
+}
+.mf-pill.live    { background: #1d8a52; color: #fff; }
+.mf-pill.entwurf { background: rgba(21,21,26,.72); color: #fff; }
+/* Beispielfahrzeug: sitzt neben dem Online-Stand, deshalb versetzt. */
+.mf-pill.muster { left: auto; right: 10px; background: rgba(21,21,26,.72); color: #fff; }
+
+/* Karte als Spalte, damit Preise und Fuss unten stehen – bei
+   unterschiedlich vielen Daten sassen sie sonst je Kachel woanders. */
+.mf-karte { display: flex; flex-direction: column; }
+.mf-karte-text { display: flex; flex-direction: column; flex: 1; padding: 16px 18px 18px; }
+.mf-karte-preise { margin-top: auto; }
+.mf-karte-text b { display: block; font-size: .98rem; color: var(--text); margin-bottom: 3px; }
+.mf-karte-meta { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 12px; }
+.mf-karte-preise { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; border-top: 1px solid var(--border); padding-top: 11px; }
+.mf-karte-preise span { display: flex; flex-direction: column; gap: 2px; font-size: .88rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.mf-karte-preise i { font-style: normal; font-weight: 400; font-size: .67rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+/* Abgeleiteter Preis: der Kunde sieht ihn, hinterlegt ist er nicht. */
+.mf-karte-preise span.berechnet { color: var(--muted); font-weight: 600; }
+
+/* Kategorie unten rechts im Bild – oben links sitzt schon der Online-Stand. */
+.mf-karte-kat {
+  position: absolute; right: 10px; bottom: 10px;
+  font-size: .68rem; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.92); color: var(--text);
+}
+/* Dieselben Daten wie die Karte auf der Mietwagenseite. */
+.mf-karte-specs {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 12px; margin: 10px 0 12px;
+}
+.mf-karte-specs span {
+  display: flex; flex-direction: column; gap: 1px;
+  font-size: .82rem; color: var(--text); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Wie auf der Website: die Bezeichnung traegt mehr Gewicht als der Wert. */
+.mf-karte-specs i {
+  font-style: normal; font-weight: 700; font-size: .64rem; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--muted);
+}
+.mf-karte-hinweis {
+  display: block; margin: 4px 0 12px; font-size: .78rem; color: var(--muted);
+  font-style: italic; line-height: 1.5;
+}
+.mf-karte-fuss {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--border);
+}
+.mf-karte-ab {
+  display: flex; flex-direction: column; gap: 1px;
+  font-size: 1.02rem; font-weight: 700; color: var(--gold, #12557F);
+  font-variant-numeric: tabular-nums;
+}
+.mf-karte-ab i { font-style: normal; font-size: .66rem; font-weight: 400; color: var(--muted); text-transform: none; letter-spacing: 0; }
+.mf-karte-knopf {
+  font: inherit; font-size: .8rem; font-weight: 600; color: var(--text);
+  background: none; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 999px; padding: 7px 15px;
+  transition: var(--transition, .2s ease);
+}
+.mf-karte:hover .mf-karte-knopf { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+
+/* ─── Anfragen ─── */
+.mf-anfragen { margin-bottom: 40px; }
+.mf-anfragen[hidden] { display: none; }
+.mf-anfragen-zahl { font-size: .84rem; color: var(--muted); }
+.mf-anfragen-zahl.hat-neue { color: var(--gold, #12557F); font-weight: 600; }
+
+/* Klappbare Tabelle: eine Zeile je Eintrag, Einzelheiten auf Klick.
+   Bei vielen Eintraegen bleibt so der Ueberblick, ohne dass etwas fehlt. */
+.mf-tab {
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+}
+.mf-tab-zeile + .mf-tab-zeile { border-top: 1px solid var(--border); }
+.mf-tab-zeile.neu { box-shadow: inset 3px 0 0 var(--gold, #12557F); }
+.mf-tab-kopf {
+  width: 100%; display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap;
+  border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
+  padding: 12px 16px; color: var(--text);
+}
+.mf-tab-kopf:hover { background: var(--off, #F5F7F9); }
+.mf-tab-fz { font-weight: 600; font-size: .92rem; }
+.mf-tab-zeit { font-size: .86rem; color: var(--text); font-variant-numeric: tabular-nums; }
+.mf-tab-name { font-size: .86rem; color: var(--muted); }
+.mf-tab-pfeil { margin-left: auto; color: var(--muted); display: flex; transition: transform .2s ease; }
+.mf-tab-kopf[aria-expanded="true"] .mf-tab-pfeil { transform: rotate(180deg); }
+.mf-tab-detail { padding: 0 16px 14px; }
+.mf-tab-detail[hidden] { display: none; }
+
+/* Seitenwahl unter langen Listen. Blaettern statt Aufklappen: wer einen
+   bestimmten Eintrag sucht, ist mit Seiten schneller als mit Scrollen. */
+.blatt { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 24px; }
+.blatt button {
+  min-width: 32px; height: 32px; padding: 0 9px; cursor: pointer; font: inherit;
+  font-size: .84rem; color: var(--text); font-variant-numeric: tabular-nums;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 8px; transition: var(--transition, .2s ease);
+}
+.blatt button:hover:not(:disabled):not(.hier) { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+.blatt button.hier { background: var(--gold, #12557F); border-color: var(--gold, #12557F); color: #fff; font-weight: 700; }
+.blatt button:disabled { opacity: .35; cursor: default; }
+.blatt-luecke { color: var(--muted); padding: 0 2px; }
+
+/* Kleiner Trenner zwischen Kalender und Einzeleintraegen. */
+.mf-untertitel {
+  font-size: .8rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted); margin: 26px 0 12px;
+}
+
+.mf-anfrage-neu {
+  font-size: .7rem; font-weight: 700; letter-spacing: .03em;
+  background: var(--gold, #12557F); color: #fff; padding: 2px 9px; border-radius: 999px;
+}
+.mf-anfrage-nr, .mf-anfrage-ein { font-size: .76rem; color: var(--muted); }
+.mf-anfrage-ein { margin-left: auto; }
+.mf-anfrage-kontakt { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: .86rem; color: var(--text); }
+.mf-anfrage-kontakt a { color: var(--gold, #12557F); text-decoration: none; }
+.mf-anfrage-kontakt a:hover { text-decoration: underline; }
+.mf-anfrage-text {
+  margin: 9px 0 0; font-size: .86rem; color: var(--muted);
+  line-height: 1.6; white-space: pre-wrap;
+}
+.mf-anfrage-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.mf-anfrage-knoepfe button {
+  font: inherit; font-size: .8rem; border: 1px solid var(--border);
+  background: #fff; border-radius: 999px; padding: 6px 14px; cursor: pointer; color: var(--text);
+}
+.mf-anfrage-knoepfe button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+
+/* Bearbeiten-Tafel */
+.mf-schicht {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(21,21,26,.55);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 24px; overflow-y: auto;
+}
+.mf-schicht[hidden] { display: none; }
+
+.mf-tafel {
+  width: 100%; max-width: 620px;
+  background: var(--white, #fff); border-radius: var(--radius, 14px);
+  box-shadow: 0 24px 70px rgba(0,0,0,.4);
+  margin: auto;
+}
+.mf-tafel-kopf {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+}
+.mf-tafel-kopf h2 { font-size: 1.15rem; margin: 0; }
+.mf-schliessen {
+  border: 0; background: none; cursor: pointer; font-size: 1.1rem;
+  color: var(--muted); padding: 4px 8px; border-radius: 8px; line-height: 1;
+}
+.mf-schliessen:hover { color: var(--gold, #12557F); background: var(--off, #F5F7F9); }
+
+#mf-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; padding: 22px 24px 24px; }
+.mf-feld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.mf-feld.voll { grid-column: 1 / -1; }
+.mf-feld label { font-size: .78rem; font-weight: 600; color: var(--text); }
+.mf-feld input[type="text"], .mf-feld input[type="number"], .mf-feld select {
+  width: 100%; font: inherit; font-size: .9rem; color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px;
+  background: #fff; color-scheme: light;
+}
+.mf-feld input:focus, .mf-feld select:focus {
+  outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(168,50,61,.15);
+}
+.mf-notiz { font-size: .74rem; color: var(--muted); line-height: 1.55; }
+.mf-notiz code { background: var(--off, #f0eee9); padding: 1px 5px; border-radius: 4px; font-size: .95em; }
+
+/* Bilder in der Bearbeiten-Tafel */
+.mf-galerie { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.mf-galerie-leer { margin: 0; font-size: .82rem; color: var(--muted); }
+
+.mf-bild {
+  position: relative; width: 116px; aspect-ratio: 2 / 1; overflow: hidden;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--off, #f0eee9);
+}
+.mf-bild.titel { border-color: var(--gold, #12557F); }
+.mf-bild img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mf-bild-marke {
+  position: absolute; left: 0; bottom: 0; z-index: 1;
+  background: var(--gold, #12557F); color: #fff;
+  font-size: .62rem; font-weight: 600; padding: 2px 7px; border-top-right-radius: 6px;
+}
+.mf-bild-aktionen { position: absolute; top: 4px; right: 4px; z-index: 1; display: flex; gap: 4px; }
+.mf-bild-aktionen button {
+  border: 0; cursor: pointer; width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(21,21,26,.72); color: #fff; font-size: .7rem; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition, .2s ease);
+}
+.mf-bild-aktionen button:hover { background: var(--gold, #12557F); }
+
+.mf-bild-knoepfe { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; min-width: 0; }
+/* Das echte Dateifeld ist versteckt – der Browser-Standardknopf laesst sich
+   nicht gestalten und heisst je nach Spracheinstellung anders.
+   WICHTIG: als label.… geschrieben, weil ".mf-feld label" sonst mit hoeherer
+   Spezifitaet gewinnt und die Schrift dunkel faerbt – dunkel auf dunkel. */
+.mf-feld label.mf-datei-knopf {
+  display: inline-block; cursor: pointer;
+  font-size: .84rem; font-weight: 600; color: #fff;
+  background: var(--carbon, #071A2B);
+  padding: 8px 16px; border-radius: 999px;
+  transition: var(--transition, .2s ease);
+}
+.mf-feld label.mf-datei-knopf:hover { background: var(--gold, #12557F); }
+
+.mf-abschnitt {
+  grid-column: 1 / -1; margin: 8px 0 -4px;
+  font-size: .7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted);
+}
+
+.mf-schalter { display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: .9rem; font-weight: 600; }
+.mf-schalter input { width: 17px; height: 17px; accent-color: var(--gold, #12557F); }
+
+.mf-fehler {
+  grid-column: 1 / -1; margin: 0;
+  background: rgba(168,50,61,.08); border: 1px solid rgba(168,50,61,.28);
+  color: var(--gold, #12557F); border-radius: 8px; padding: 10px 13px; font-size: .85rem;
+}
+.mf-fehler[hidden] { display: none; }
+
+.mf-tafel-fuss {
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 18px;
+}
+.mf-tafel-knoepfe { display: flex; gap: 10px; margin-left: auto; }
+.mf-loeschen {
+  border: 0; background: none; cursor: pointer; font: inherit; font-size: .84rem;
+  color: var(--muted); text-decoration: underline; padding: 8px 0;
+}
+.mf-loeschen:hover { color: var(--gold, #12557F); }
+.mf-loeschen[hidden] { display: none; }
+
+/* Papierkorb-Inhalt */
+#mf-korb {
+  background: var(--off, #f0eee9); border: 1px solid var(--border);
+  border-radius: var(--radius, 14px); padding: 18px 20px 14px; margin-bottom: 22px;
+}
+#mf-korb[hidden] { display: none; }
+.mf-korb-titel { font-size: .95rem; margin: 0 0 14px; }
+
+.mf-korb-zeile {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 10px; padding: 13px 18px; margin-bottom: 10px;
+}
+.mf-korb-name { font-weight: 600; color: var(--text); font-size: .92rem; }
+.mf-korb-wann { display: block; font-weight: 400; font-size: .76rem; color: var(--muted); margin-top: 2px; }
+.mf-korb-knoepfe { display: flex; gap: 8px; margin-left: auto; }
+.mf-korb-knoepfe button {
+  border: 1px solid var(--border); background: #fff; cursor: pointer;
+  font: inherit; font-size: .82rem; padding: 7px 14px; border-radius: 999px;
+  transition: var(--transition, .2s ease);
+}
+.mf-korb-zurueck { color: var(--text); }
+.mf-korb-zurueck:hover { border-color: #1d8a52; color: #1d8a52; }
+.mf-korb-weg { color: var(--muted); }
+.mf-korb-weg:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+
+@media (max-width: 560px) {
+  #mf-form { grid-template-columns: 1fr; }
+  .mf-schicht { padding: 12px; }
+  .mf-tafel-knoepfe { width: 100%; }
+  .mf-tafel-knoepfe .btn { flex: 1; justify-content: center; }
+}
+
+/* ─── Liniendiagramm Besucherverlauf ─── */
+
+.viz-legende { display: flex; gap: 20px; margin: -6px 0 12px; font-size: .8rem; color: var(--muted); }
+.viz-legende span { display: inline-flex; align-items: center; gap: 7px; }
+/* Linienschluessel, nicht Kaestchen – die Reihen sind Linien. */
+.viz-legende i { width: 16px; height: 3px; border-radius: 2px; }
+
+.viz { position: relative; width: 100%; }
+.viz-svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.viz-raster { stroke: var(--border); stroke-width: 1; }
+.viz-achse { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.viz-linie { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+/* Weisser Ring, damit sich der Endpunkt vom Raster abhebt. */
+.viz-ende, .viz-treffer { stroke: #fff; stroke-width: 2; }
+.viz-faden { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+/* SVG-Elemente erben die hidden-Regel des Browsers nicht zuverlaessig – ohne
+   das hier stehen Faden und Trefferpunkte beim Laden sichtbar am linken Rand. */
+.viz-svg [hidden] { display: none; }
+#viz-fang { cursor: crosshair; }
+
+.viz-blase {
+  position: absolute; top: 4px; transform: translateX(-50%);
+  background: var(--carbon, #071A2B); color: #fff;
+  padding: 9px 12px; border-radius: 10px;
+  font-size: .78rem; line-height: 1.5;
+  box-shadow: 0 10px 28px rgba(0,0,0,.28);
+  pointer-events: none; white-space: nowrap; z-index: 5;
+}
+/* Am rechten Rand nach links kippen, sonst steht die Blase ausserhalb. */
+.viz-blase.links { transform: translateX(-100%) translateX(-10px); }
+.viz-blase p { margin: 0; }
+.viz-blase-tag { color: rgba(255,255,255,.6); font-size: .72rem; margin-bottom: 5px !important; }
+.viz-blase-zeile { display: flex; align-items: center; gap: 7px; }
+.viz-blase-zeile i { width: 12px; height: 3px; border-radius: 2px; flex: none; }
+.viz-blase-zeile b { font-variant-numeric: tabular-nums; }
+
+.mon-fehler { border-color: rgba(168,50,61,.3); }
+.mon-fehler h2 { color: var(--gold, #12557F); }
+.mon-fehler p { color: var(--muted); font-size: .86rem; line-height: 1.6; margin: 0; word-break: break-word; }
+
+@media (max-width: 640px) {
+  /* Auf dem Handy nimmt der Knopf die volle Breite, und die Tafel spannt sich
+     ueber beide Raender statt rechts zu kleben – sonst waere sie schmaler als
+     ihr eigener Inhalt. */
+  .mon-kopfzeile { flex-direction: column; align-items: stretch; }
+  .zeitwahl-knopf { width: 100%; justify-content: center; }
+  .zeitwahl-tafel { left: 0; right: 0; min-width: 0; }
+
+  .login-karte { padding: 32px 24px 26px; }
+}
+
+/* Leiste ueber den Flottenkarten: Anzahl links, Sortierung rechts – wie in
+   der Fahrzeug-Galerie auf der Website, damit es sich gleich anfuehlt. */
+.mf-leiste {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  /* Ohne den unteren Rand klebt die Leiste auf der Liste darunter. */
+  margin: 0 0 16px;
+  font-size: .86rem; color: var(--muted);
+}
+.mf-leiste[hidden], .mf-sort-wrap[hidden] { display: none; }
+/* Ansicht und Sortierung rechts, die Anzahl bleibt links. */
+.mf-leiste-rechts { margin-left: auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.mf-ansicht { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; background: var(--white, #fff); }
+.mf-ansicht button {
+  border: 0; background: none; cursor: pointer; font: inherit;
+  font-size: .82rem; color: var(--muted); padding: 7px 15px;
+  transition: var(--transition, .2s ease);
+}
+.mf-ansicht button:hover { color: var(--text); }
+.mf-ansicht button[aria-pressed="true"] { background: var(--gold, #12557F); color: #fff; font-weight: 600; }
+
+/* Listenansicht der Flotte: dieselben Angaben wie die Kachel, eine Zeile hoch. */
+.mf-fz-tab { background: var(--white, #fff); border: 1px solid var(--border); border-radius: var(--radius, 12px); overflow: hidden; }
+.mf-zeile {
+  width: 100%; display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap;
+  border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
+  padding: 10px 16px; color: var(--text);
+}
+.mf-zeile + .mf-zeile { border-top: 1px solid var(--border); }
+.mf-zeile:hover { background: var(--off, #F5F7F9); }
+.mf-zeile-bild {
+  position: relative; flex: none; width: 72px; height: 48px; border-radius: 7px;
+  overflow: hidden; background: var(--off, #f0eee9);
+}
+.mf-zeile-bild img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mf-zeile-kein-bild { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.mf-zeile-kein-bild svg { width: 24px; height: 24px; opacity: .45; }
+.mf-zeile-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 180px; }
+.mf-zeile-text b { font-size: .94rem; }
+.mf-zeile-text i { font-style: normal; font-size: .78rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mf-zeile-preis { display: flex; flex-direction: column; gap: 1px; font-size: .92rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mf-zeile-preis i { font-style: normal; font-size: .66rem; font-weight: 400; color: var(--muted); }
+/* In der Zeile sind die Pillen nicht absolut gesetzt wie ueber dem Bild. */
+.mf-zeile .mf-pill.mf-zeile-stand { position: static; }
+.mf-zeile-pfeil { color: var(--muted); font-size: 1.2rem; line-height: 1; }
+/* Die Ueberschrift "Fahrzeuge" traegt Anzahl und Sortierung mit – beides
+   gehoert zu den Karten darunter, nicht an den Seitenanfang. */
+.mf-fz-kopf { align-items: center; }
+.mf-sort-wrap { display: inline-flex; align-items: center; gap: 8px; }
+.mf-sort-wrap select {
+  font: inherit; font-size: .84rem; color: var(--text);
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 999px; padding: 7px 13px; cursor: pointer; color-scheme: light;
+}
+.mf-sort-wrap select:focus {
+  outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(168,50,61,.15);
+}
+
+/* "Fahrzeug hinzufuegen" sitzt in derselben Leiste wie die drei Zahlen –
+   getrennt durch den automatischen Rand, damit klar bleibt, dass er eine
+   Handlung ist und keine Kennzahl. */
+/* Auf der Mietwagenseite ein <button>, auf der Uebersicht ein Verweis auf
+   ebendiese Seite – beide sollen gleich aussehen. */
+.mf-kpi-neu {
+  margin-left: auto; border: 0; cursor: pointer; font: inherit;
+  display: inline-flex; align-items: center; text-decoration: none;
+  font-size: .84rem; font-weight: 600; color: #fff;
+  background: var(--gold, #12557F);
+  padding: 9px 18px; border-radius: 999px;
+  transition: var(--transition, .2s ease);
+}
+.mf-kpi-neu:hover { background: var(--carbon, #071A2B); }
+@media (max-width: 560px) { .mf-kpi-neu { margin-left: 0; width: 100%; } }
+
+/* ─── Belegung ─── */
+.mf-bel { margin-bottom: 36px; }
+/* Gleiche Handlung, gleiches Aussehen wie "+ Fahrzeug hinzufügen". */
+.mf-bel-neu {
+  border: 0; background: var(--gold, #12557F); cursor: pointer;
+  font: inherit; font-size: .86rem; font-weight: 600; color: #fff;
+  padding: 10px 20px; border-radius: 999px; transition: var(--transition, .2s ease);
+}
+.mf-bel-neu:hover { background: var(--carbon, #071A2B); }
+
+/* Belegungskalender: eine Zeile je Fahrzeug, eine Spalte je Tag.
+   Die Farbe steht hier fuer "belegt", nicht fuer gut oder schlecht –
+   deshalb Bordeaux statt Gruen, mit Legende darueber. */
+.mf-kal {
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: var(--radius, 12px); padding: 14px 16px 16px; margin-bottom: 16px;
+}
+.mf-kal-kopf {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px 20px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.mf-kal-monatswahl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* Nur die unmittelbaren Knoepfe der Leiste – die Umschalter fuer Jahr, Monat
+   und Woche stecken eine Ebene tiefer und haetten sonst die runde Pfeilform
+   samt fester Breite von 30 Pixeln bekommen. */
+.mf-kal-monatswahl > button {
+  font: inherit; line-height: 1; cursor: pointer; color: var(--text);
+  border: 1px solid var(--border); background: var(--white, #fff);
+  border-radius: 999px; transition: var(--transition, .2s ease);
+}
+.mf-kal-monatswahl > button:not(.mf-kal-heute) { width: 30px; height: 30px; font-size: 1.15rem; }
+.mf-kal-heute { font-size: .78rem; padding: 7px 13px; margin-left: 4px; }
+.mf-kal-monatswahl > button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+.mf-kal-monatswahl strong {
+  min-width: 9.5em; text-align: center; font-size: .95rem; color: var(--text);
+}
+.mf-kal-legende {
+  display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap;
+  font-size: .78rem; color: var(--muted);
+}
+.mf-kal-punkt {
+  display: inline-block; width: 11px; height: 11px; border-radius: 3px;
+  margin-right: 6px; vertical-align: -1px;
+}
+.mf-kal-punkt.bestaetigt { background: var(--gold, #12557F); }
+.mf-kal-punkt.angefragt {
+  background: repeating-linear-gradient(45deg, #d99a2b 0 4px, #e9bd6a 4px 8px);
+}
+.mf-kal-tipp { font-style: italic; }
+/* Der Bedienhinweis steht unter dem Gitter, nicht in der Legende – und
+   rechtsbuendig, damit er die Fahrzeugnamen links nicht stoert. */
+.mf-kal-tipp-zeile { margin: 12px 0 0; font-size: .78rem; color: var(--muted); text-align: right; }
+.mf-kal-tipp.tipp-tippen { display: none; }
+@media (pointer: coarse) {
+  .mf-kal-tipp { display: none; }
+  .mf-kal-tipp.tipp-tippen { display: inline; }
+}
+
+#mf-kal-gitter { overflow-x: auto; }
+.mf-kal-tabelle {
+  display: grid;
+  grid-template-columns: 134px repeat(var(--tage), minmax(24px, 1fr));
+  gap: 2px;
+  min-width: calc(134px + var(--tage) * 26px);
+  user-select: none; -webkit-user-select: none;
+}
+.mf-kal-ecke, .mf-kal-name {
+  position: sticky; left: 0; z-index: 2; background: var(--white, #fff);
+}
+.mf-kal-name {
+  font-size: .8rem; font-weight: 600; color: var(--text);
+  line-height: 32px; padding-right: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mf-kal-kopftag {
+  text-align: center; font-size: .72rem; color: var(--muted);
+  padding-bottom: 5px; line-height: 1.2; font-variant-numeric: tabular-nums;
+}
+.mf-kal-kopftag span {
+  display: block; font-size: .58rem; text-transform: uppercase;
+  letter-spacing: .04em; opacity: .7;
+}
+.mf-kal-kopftag.heute { color: var(--gold, #12557F); font-weight: 700; }
+
+.mf-kal-tag { height: 32px; border-radius: 5px; background: #f1efea; }
+.mf-kal-tag.we { background: #e6e1d8; }
+.mf-kal-tag.frei { cursor: cell; }
+.mf-kal-tag.frei:hover { background: rgba(168, 50, 61, .16); }
+.mf-kal-tag.belegt { border-radius: 0; cursor: default; background: var(--gold, #12557F); }
+.mf-kal-tag.belegt.angefragt {
+  background: repeating-linear-gradient(45deg, #d99a2b 0 5px, #e9bd6a 5px 10px);
+}
+.mf-kal-tag.belegt.anfang { border-top-left-radius: 5px; border-bottom-left-radius: 5px; }
+.mf-kal-tag.belegt.ende { border-top-right-radius: 5px; border-bottom-right-radius: 5px; }
+.mf-kal-tag.heute { outline: 1px dashed rgba(21, 21, 26, .45); outline-offset: -1px; }
+/* Zeigt man in der Liste auf einen Termin, wird sein Block im Kalender zum
+   Scheinwerferkegel: er wird heller, hebt sich leicht an und bekommt einen
+   hellen Ring – und alles andere tritt zurueck. Ein blosser Rahmen ging auf
+   den bordeauxfarbenen Tagen unter. */
+.mf-kal-tag, .mf-jahr-zelle {
+  transition: opacity .15s ease, transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.mf-kal-fokus .mf-kal-tag:not(.hervor),
+.mf-kal-fokus .mf-jahr-zelle:not(.hervor) { opacity: .25; }
+.mf-kal-fokus .mf-kal-name { opacity: .55; }
+
+.mf-kal-tag.hervor, .mf-jahr-zelle.hervor {
+  position: relative; z-index: 3;
+  filter: brightness(1.3) saturate(1.05);
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 2px var(--white, #fff), 0 0 0 4px var(--carbon, #071A2B),
+              0 8px 20px rgba(21,21,26,.3);
+}
+/* Freie Tage haben kaum Farbe, die brightness allein nicht heller macht. */
+.mf-kal-tag.frei.hervor { background: var(--gold, #12557F); opacity: .55; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mf-kal-tag, .mf-jahr-zelle { transition: none; }
+  .mf-kal-tag.hervor, .mf-jahr-zelle.hervor { transform: none; }
+}
+
+.mf-kal-tag.waehlt {
+  background: rgba(168, 50, 61, .55);
+  box-shadow: inset 0 0 0 1px var(--gold, #12557F);
+}
+@media (max-width: 560px) {
+  .mf-kal { padding: 12px 12px 14px; }
+  .mf-kal-tabelle { grid-template-columns: 104px repeat(var(--tage), minmax(24px, 1fr)); }
+  .mf-kal-tabelle { min-width: calc(104px + var(--tage) * 26px); }
+}
+
+.mf-bel-zeile {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 9px;
+  transition: border-color .15s ease;
+}
+/* Die Zeile faerbt beim Zeigen mit – der Kalender oben leuchtet dann auch. */
+.mf-bel-zeile:hover, .mf-bel-zeile:focus-within { border-color: var(--carbon, #071A2B); }
+.mf-bel-nr { font-size: .78rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mf-bel-fz { font-weight: 600; font-size: .92rem; color: var(--text); }
+.mf-bel-zeit { font-size: .86rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mf-bel-notiz { font-size: .8rem; color: var(--muted); font-style: italic; }
+.mf-bel-stand {
+  font-size: .74rem; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+}
+.mf-bel-stand.angefragt  { background: #fdf3e3; color: #8a5a12; }
+.mf-bel-stand.bestaetigt { background: #e3f2e9; color: #1d8a52; }
+.mf-bel-stand.abgesagt   { background: var(--off, #f0eee9); color: var(--muted); }
+.mf-bel-stand.erledigt   { background: var(--off, #f0eee9); color: var(--muted); }
+.mf-bel-aktionen { display: flex; gap: 6px; margin-left: auto; }
+.mf-bel-aktionen select, .mf-bel-aktionen button {
+  font: inherit; font-size: .8rem; border: 1px solid var(--border);
+  background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; color-scheme: light;
+}
+.mf-bel-aktionen button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+.mf-tafel-schmal { max-width: 460px; }
+#mf-bel-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; padding: 22px 24px 24px; }
+#mf-bel-form select, #mf-bel-form input[type="date"],
+#mf-bel-form input[type="time"], #mf-bel-form input[type="text"] {
+  width: 100%; font: inherit; font-size: .9rem; color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 11px;
+  background: #fff; color-scheme: light;
+}
+#mf-bel-form select:focus, #mf-bel-form input:focus {
+  outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(168,50,61,.15);
+}
+@media (max-width: 460px) { #mf-bel-form { grid-template-columns: 1fr; } }
+
+/* ─── Rueckfrage ───
+   Eigene Maske statt window.confirm: das Browserfenster laesst sich nicht
+   gestalten und wirkt neben der uebrigen Oberflaeche wie ein Fremdkoerper.
+   Aufgebaut wie die anderen Tafeln im Adminbereich. */
+.frage-schicht {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(21,21,26,.55);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.frage-tafel {
+  width: 100%; max-width: 400px;
+  background: var(--white, #fff); border-radius: var(--radius, 14px);
+  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  padding: 26px 26px 22px;
+}
+.frage-tafel h2 { font-size: 1.1rem; margin: 0 0 8px; color: var(--text); }
+.frage-tafel p { margin: 0 0 22px; font-size: .9rem; line-height: 1.6; color: var(--muted); }
+.frage-knoepfe { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.frage-knoepfe button {
+  font: inherit; font-size: .88rem; font-weight: 600; cursor: pointer;
+  padding: 10px 20px; border-radius: 999px; transition: var(--transition, .2s ease);
+}
+.frage-nein { border: 1px solid var(--border); background: var(--white, #fff); color: var(--text); }
+.frage-nein:hover { border-color: var(--carbon, #071A2B); }
+/* Der Loeschknopf traegt die Warnfarbe – aber nicht den Fokus, siehe
+   gemeinsam.js: ein versehentliches Enter soll nichts entfernen. */
+.frage-ja { border: 0; background: var(--gold, #12557F); color: #fff; }
+.frage-ja:hover { background: var(--carbon, #071A2B); }
+
+/* Kleines Monitoring unter der Ueberschrift der Mietwagenseite: Datum,
+   die Zahlen des Tages und der naechste Termin. */
+.mf-monitor { margin: 8px 0 0; }
+
+/* Kopf der Mietwagenseite: Titel links, Monitorkachel rechts. Der Titel
+   behaelt eine feste Spur, die Kachel bekommt den Rest. Unter 1200 px
+   stapeln sich beide wieder – der Kachel wird es sonst zu eng. */
+.mf-seitenkopf {
+  display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 18px 40px; align-items: start; margin-bottom: 26px;
+}
+.mf-seitenkopf .admin-titel { margin-bottom: 0; }
+.mf-seitenkopf .mf-monitor { margin-top: 0; padding: 16px 20px 18px; }
+/* Der Strich unterm Titel darf hier enger sitzen – die Kachel daneben gibt
+   die Hoehe vor, jeder gesparte Punkt zieht die Reiter mit nach oben. */
+.mf-seitenkopf .admin-titel::after { margin-top: 18px; }
+
+/* Kopf und Reiterleiste sind EIN Raster: die Kachel reicht ueber beide
+   Zeilen und endet damit genau dort, wo die Reiter enden. Vorher stand die
+   Leiste unter dem Kopf, und rechts neben ihr blieb die Kachelhoehe als
+   Luecke stehen. */
+.mf-seitenkopf {
+  grid-template-rows: auto auto;
+  align-items: start;
+}
+.mf-seitenkopf .admin-titel { grid-column: 1; grid-row: 1; }
+.mf-seitenkopf .mf-reiter { grid-column: 1; grid-row: 2; align-self: end; margin: 10px auto 0; }
+.mf-seitenkopf .mf-monitor { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; }
+/* Die Kachel waechst auf die Hoehe der linken Spalte. Der Rest bleibt
+   unten – als Polster gelesen, nicht als Loch: den Inhalt auseinander zu
+   ziehen riss eine Luecke mitten hinein. */
+
+@media (max-width: 1200px) {
+  .mf-seitenkopf { grid-template-columns: 1fr; grid-template-rows: none; }
+  .mf-seitenkopf .admin-titel,
+  .mf-seitenkopf .mf-reiter,
+  .mf-seitenkopf .mf-monitor { grid-column: 1; grid-row: auto; }
+  .mf-seitenkopf .mf-monitor { margin-top: 8px; }
+  .mf-seitenkopf .mf-reiter { margin: 6px auto 0; }
+}
+.mf-mon-datum { color: var(--muted); font-size: .88rem; }
+.mf-mon-felder {
+  display: flex; flex-wrap: wrap; gap: 8px 10px; margin: 10px 0 0;
+}
+.mf-mon-felder span {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 999px; padding: 7px 15px;
+  font-size: .82rem; color: var(--muted);
+}
+.mf-mon-felder b {
+  font-size: 1rem; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.mf-mon-naechst { margin: 10px 0 0; font-size: .88rem; color: var(--muted); }
+.mf-mon-naechst b { color: var(--text); }
+.mf-mon-offen {
+  margin-left: 6px; font-size: .7rem; font-weight: 600;
+  background: #fdf3e3; color: #8a5a12; padding: 2px 9px; border-radius: 999px;
+}
+
+/* ─── Kalender: Jahr und Woche ───
+   Der Monat bleibt die fuehrende Ansicht; das Jahr zeigt, wann viel los ist,
+   die Woche hat Platz fuer die Uhrzeiten. */
+.mf-kal-ansicht {
+  display: inline-flex; margin-left: 8px; overflow: hidden;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--white, #fff);
+}
+.mf-kal-ansicht button {
+  border: 0; background: none; cursor: pointer; font: inherit;
+  font-size: .8rem; color: var(--muted); padding: 6px 13px;
+  transition: var(--transition, .2s ease);
+}
+.mf-kal-ansicht button:hover { color: var(--text); }
+.mf-kal-ansicht button[aria-pressed="true"] { background: var(--gold, #12557F); color: #fff; font-weight: 600; }
+
+/* Jahresraster: Zeile je Fahrzeug, Spalte je Monat, Zahl der belegten Tage.
+   Die Faerbung richtet sich nach dem Anteil – so sieht man die Saison. */
+.mf-jahr {
+  display: grid; grid-template-columns: 134px repeat(12, minmax(46px, 1fr));
+  gap: 3px; min-width: 700px;
+}
+.mf-jahr-kopf {
+  text-align: center; font-size: .72rem; color: var(--muted); padding-bottom: 5px;
+}
+.mf-jahr-kopf.heute { color: var(--gold, #12557F); font-weight: 700; }
+.mf-jahr-zelle {
+  height: 34px; border: 0; border-radius: 6px; cursor: pointer; font: inherit;
+  font-size: .8rem; font-variant-numeric: tabular-nums; color: var(--text);
+  background: #f1efea; transition: var(--transition, .2s ease);
+}
+.mf-jahr-zelle.hat {
+  /* Anteil belegter Tage -> Deckkraft. Mindestens 0.25, damit ein einzelner
+     Tag nicht unsichtbar bleibt. */
+  background: rgba(168, 50, 61, calc(0.25 + var(--anteil) * 0.75));
+  color: #fff; font-weight: 600;
+}
+.mf-jahr-zelle:hover { outline: 2px solid var(--gold, #12557F); outline-offset: -2px; }
+
+/* Wochenansicht: breitere Spalten, damit die Uhrzeiten hineinpassen. */
+#mf-kal-gitter[data-ansicht="woche"] .mf-kal-tabelle {
+  grid-template-columns: 134px repeat(var(--tage), minmax(90px, 1fr));
+  min-width: calc(134px + var(--tage) * 92px);
+}
+#mf-kal-gitter[data-ansicht="woche"] .mf-kal-tag { height: 46px; }
+#mf-kal-gitter[data-ansicht="woche"] .mf-kal-tag.belegt {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; color: #fff; font-size: .68rem; font-weight: 600;
+}
+#mf-kal-gitter[data-ansicht="woche"] .mf-kal-kopftag { font-size: .78rem; }
+
+
+
+/* ─── Kopfbereich der Mietwagenseite ─── */
+/* Der Kopfbereich soll ueber die ganze Breite laufen – ohne das hier waere
+   er nur so breit wie die Ueberschrift darueber. */
+.mon-kopfzeile > div:has(.mf-monitor) { flex: 1 1 100%; }
+/* In der Uebersicht steht die Kachel im Mietwagenabschnitt und braucht
+   unten Luft zu den Kennzahlen darunter. */
+#ueb-betrieb { margin: 0 0 16px; }
+.mf-monitor {
+  margin: 12px 0 0; background: var(--white, #fff);
+  border: 1px solid var(--border); border-radius: var(--radius, 12px);
+  padding: 16px 20px 18px;
+}
+.mf-mon-kopf {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.mf-mon-datum { font-size: .86rem; color: var(--muted); }
+.mf-mon-link { font-size: .8rem; font-weight: 600; color: var(--gold, #12557F); text-decoration: none; }
+.mf-mon-link:hover { text-decoration: underline; }
+
+/* Eine lange Zeile ueber die volle Breite statt eines Kaestchenrasters –
+   vier gleich breite Spalten, erst auf schmalen Schirmen zweizeilig. */
+.mf-mon-felder {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 10px; margin: 14px 0 0;
+}
+@media (max-width: 780px) { .mf-mon-felder { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .mf-mon-felder { grid-template-columns: 1fr; } }
+.mf-mon-feld { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.mf-mon-feld svg { width: 20px; height: 20px; flex: none; color: var(--gold, #12557F); opacity: .8; }
+.mf-mon-feld b {
+  font-size: 1.3rem; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.mf-mon-feld i { font-style: normal; font-size: .78rem; color: var(--muted); line-height: 1.3; min-width: 0; }
+
+/* Der naechste Termin mit Bild – das fuellt den Bereich, ohne ihn zu
+   ueberladen, und man erkennt das Fahrzeug auf einen Blick. */
+.mf-mon-naechst {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin: 16px 0 0; padding-top: 15px; border-top: 1px solid var(--border);
+}
+.mf-mon-naechst.leer { color: var(--muted); font-size: .85rem; }
+.mf-mon-bild {
+  flex: none; width: 76px; height: 50px; border-radius: 8px; overflow: hidden;
+  background: var(--off, #f0eee9); display: flex; align-items: center; justify-content: center;
+  color: var(--muted);
+}
+.mf-mon-bild img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mf-mon-bild svg { width: 26px; height: 26px; opacity: .45; }
+.mf-mon-naechst-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mf-mon-naechst-text i {
+  font-style: normal; font-size: .66rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted);
+}
+.mf-mon-naechst-text b { font-size: .98rem; color: var(--text); }
+.mf-mon-naechst-text span { font-size: .82rem; color: var(--muted); }
+/* Der Platz zwischen Fahrzeug und Stand traegt die Eckdaten: wie lange und
+   was das nach Tagespreis ungefaehr ergibt. */
+/* Wert und Bezeichnung nebeneinander auf einer Grundlinie – untereinander
+   sassen sie je nach Laenge des Wertes auf unterschiedlicher Hoehe. */
+.mf-mon-werte { display: flex; align-items: baseline; gap: 6px 18px; flex-wrap: wrap; margin-left: auto; }
+.mf-mon-werte > span { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+.mf-mon-werte b { font-size: .95rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.mf-mon-werte i { font-style: normal; font-size: .78rem; color: var(--muted); }
+.mf-mon-notiz {
+  font-style: italic; color: var(--muted); font-size: .84rem;
+  max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mf-mon-naechst .mf-bel-stand { margin-left: 0; flex: none; }
+
+/* Kopfzeile der Zeitraumliste: Ueberschrift links, Filter rechts. */
+/* Ueberschrift und Papierkorb gehoeren zusammen und stehen links; der
+   Filter schiebt sich mit dem automatischen Rand nach rechts. */
+.mf-bel-kopf {
+  display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap;
+}
+.mf-bel-kopf .mf-bel-filter { margin-left: auto; }
+/* Der Abstand gehoert an die Zeile, nicht an die Ueberschrift darin: mit
+   dem eigenen oberen Rand der Ueberschrift sass der Papierkorb daneben
+   dreizehn Pixel zu hoch. */
+.mf-bel-kopf { margin: 26px 0 14px; }
+.mf-bel-kopf .mf-untertitel { margin: 0; }
+/* Papierkorb der Zeitraeume: nur da, wenn etwas drin ist. */
+.mf-bel-korb-schalter {
+  font: inherit; font-size: .8rem; color: var(--muted); cursor: pointer;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 999px; padding: 6px 14px; transition: var(--transition, .2s ease);
+}
+.mf-bel-korb-schalter[hidden] { display: none; }
+.mf-bel-korb-schalter b { color: var(--text); font-variant-numeric: tabular-nums; }
+.mf-bel-korb-schalter:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+.mf-bel-korb-schalter.offen { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+#mf-bel-korb { margin-bottom: 14px; }
+#mf-bel-korb[hidden] { display: none; }
+#mf-bel-korb .mf-korb-titel {
+  font-size: .8rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted); margin: 0 0 10px;
+}
+
+/* Ein Bedienstreifen statt zweier Klappmenues: der Stand links, der Zeitraum
+   rechts, ganz aussen die Richtung. Was gerade gilt, steht sichtbar da –
+   bei einem Klappmenue muss man es erst oeffnen. */
+.mf-bel-filter {
+  display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px;
+}
+.mf-bel-filter button {
+  font: inherit; font-size: .8rem; color: var(--muted); cursor: pointer;
+  background: none; border: 0; border-radius: 999px; padding: 6px 13px;
+  transition: var(--transition, .2s ease);
+}
+.mf-bel-filter button:hover { color: var(--text); }
+.mf-bel-filter button[aria-pressed="true"] { background: var(--carbon, #071A2B); color: #fff; font-weight: 600; }
+.mf-bel-filter-strich { width: 1px; align-self: stretch; margin: 4px 6px; background: var(--border); }
+.mf-bel-richtung { font-size: .95rem; padding: 5px 11px; }
+/* Kontaktdaten zu einer Anfrage: nur auf Klick sichtbar, denn sie sind das
+   Einzige in dieser Liste mit Personenbezug. */
+.mf-bel-kontakt-knopf {
+  font: inherit; font-size: .8rem; cursor: pointer; color: var(--gold, #12557F);
+  background: rgba(168,50,61,.07); border: 1px solid rgba(168,50,61,.25);
+  border-radius: 999px; padding: 6px 12px; transition: var(--transition, .2s ease);
+}
+.mf-bel-kontakt-knopf:hover { background: rgba(168,50,61,.14); }
+.mf-bel-kontakt {
+  flex-basis: 100%; margin-top: 10px; padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.mf-bel-kontakt[hidden] { display: none; }
+.mf-bel-kontakt-daten { display: flex; gap: 6px 16px; flex-wrap: wrap; align-items: baseline; font-size: .86rem; }
+.mf-bel-kontakt-daten b { color: var(--text); }
+.mf-bel-kontakt-daten a { color: var(--gold, #12557F); text-decoration: none; }
+.mf-bel-kontakt-daten a:hover { text-decoration: underline; }
+.mf-bel-kontakt-text {
+  margin: 8px 0 0; font-size: .85rem; color: var(--muted); line-height: 1.6; white-space: pre-wrap;
+}
+.mf-bel-kontakt-weg {
+  margin-top: 10px; font: inherit; font-size: .78rem; cursor: pointer;
+  background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline;
+}
+.mf-bel-kontakt-weg:hover { color: var(--gold, #12557F); }
+
+.mf-filter-weg {
+  font: inherit; font-size: .82rem; color: var(--gold, #12557F); cursor: pointer;
+  background: none; border: 0; padding: 0; text-decoration: underline;
+}
+
+/* ─── Bereiche der Mietwagenseite ───
+   Drei Reiter statt einer Seite, die man endlos scrollt. Die Kachel darueber
+   bleibt sichtbar – sie fasst alle drei zusammen. */
+.mf-reiter {
+  display: flex; gap: 4px; flex-wrap: wrap; justify-content: center;
+  margin: 6px auto 20px; padding: 5px;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 999px; width: fit-content; max-width: 100%;
+}
+.mf-reiter button {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 0; background: none; cursor: pointer; font: inherit;
+  font-size: .88rem; font-weight: 600; color: var(--muted);
+  padding: 9px 20px; border-radius: 999px;
+  transition: var(--transition, .2s ease);
+}
+.mf-reiter button:hover { color: var(--text); }
+.mf-reiter button[aria-selected="true"] { background: var(--carbon, #071A2B); color: #fff; }
+.mf-reiter-zahl {
+  font-size: .7rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--off, #f0eee9); color: var(--muted);
+  padding: 2px 8px; border-radius: 999px;
+}
+.mf-reiter-zahl[hidden] { display: none; }
+/* Ungelesene Anfragen faerben die Zahl – das ist das Einzige hier, was auf
+   eine Antwort wartet. */
+.mf-reiter-zahl.betont { background: var(--gold, #12557F); color: #fff; }
+.mf-reiter button[aria-selected="true"] .mf-reiter-zahl { background: rgba(255,255,255,.16); color: #fff; }
+.mf-reiter button[aria-selected="true"] .mf-reiter-zahl.betont { background: var(--gold, #12557F); }
+
+.mf-bereich[hidden] { display: none; }
+/* In den Reitern braucht der erste Abschnitt oben keinen zusaetzlichen Rand. */
+.mf-bereich > .mf-anfragen, .mf-bereich > .mf-bel { margin-top: 0; }
+.mf-bereich .mf-fz-kopf { margin-top: 0; }
+@media (max-width: 560px) {
+  .mf-reiter { width: 100%; }
+  .mf-reiter button { flex: 1; justify-content: center; padding: 9px 12px; }
+}
+
+
+/* ─── Bestand auf der Fahrzeugseite ─── */
+/* Die Liste ist dieselbe wie in der Auslage auf der Website (js/vehicles.js,
+   .shop-liste in style.css). Zwei Dinge passen hier nicht: die Filterleiste
+   klebt dort unter der festen Kopfzeile der Website – die gibt es im
+   Adminbereich nicht – und der Abstand nach oben kommt hier von der
+   Abschnittsueberschrift. */
+.admin-bestand { margin-top: 30px; }
+/* relative, nicht static: die Blaetterei in der Mitte der Leiste ist
+   absolut gesetzt und braucht die Leiste als Bezug – ohne sie landete sie
+   irgendwo weiter oben auf der Seite. Sticky wie auf der Website braucht es
+   hier nicht, es gibt keine feste Kopfzeile. */
+.admin-bestand .veh-filters {
+  position: relative; top: auto; z-index: auto;
+  margin: 14px 0 16px; padding: 0; background: none;
+}
+.admin-bestand .shop-chips { margin-top: 14px; }
+.admin-bestand .veh-more { margin-top: 24px; }
+/* Die Blaetterleiste des Adminbereichs bringt einen Abstand nach oben mit –
+   die kleine in der Filterzeile braucht ihn nicht. */
+.admin-bestand .blatt-kurz { margin-top: 0; }
+/* Auf der Website sitzt die kleine Blaetterei absolut in der Mitte der
+   Leiste. Hier ist die Spalte neben der Seitenleiste schmaler – dort
+   stiesse sie mit "Zuruecksetzen" zusammen. Also mitlaufend zwischen den
+   beiden Gruppen, wie auf schmalen Schirmen auch. */
+.admin-bestand .veh-blatt-oben { position: static; transform: none; margin: 0 auto; }
+
+
+/* ─── INHALTE: Bestands-Gedaechtnis und Warteschlange ─────────────────
+   Eigene Seite, weil das Thema eine eigene Adresse verdient – als leise
+   Zeile unter dem Bestand hat es niemand gefunden. */
+
+/* Ein kleiner Knopf in der Kopfzeile einer Karte. */
+.btn-klein {
+  font-family: inherit; font-size: .78rem; font-weight: 700; cursor: pointer;
+  color: #fff; background: var(--carbon, #071A2B);
+  border: 0; border-radius: 999px; padding: 7px 15px;
+  transition: var(--transition, .2s ease);
+}
+.btn-klein:hover:not(:disabled) { background: var(--gold, #12557F); }
+.btn-klein:disabled { opacity: .5; cursor: default; }
+
+/* Die drei Zahlen nebeneinander. Kein Raster mit fester Spaltenzahl: bei
+   drei Feldern bricht flex-wrap sauberer um als grid mit Mindestbreite. */
+.gd-felder { display: flex; flex-wrap: wrap; gap: 10px; }
+.gd-feld {
+  flex: 1 1 140px; background: var(--off); border: 1px solid var(--border);
+  border-radius: 10px; padding: 13px 16px;
+}
+.gd-feld b {
+  display: block; font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.7rem; line-height: 1.1; color: var(--text); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.gd-feld span { font-size: .78rem; color: var(--muted); }
+
+/* Hinweiszeile unter einer Kachel. Mit Strich davor und etwas kleiner:
+   als normaler Absatz las sie sich wie Inhalt, dabei erklaert sie nur, was
+   darueber steht. Kurz halten – wer drei Zeilen braucht, hat die Kachel
+   nicht verstanden. */
+/* Sitzt unten in der Kachel, mit Luft darueber – sie erklaert, was oben
+   steht, und soll nicht mit dem Inhalt verwechselt werden. */
+/* Als .admin-karte .gd-notiz geschrieben: die Karte setzt ihren Absaetzen
+   .89rem und margin 0 – mit gleicher Spezifitaet gewinnt sie. */
+.admin-karte .gd-notiz,
+.gd-notiz {
+  margin: 22px 0 0; padding-left: 10px;
+  border-left: 2px solid var(--border);
+  font-size: .71rem; line-height: 1.5; color: var(--muted);
+}
+.gd-notiz b { color: var(--text); font-weight: 600; }
+
+.gd-fehler {
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--off); border: 1px solid var(--border);
+  border-left: 3px solid var(--gold, #12557F);
+  border-radius: 10px; padding: 14px 16px;
+}
+.gd-fehler span { font-size: .82rem; color: var(--muted); }
+
+/* Die Warteschlange: Bild, Text, Verweis. Bewusst eine Liste und kein
+   Kachelraster – hier zaehlt die Reihenfolge, nicht die Uebersicht. */
+.gd-liste { list-style: none; margin: 0; padding: 0; }
+.gd-liste li {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.gd-liste li:last-child { border-bottom: 0; padding-bottom: 0; }
+.gd-bild {
+  flex: none; width: 76px; height: 50px; border-radius: 7px; overflow: hidden;
+  background: var(--off); display: flex; align-items: center; justify-content: center;
+}
+.gd-bild img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gd-bild span { font-size: .62rem; color: var(--muted); text-align: center; }
+.gd-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; margin-right: auto; }
+.gd-text b { font-size: .9rem; color: var(--text); }
+.gd-text span { font-size: .76rem; color: var(--muted); }
+.gd-weg { flex: none; font-size: .8rem; font-weight: 700; color: var(--gold, #12557F); }
+.gd-weg:hover { text-decoration: underline; }
+
+@media (max-width: 620px) {
+  .gd-feld b { font-size: 1.4rem; }
+  .gd-liste li { flex-wrap: wrap; }
+  .gd-weg { margin-left: 90px; }
+}
+
+/* Ueberschrift der Instagram-Kachel mit dem Zeichen davor. Das Zeichen
+   sitzt in der Schriftfarbe und nicht im Farbverlauf: einfarbig ist die
+   Verwendung ausdruecklich erlaubt, und im Dashboard passt es besser. */
+.ig-titel { display: flex; align-items: center; gap: 9px; line-height: 1; }
+/* Ohne das Wort daneben bestimmt das Zeichen die Hoehe der Ueberschrift.
+   Ohne line-height: 1 traegt die Ueberschrift ihre Schriftzeile mit und
+   das Zeichen sitzt hoeher als der Kontoname. */
+.ig-kopf { align-items: center; }
+/* Die Ueberschrift traegt sonst den Abstand der Kartenueberschriften mit
+   (16px unten) – und der schiebt das Zeichen im zentrierten Kopf nach oben. */
+.ig-kopf .ig-titel { margin: 0; }
+.ig-zeichen { flex: none; color: var(--gold, #12557F); }
+.ig-konto { font-size: .8rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.ig-konto:hover { color: var(--gold, #12557F); }
+
+/* Kleine Marke am Zeilenende, etwa "verkauft". */
+.gd-marke {
+  flex: none; font-size: .68rem; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted);
+  background: var(--off); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 9px;
+}
+
+
+/* Ausgabe von Beitrag, Reel und Story: steht ueber der Liste und bleibt
+   dort. Angetippt wird unten, geaendert oben – so verschiebt sich beim
+   Wechseln nichts, was man gerade liest. */
+/* Gemessen wird zur LINIE der Ueberschrift, nicht zu deren Unterkante: die
+   Linie liegt mittig im Kopf, also zaehlt die halbe Kopfhoehe mit. Deshalb
+   oben weniger Abstand am Kopf und unten mehr am Schalter – erst so sitzt er
+   optisch in der Mitte zwischen Linie und Kachel. */
+.ueb-kopf:has(+ .sm-reiter) { margin-bottom: 8px; }
+.sm-reiter { margin: 0 auto 24px; }
+.sm-ausgabe { display: block; padding: 0 0 4px; }
+.sm-block {
+  background: var(--off); border: 1px solid var(--border);
+  border-left: 3px solid var(--gold, #12557F);
+  border-radius: 10px; padding: 15px 17px;
+}
+.sm-kopf {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  margin: 0 0 8px; font-size: .82rem;
+}
+.sm-kopf b { color: var(--text); }
+.sm-kopf span { color: var(--muted); font-size: .76rem; }
+.sm-kopf + .sm-text { margin-top: 0; }
+.sm-block .sm-kopf ~ .sm-kopf { margin-top: 16px; }
+/* pre, weil die Zeilenumbrueche im Text stehen und genau so kopiert werden
+   sollen – Instagram uebernimmt sie eins zu eins. */
+.sm-text {
+  margin: 0; padding: 12px 14px; white-space: pre-wrap; word-break: break-word;
+  font-family: inherit; font-size: .86rem; line-height: 1.6; color: var(--text);
+  background: var(--white, #fff); border: 1px solid var(--border); border-radius: 8px;
+}
+.sm-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.btn-klein.sm-leise { background: var(--white, #fff); color: var(--muted); border: 1px solid var(--border); }
+.btn-klein.sm-leise:hover:not(:disabled) { background: var(--off); color: var(--gold, #12557F); }
+
+/* Der Drehplan: Zeitspanne links, Anweisung rechts. */
+.sm-plan { list-style: none; margin: 0 0 12px; padding: 0; }
+.sm-plan li { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.sm-plan li:last-child { border-bottom: 0; }
+.sm-plan span {
+  flex: 0 0 62px; font-size: .76rem; font-weight: 700; color: var(--gold, #12557F);
+  font-variant-numeric: tabular-nums; padding-top: 1px;
+}
+.sm-plan p { margin: 0; font-size: .85rem; line-height: 1.5; color: var(--text); }
+.sm-ton {
+  margin: 0 0 4px; font-size: .82rem; line-height: 1.55; color: var(--muted);
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px;
+}
+.sm-ton b { color: var(--text); }
+
+@media (max-width: 620px) {
+  .sm-plan li { flex-direction: column; gap: 2px; }
+  .sm-plan span { flex: none; }
+}
+
+/* Instagram-Beitraege als Raster. Eine Zeilenliste mit Briefmarke daneben
+   sagt ueber einen Bildbeitrag nichts – hier zaehlt das Bild. */
+/* Groessere Kacheln, dafuer zehn je Seite: bei einem Bildmedium sagt eine
+   Briefmarke wenig, und geblaettert ist schneller als gekniffen geschaut. */
+.ig-raster {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  gap: 12px;
+}
+.ig-zelle { margin: 0; }
+/* Halten die Hoehe der letzten Seite, damit beim Blaettern nichts springt.
+   Unsichtbar statt weggelassen – ihre Flaeche ist ja der ganze Zweck. */
+.ig-platz { visibility: hidden; }
+@media (max-width: 620px) { .ig-platz { display: none; } }
+/* Ein Knopf, kein Verweis: der Klick oeffnet die Ansicht daneben, statt die
+   Seite zu verlassen. Der Weg zu Instagram steht dort als eigener Knopf. */
+.ig-kachel {
+  position: relative; display: block; aspect-ratio: 1; width: 100%; padding: 0;
+  border-radius: 10px; overflow: hidden; background: var(--off);
+  border: 1px solid var(--border); cursor: pointer; font: inherit;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.ig-kachel.hier { border-color: var(--gold, #12557F); box-shadow: 0 0 0 2px var(--gold, #12557F); }
+.ig-kachel img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease; }
+.ig-kachel:hover img { transform: scale(1.05); }
+.ig-leer { display: flex; align-items: center; justify-content: center; height: 100%; font-size: .72rem; color: var(--muted); }
+/* Die Zahlen liegen ueber dem Bild statt darunter: als eigene Zeile waeren
+   sie auf dem Telefon die Haelfte der Kachelhoehe. */
+.ig-zahlen {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; gap: 14px; padding: 20px 10px 8px;
+  font-size: .78rem; color: #fff;
+  background: linear-gradient(to top, rgba(0,0,0,.7), rgba(0,0,0,0));
+}
+.ig-zahlen b { font-weight: 700; }
+.ig-marke {
+  position: absolute; top: 8px; right: 8px;
+  font-size: .64rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: #fff; background: rgba(0,0,0,.55); border-radius: 999px; padding: 3px 9px;
+  backdrop-filter: blur(4px);
+}
+.ig-zelle figcaption { margin-top: 5px; font-size: .72rem; color: var(--muted); text-align: center; }
+@media (max-width: 620px) {
+  .ig-raster { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .ig-zahlen { gap: 10px; padding: 18px 8px 6px; font-size: .72rem; }
+  .ig-zelle figcaption { font-size: .68rem; }
+}
+
+/* Warteschlange als Kacheln. Die Ausgabe darunter nimmt die volle Breite –
+   ein Beitragstext in einer Rasterspalte waere unlesbar schmal. */
+.gd-karten {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px;
+}
+/* Die ganze Kachel ist der Knopf – deshalb Zeiger und Rahmenwechsel auf der
+   ganzen Flaeche, nicht nur auf dem kleinen Knopf unten. */
+.gd-karte-fz {
+  display: flex; flex-direction: column; gap: 9px;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 10px 12px; cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.gd-karte-fz:hover { border-color: var(--gold, #12557F); }
+.gd-foto {
+  display: block; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden;
+  background: var(--off);
+}
+.gd-foto img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease; }
+.gd-foto:hover img { transform: scale(1.04); }
+.gd-karte-text { display: flex; flex-direction: column; gap: 2px; padding: 0 3px; }
+.gd-karte-text b { font-size: .88rem; line-height: 1.3; color: var(--text); }
+.gd-karte-text span { font-size: .75rem; color: var(--muted); }
+.gd-karte-fz .btn-klein { align-self: flex-start; margin-top: auto; }
+.gd-foto { display: block; }
+
+/* Bildauswahl im Beitrag: angetippt = kommt mit. */
+.sm-raster {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 7px;
+}
+.sm-foto {
+  position: relative; padding: 0; border: 2px solid transparent; border-radius: 8px;
+  overflow: hidden; cursor: pointer; background: var(--off); aspect-ratio: 1;
+  transition: border-color .15s ease;
+}
+/* Umgekehrt zu frueher: die Auswahl traegt den Schleier, nicht der Rest.
+   Beim Suchen schaut man auf die noch nicht gewaehlten Bilder – die
+   sollen klar sein. Dass eines schon drin ist, sagt der Haken. */
+.sm-foto img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .15s ease; }
+.sm-foto.aktiv { border-color: var(--gold, #12557F); }
+.sm-foto.aktiv img { opacity: .5; }
+.sm-haken {
+  position: absolute; top: 5px; right: 5px; width: 19px; height: 19px;
+  border-radius: 50%; background: rgba(255,255,255,.85); color: var(--muted);
+  font-size: .7rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+.sm-foto.aktiv .sm-haken { background: var(--gold, #12557F); color: #fff; }
+.sm-stand { align-self: center; font-size: .78rem; color: var(--muted); }
+
+@media (max-width: 620px) {
+  .gd-karten { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .gd-karte-text b { font-size: .8rem; }
+  .sm-raster { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Vorschau links, Werkzeug rechts. Unter 900 px untereinander – die
+   Vorschau zuerst, denn darum geht es. */
+.sm-zwei { display: grid; grid-template-columns: 390px 1fr; gap: 26px; align-items: start; }
+@media (max-width: 900px) { .sm-zwei { grid-template-columns: 1fr; } }
+
+/* Der Fuss schliesst den Baukasten ab: die beiden Knoepfe stehen ueber
+   beide Spalten, mittig und mit einer Kante darueber. Zwischen Bildern und
+   Text sahen sie aus, als gehoerten sie nur zu den Bildern. */
+.sm-fuss {
+  grid-column: 2; justify-self: stretch;
+  margin-top: 16px; padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 900px) { .sm-fuss { grid-column: 1; } }
+.sm-fuss:empty { display: none; }
+.sm-fuss .sm-knoepfe { margin: 0; }
+.sm-links { position: sticky; top: 16px; }
+@media (max-width: 900px) { .sm-links { position: static; } }
+
+/* ─── Nachbildung eines Instagram-Beitrags ───────────────────────────
+   Nachgebaut, nicht abgemalt: gleiche Anordnung und gleiche Kuerzung,
+   damit man sieht, was im Feed ankommt. Das Wichtigste daran ist das
+   "… mehr" – Instagram zeigt nur den Anfang des Textes. */
+.igv {
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.igv-kopf { display: flex; align-items: center; gap: 9px; padding: 10px 12px; }
+.igv-logo {
+  width: 30px; height: 30px; border-radius: 50%; flex: none;
+  background: var(--off); border: 1px solid var(--border); padding: 3px; object-fit: contain;
+}
+.igv-wer { display: flex; flex-direction: column; line-height: 1.25; margin-right: auto; min-width: 0; }
+.igv-wer b { font-size: .8rem; color: var(--text); }
+.igv-wer span { font-size: .7rem; color: var(--muted); }
+.igv-punkt { color: var(--muted); letter-spacing: 1px; }
+
+/* 4:5 – das hoechste Format, das Instagram im Feed zulaesst. Der Ausschnitt
+   zeigt zugleich, was oben und unten wegfaellt. */
+/* overflow: hidden ist hier kein Feinschliff: ohne es waechst das
+   gezoomte Bild ueber den Rahmen und legt sich ueber Leiste und Text. */
+.igv-bild {
+  position: relative; aspect-ratio: 4 / 5; background: var(--off);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.igv-bild.igv-hoch { aspect-ratio: 9 / 16; }
+/* Nur das Vorschaufoto fuellt den Kasten. Ein blankes "img" traf auch das
+   Profilbild im Story-Kopf – das fiel bisher nicht auf, weil es beim ersten
+   Zeichnen ohnehin entfernt wurde. */
+.igv-bild .igv-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.igv-leer { font-size: .78rem; color: var(--muted); }
+.igv-play {
+  position: relative; z-index: 1; width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(0,0,0,.4); color: #fff; font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center; padding-left: 3px;
+}
+.igv-zaehler {
+  position: absolute; top: 11px; right: 10px; z-index: 1;
+  background: rgba(0,0,0,.6); color: #fff; font-size: .68rem; font-weight: 700;
+  padding: 3px 9px; border-radius: 999px;
+}
+.igv-zaehler[hidden] { display: none; }
+
+.igv-leiste { display: flex; align-items: center; gap: 14px; padding: 11px 12px 6px; color: var(--text); }
+.igv-leiste svg { width: 22px; height: 22px; }
+.igv-leiste .igv-merken { margin-left: auto; }
+
+.admin-karte .igv-text,
+.igv-text { margin: 0; padding: 2px 12px 0; font-size: .82rem; line-height: 1.45; color: var(--text); }
+.igv-text b { margin-right: 5px; }
+.igv-text span { white-space: pre-wrap; }
+.igv-mehr { color: var(--muted); cursor: pointer; }
+.igv-mehr:hover { color: var(--text); }
+.igv-mehr[hidden] { display: none; }
+.admin-karte .igv-tags,
+.igv-tags {
+  margin: 4px 0 0; padding: 0 12px; font-size: .82rem; line-height: 1.45;
+  font-weight: 600; color: #00294f; word-break: break-word;
+}
+.admin-karte .igv-datum,
+.igv-datum { margin: 8px 0 0; padding: 0 12px 12px; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+
+@media (prefers-color-scheme: dark) {
+  .admin-karte .igv-tags, .igv-tags { color: #8ec5f5; }
+}
+
+/* Der Baukasten steht ueber der Liste, nicht zwischen den Kacheln. */
+.sm-block { position: relative; }
+
+/* Schliessen-Knopf – im Fahrzeug-Baukasten gibt es ihn nicht mehr (der steht
+   fest oben), in der Beitragsansicht schon: die klappt man wieder zu. */
+.sm-zu {
+  position: absolute; top: 8px; right: 10px; z-index: 2;
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--white, #fff); color: var(--muted);
+  font-size: 1.2rem; line-height: 1; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.sm-zu:hover { color: var(--gold, #12557F); border-color: var(--gold, #12557F); }
+
+/* Die Ueberschrift ueber der Warteschlange – der Baukasten oben braucht eine
+   Kante zur Liste darunter, sonst liest sich beides als ein Block. */
+.gd-weitere {
+  margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border);
+}
+
+/* Welches Fahrzeug gerade oben im Baukasten liegt. */
+.gd-karte-fz.hier { border-color: var(--gold, #12557F); box-shadow: 0 0 0 1px var(--gold, #12557F); }
+.gd-karte-fz.hier .btn-klein { background: var(--gold, #12557F); color: #fff; border-color: var(--gold, #12557F); }
+
+
+/* Blaettern in der Vorschau. */
+.igv-pfeil {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 26px; height: 26px; border-radius: 50%; border: 0;
+  background: rgba(255,255,255,.85); color: #262626;
+  font-size: 1rem; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.igv-zurueck { left: 8px; }
+.igv-vor { right: 8px; }
+.igv-punkte {
+  position: absolute; left: 0; right: 0; bottom: 8px; z-index: 2;
+  display: flex; justify-content: center; gap: 5px;
+}
+.igv-punkte span { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.55); }
+.igv-punkte span.hier { background: #fff; }
+
+/* Werkstatt: Themenwahl als Chips, der Bildvorrat als scrollendes Raster.
+   Kein eigener Reiter fuer den Vorrat – Thema, Text und Bild gehoeren in
+   einen Ablauf, sonst sucht man beim Beitragbauen wieder woanders. */
+.wk-chips {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  /* Nicht ueber die volle Breite: eine Zeile mit acht Themen liest sich als
+     Band, zwei kuerzere als Liste. */
+  max-width: 74%;
+}
+@media (max-width: 900px) { .wk-chips { max-width: 100%; } }
+/* Schmaler gesetzt: zwoelf Themen sollen in zwei Zeilen passen, ohne dass die
+   Kachel dabei breiter wirkt als der Beitrag darunter. */
+.wk-chip {
+  font: inherit; font-size: .76rem; cursor: pointer;
+  background: var(--white, #fff); color: var(--text);
+  border: 1px solid var(--border); border-radius: 999px; padding: 6px 11px;
+  transition: var(--transition, .2s ease);
+}
+.wk-chip i { font-style: normal; color: var(--muted); font-size: .72rem; }
+.wk-chip:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+.wk-chip.hier { background: var(--carbon, #071A2B); color: #fff; border-color: var(--carbon, #071A2B); }
+.wk-chip.hier i { color: rgba(255,255,255,.6); }
+
+/* Der Vorrat ist lang – deshalb ein eigenes Scrollfeld statt einer Seite,
+   die nicht mehr aufhoert. */
+
+
+
+
+/* Blaetterleiste unter den Instagram-Beitraegen: mittig, mit Abstand. */
+.ig-blatt { display: flex; justify-content: center; margin-top: 14px; }
+
+/* Bearbeiten liegt im Bild, nicht darunter: der Stift oben rechts, halb
+   durchsichtig, und im Bearbeitenmodus der Zoomregler unten im Bild. So
+   sieht man beim Schieben, was man tut, statt zwischen Regler und Bild hin
+   und her zu springen. */
+/* Vorher ein halbdurchsichtiges Zeichen in der Ecke – man musste wissen,
+   dass es da ist. Jetzt eine Pille mit Wort: was sie tut, steht drauf. */
+.igv-stift {
+  position: absolute; top: 8px; left: 8px; z-index: 3;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px; border-radius: 999px; border: 0; cursor: pointer;
+  background: rgba(0,0,0,.6); color: #fff; font: inherit;
+  font-size: .74rem; font-weight: 600; letter-spacing: .01em;
+  backdrop-filter: blur(3px); transition: background .15s ease;
+}
+.igv-stift[hidden] { display: none; }
+.igv-stift svg { width: 14px; height: 14px; flex: none; }
+.igv-stift:hover { background: rgba(0,0,0,.78); }
+.igv-stift.hier { background: var(--gold, #12557F); }
+
+/* Beim Ziehen darf nichts markiert werden – sonst färbt sich die halbe
+   Vorschau blau, während man das Bild verschiebt. touch-action: none sagt
+   dem Browser, dass er hier nicht scrollen soll: sonst nimmt er die Geste
+   für sich und das Bild bleibt stehen. */
+.igv-bild.igv-offen {
+  user-select: none; -webkit-user-select: none; touch-action: none;
+}
+.igv-bild .igv-foto { -webkit-user-drag: none; }
+
+.igv-werkzeug {
+  position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 3;
+  display: flex; align-items: center; gap: 9px;
+  background: rgba(0,0,0,.5); border-radius: 999px; padding: 7px 12px;
+  backdrop-filter: blur(4px);
+}
+.igv-werkzeug[hidden] { display: none; }
+.igv-werkzeug input[type="range"] { flex: 1 1 auto; min-width: 0; accent-color: #fff; }
+.igv-mitte {
+  flex: none; cursor: pointer; width: 24px; height: 24px;
+  border: 0; background: rgba(255,255,255,.9); color: #262626;
+  border-radius: 50%; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.igv-mitte svg { width: 13px; height: 13px; }
+
+/* Im Bearbeitenmodus ist das Bild fassbar; sonst nicht, sonst zieht man
+   beim Blaettern versehentlich daran. */
+.igv-bild.igv-offen { cursor: grab; }
+.igv-bild.igv-offen.igv-zieht { cursor: grabbing; }
+.igv-bild.igv-offen img { transition: none; }
+.igv-bild.igv-offen::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  box-shadow: inset 0 0 0 2px var(--gold, #12557F);
+}
+.igv-bild .igv-foto { transition: transform .15s ease; }
+
+/* Der Text laesst sich im Kasten aendern – dann sieht er auch danach aus. */
+.sm-text-offen {
+  outline: 2px solid var(--gold, #12557F); outline-offset: 1px;
+  background: var(--white, #fff);
+}
+.admin-karte .sm-teilen-hinweis { flex: 1 1 100%; margin-top: 8px; }
+
+
+
+/* Motiv als Marke auf dem Bild – so sieht man beim Blaettern, was schon
+   einsortiert ist. */
+.sm-motiv {
+  position: absolute; left: 4px; bottom: 4px;
+  font-size: .58rem; font-weight: 700; letter-spacing: .03em;
+  color: #fff; background: rgba(0,0,0,.6); border-radius: 999px; padding: 2px 7px;
+}
+/* Die Wahl haengt unter der Kachel – das Raster darf sie nicht abschneiden. */
+/* Feste Seiten statt Scrollfeld – die Wahl haengt unter der Kachel und
+   darf nicht abgeschnitten werden. */
+.sm-raster.wk-raster { overflow: visible; max-height: none; }
+
+/* Der Farbverlauf gehoert dem Knopf, der wirklich auf Instagram stellt.
+   Der Teilen-Knopf daneben bleibt schwarzweiss: er reicht die Bilder nur an
+   die App weiter, und zwei bunte Knoepfe nebeneinander waeren keine Wahl,
+   sondern Ratespiel. */
+.btn-klein[data-posten] {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(60deg, #f09433 0%, #dc2743 45%, #bc1888 100%);
+  color: #fff; border: 0; padding: 9px 18px; font-size: .82rem;
+  box-shadow: 0 2px 10px rgba(188,24,136,.28);
+}
+.btn-klein[data-posten]:hover:not(:disabled) {
+  background: linear-gradient(60deg, #f0a04a 0%, #e63a55 45%, #cf2a9a 100%);
+  box-shadow: 0 3px 14px rgba(188,24,136,.36);
+}
+.btn-klein[data-posten]:disabled { opacity: .6; }
+.btn-klein[data-posten] svg { flex: none; }
+
+/* Teilen: schwarz auf weiss, Zeichen links. */
+.btn-klein.sm-teilen {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--white, #fff); color: var(--carbon, #071A2B);
+  border: 1px solid var(--carbon, #071A2B);
+  padding: 9px 18px; font-size: .82rem;
+}
+.btn-klein.sm-teilen:hover:not(:disabled) { background: var(--carbon, #071A2B); color: #fff; }
+.btn-klein.sm-teilen:disabled { opacity: .5; }
+.btn-klein.sm-teilen svg { flex: none; }
+
+/* Ein Schritt zurueck in den Vorschlaegen – schmal, es ist nur ein Pfeil. */
+.btn-klein[data-zurueck-var] { padding: 7px 12px; font-size: .9rem; line-height: 1; }
+
+/* Formatwahl im geoeffneten Baukasten – dasselbe Fahrzeug, drei Ausgaben. */
+.sm-format { margin: 0 0 16px; }
+.sm-format button { padding: 7px 16px; font-size: .82rem; }
+
+/* Die Zeile, die in der Story aufs Bild kommt. */
+.admin-karte .sm-zeile {
+  margin: 0 0 12px; padding: 12px 14px;
+  background: var(--white, #fff); border: 1px solid var(--border); border-radius: 8px;
+  font-size: 1.05rem; font-weight: 700; letter-spacing: .04em; color: var(--text);
+}
+
+/* Blaetterleiste unter dem Bildvorrat, mittig. */
+.wk-blatt { display: flex; justify-content: center; margin-top: 12px; }
+.wk-blatt .blatt { margin: 0; }
+
+/* Pfeilkreuz zum Ausrichten – am Rechner treffsicherer als Ziehen. */
+.igv-kreuz {
+  flex: none; display: grid; grid-template-columns: repeat(3, 15px);
+  grid-template-rows: repeat(2, 13px); gap: 1px;
+}
+.igv-kreuz button {
+  border: 0; background: rgba(255,255,255,.9); color: #262626; cursor: pointer;
+  font-size: .5rem; line-height: 1; padding: 0; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+}
+.igv-kreuz button:hover { background: #fff; }
+.igv-kreuz button:nth-child(1) { grid-column: 2; grid-row: 1; }
+.igv-kreuz button:nth-child(2) { grid-column: 1; grid-row: 2; }
+.igv-kreuz button:nth-child(3) { grid-column: 3; grid-row: 2; }
+.igv-kreuz button:nth-child(4) { grid-column: 2; grid-row: 2; }
+
+/* Knoepfe ohne Wort: rund, mittig, nur das Zeichen. */
+.sm-knoepfe { align-items: center; }
+.btn-klein[data-posten] { justify-content: center; padding: 10px 22px; }
+.btn-klein[data-wuerfeln] { display: inline-flex; align-items: center; padding: 8px 12px; }
+/* Der Knopf traegt nur noch Zeichen. Damit er beim Wechsel der Rueckmeldung
+   nicht hin und her rutscht, steht die Zeile darunter statt daneben. */
+.sm-knoepfe:has([data-posten]) {
+  justify-content: center; flex-wrap: wrap; gap: 10px;
+  margin: 0;
+}
+.sm-knoepfe:has([data-posten]) .sm-stand { flex: 1 1 100%; text-align: center; }
+
+/* ─── Story-Vorschau ──────────────────────────────────────────────────
+   Eine Story ist kein hochkant gestellter Beitrag. Sie fuellt den Schirm,
+   traegt alles IM Bild und hat weder Herz noch Bildunterschrift. Wenn die
+   Vorschau das nicht zeigt, baut man Stories wie Beitraege – und die
+   wirken dann seltsam leer. */
+.igv-story { background: #000; border-color: #000; }
+.igv-story .igv-bild { background: #1c1c1c; border-radius: 12px; }
+.igv-story .igv-zaehler { top: 51px; }
+
+.igs-balken {
+  position: absolute; top: 8px; left: 8px; right: 8px; z-index: 2;
+  height: 2px; border-radius: 2px; background: rgba(255,255,255,.35);
+}
+.igs-balken i { display: block; width: 42%; height: 100%; border-radius: 2px; background: #fff; }
+/* Mehrere Bilder = mehrere Story-Bilder: dann uebernehmen die Punkte
+   oben die Rolle der Balken. */
+.igv-story .igv-bild:has(.igv-punkte) .igs-balken { display: none; }
+.igv-story .igv-punkte {
+  top: 8px; bottom: auto; left: 8px; right: 8px; gap: 3px;
+}
+.igv-story .igv-punkte span {
+  flex: 1; height: 2px; border-radius: 2px; background: rgba(255,255,255,.35);
+}
+.igv-story .igv-punkte span.hier { background: #fff; }
+
+.igs-kopf {
+  position: absolute; top: 18px; left: 10px; right: 10px; z-index: 2;
+  display: flex; align-items: center; gap: 7px; color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+.igs-kopf img {
+  width: 24px; height: 24px; border-radius: 50%; flex: none;
+  background: #fff; padding: 2px; object-fit: contain;
+}
+.igs-kopf b { font-size: .74rem; }
+.igs-kopf span { font-size: .7rem; opacity: .75; }
+.igs-kopf .igs-punkt { margin-left: auto; letter-spacing: 1px; opacity: .9; }
+
+/* Die Zeile sitzt im unteren Drittel – dort, wo sie in der App auch
+   landet, und weit genug ueber dem Antwortfeld. */
+/* Der Text sitzt dort, wo im Bild Platz ist – das entscheidet das Modell,
+   nicht die Schablone. Zwei Groessen statt einer: die grosse Zeile traegt den
+   Gedanken, die kleine ergaenzt ihn. */
+.igs-zeile {
+  position: absolute; left: 16px; right: 16px; z-index: 2;
+  display: flex; flex-direction: column; gap: 5px;
+  color: #fff; text-align: center; text-wrap: balance;
+}
+/* Mit Kasten dahinter, so wie es hinterher im Bild steht – die Vorschau soll
+   nicht schoener sein als das Ergebnis. Jede Zeile ein eigener Kasten, das
+   macht Instagram selbst genauso. */
+.igs-zeile.igs-kasten { align-items: flex-start; gap: 3px; text-align: left; }
+.igs-zeile b {
+  display: inline-block; max-width: 100%;
+  font-size: .92rem; font-weight: 700; line-height: 1.3; letter-spacing: -.005em;
+  background: rgba(0,0,0,.72); color: #fff;
+  padding: 3px 8px; border-radius: 5px;
+}
+.igs-zeile i {
+  display: inline-block; max-width: 100%; font-style: normal;
+  font-size: .68rem; font-weight: 600; line-height: 1.3;
+  background: rgba(0,0,0,.72); color: #fff;
+  padding: 3px 7px; border-radius: 4px;
+}
+/* Neun Stellen, fuer Text und Marke getrennt waehlbar. Oben und unten halten
+   Abstand zu Instagrams eigenen Bedienelementen. */
+/* Nah an den Rand, so wie es hinterher gerechnet wird – dort sind es 4,5
+   Prozent der Breite. Nur die Story-Zeile haelt mehr Abstand: oben laeuft
+   Instagrams Fortschrittsbalken, unten das Antwortfeld. */
+.igv-bild .pos-oben-links, .igv-bild .pos-oben-mitte, .igv-bild .pos-oben-rechts { top: 5%; bottom: auto; }
+.igv-bild .igs-zeile.pos-oben-links, .igv-bild .igs-zeile.pos-oben-mitte, .igv-bild .igs-zeile.pos-oben-rechts { top: 76px; }
+.igv-bild .igs-zeile.pos-unten-links, .igv-bild .igs-zeile.pos-unten-mitte, .igv-bild .igs-zeile.pos-unten-rechts { bottom: 12%; }
+.igv-bild .pos-mitte-links, .igv-bild .pos-mitte-mitte, .igv-bild .pos-mitte-rechts { top: 50%; bottom: auto; transform: translateY(-50%); }
+.igv-bild .pos-unten-links, .igv-bild .pos-unten-mitte, .igv-bild .pos-unten-rechts { bottom: 5%; top: auto; }
+.igs-zeile.pos-oben-links, .igs-zeile.pos-mitte-links, .igs-zeile.pos-unten-links { align-items: flex-start; }
+.igs-zeile.pos-oben-mitte, .igs-zeile.pos-mitte-mitte, .igs-zeile.pos-unten-mitte { align-items: center; }
+.igs-zeile.pos-oben-rechts, .igs-zeile.pos-mitte-rechts, .igs-zeile.pos-unten-rechts { align-items: flex-end; }
+.igv-marke.pos-oben-links, .igv-marke.pos-mitte-links, .igv-marke.pos-unten-links { left: 5%; right: auto; }
+.igv-marke.pos-oben-mitte, .igv-marke.pos-mitte-mitte, .igv-marke.pos-unten-mitte { left: 50%; right: auto; margin-left: -10.2%; }
+.igv-marke.pos-oben-rechts, .igv-marke.pos-mitte-rechts, .igv-marke.pos-unten-rechts { right: 5%; left: auto; }
+.igv-label.pos-oben-mitte, .igv-label.pos-mitte-mitte, .igv-label.pos-unten-mitte { text-align: center; }
+.igv-label.pos-oben-rechts, .igv-label.pos-mitte-rechts, .igv-label.pos-unten-rechts { text-align: right; }
+.igv-label.pos-oben-links, .igv-label.pos-oben-mitte, .igv-label.pos-oben-rechts {
+  padding: 13px 16px 30px;
+}
+.igv-label.pos-mitte-links, .igv-label.pos-mitte-mitte, .igv-label.pos-mitte-rechts { background: none; }
+.igs-sticker {
+  position: absolute; left: 50%; bottom: 62px; z-index: 2; transform: translateX(-50%);
+  max-width: 80%; background: rgba(255,255,255,.94); color: #262626;
+  font-size: .68rem; font-weight: 700; padding: 5px 12px; border-radius: 999px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.igs-antwort {
+  position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 2;
+  display: flex; align-items: center; gap: 12px; color: #fff;
+}
+.igs-antwort i {
+  flex: 1; font-style: normal; font-size: .74rem; opacity: .85;
+  border: 1px solid rgba(255,255,255,.55); border-radius: 999px; padding: 7px 14px;
+}
+.igs-antwort svg { width: 20px; height: 20px; flex: none; }
+.igv-story .igv-datum { color: rgba(255,255,255,.5); }
+
+/* Instagram-Streifen auf der Uebersicht: die letzten sechs Beitraege als
+   Reihe. Bewusst klein – die Seite ist eine Uebersicht, nicht das Profil. */
+/* Alle Beitraege in einer Reihe, die man wischt: am Telefon die gewohnte
+   Geste, am Rechner die Pfeile an den Seiten. Sechs feste Spalten waren eine
+   willkuerliche Grenze – die restlichen acht sah man nie. */
+.ueb-ig-huelle { position: relative; margin-top: 14px; }
+.ueb-ig-reihe {
+  display: flex; gap: 8px;
+  overflow-x: auto; scroll-snap-type: x proximity;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  scroll-padding-inline: 8px;
+}
+.ueb-ig-reihe::-webkit-scrollbar { display: none; }
+.ueb-ig-reihe > * { flex: 0 0 calc((100% - 5 * 8px) / 6); scroll-snap-align: start; }
+.ueb-ig-pfeil {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 32px; height: 32px; border-radius: 50%; padding: 0;
+  border: 1px solid var(--border); background: var(--white, #fff); color: var(--text);
+  font-size: 1.2rem; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,.14);
+}
+.ueb-ig-pfeil[hidden] { display: none; }
+.ueb-ig-pfeil:hover { color: var(--gold, #12557F); border-color: var(--gold, #12557F); }
+.ueb-ig-pfeil.links { left: -10px; }
+.ueb-ig-pfeil.rechts { right: -10px; }
+.ueb-ig-kachel {
+  position: relative; display: block; aspect-ratio: 1; border-radius: 8px;
+  overflow: hidden; background: var(--off); border: 1px solid var(--border);
+  padding: 0; cursor: pointer; font: inherit;
+}
+.ueb-ig-kachel.hier { border-color: var(--gold, #12557F); box-shadow: 0 0 0 2px var(--gold, #12557F); }
+.ueb-ig-kachel img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ueb-ig-kachel:hover { border-color: var(--gold, #12557F); }
+.ueb-ig-zahl {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 6px 4px;
+  background: linear-gradient(transparent, rgba(0,0,0,.65));
+  color: #fff; font-size: .68rem; font-weight: 700; text-align: center;
+}
+@media (max-width: 620px) {
+  /* Am Telefon drei je Bildschirm – und gewischt statt geklickt. */
+  .ueb-ig-reihe > * { flex-basis: calc((100% - 2 * 8px) / 3); }
+  .ueb-ig-pfeil { display: none; }
+}
+
+/* ─── Bestand als Unterzeile ──────────────────────────────────────────
+   Haengt an Follower und Beitraegen, steht ihnen aber nicht gleich: kleinere
+   Zahlen, eine Zeile, ein feiner Strich darueber. Als eigene Kachel las sich
+   der Bestand wie eine dritte Kennzahl – dabei sagt er nur, wie viel Stoff
+   fuer Beitraege noch da ist. */
+.gd-unter {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 6px 16px;
+  margin-top: 14px; padding-top: 13px;
+  border-top: 1px solid var(--border);
+  font-size: .82rem; color: var(--muted);
+}
+.gd-unter > svg { width: 17px; height: 17px; flex: none; opacity: .6; }
+.gd-unter-titel {
+  font-size: .68rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  margin-right: 2px;
+}
+.gd-unter-wert { display: inline-flex; align-items: baseline; gap: 5px; }
+.gd-unter-wert b {
+  font-size: 1.02rem; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+/* Was noch keinen Beitrag hatte, ist die eigentliche Arbeit – deshalb ein
+   Punkt davor, sobald dort etwas steht. */
+.gd-unter-wert.offen::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gold, #12557F); align-self: center; margin-right: 1px;
+}
+.gd-unter-wert.offen b { color: var(--gold, #12557F); }
+
+/* ─── Ein einzelner Beitrag ───────────────────────────────────────────
+   Links die Nachbildung mit dem echten Bild und dem echten Text, rechts die
+   Zahlen und der Text im Klartext. Der Absprung zu Instagram ist ein Knopf,
+   kein versteckter Klick aufs Bild. */
+/* Der Beitrag liegt vor der Seite, nicht darin. Vorher schob er beim Oeffnen
+   alles darunter nach unten – man verlor die Stelle, an der man war, und beim
+   Blaettern sprang die Seite jedes Mal neu. */
+.ig-schleier {
+  position: fixed; inset: 0; z-index: 180;
+  display: flex; align-items: center; justify-content: center; padding: 22px 18px;
+  background: rgba(21, 21, 26, .45);
+  -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+  overflow-y: auto;
+}
+.ig-schleier[hidden] { display: none; }
+html.ig-offen { overflow: hidden; }
+
+.ig-schau {
+  margin: auto; width: min(62rem, 100%); max-height: calc(100vh - 44px);
+  overflow-y: auto;
+  /* Beige, nicht weiss: die Kacheln darin sind schon weiss, und zwei weisse
+     Flaechen ineinander haben keine Kante. */
+  background: var(--off);
+  box-shadow: 0 24px 60px rgba(0,0,0,.32);
+}
+.ig-schau .sm-links { position: static; }
+.ig-schau .igv-bild { cursor: default; }
+.ig-schau .igv-punkte { display: none; }
+.ig-schau-raster { max-height: 220px; overflow-y: auto; }
+/* Die Streifen sind Knoepfe: angetippt wandert das Bild nach oben in die
+   Nachbildung. Umgekehrt zur Auswahl im Baukasten traegt hier das AKTIVE
+   Bild den vollen Ton – es ist ja das, was man gerade ansieht. */
+.ig-schau-raster .sm-foto { border-color: transparent; }
+.ig-schau-raster .sm-foto img { opacity: .5; }
+.ig-schau-raster .sm-foto.aktiv { border-color: var(--gold, #12557F); }
+.ig-schau-raster .sm-foto.aktiv img { opacity: 1; }
+.ig-schau-raster .sm-foto:hover img { opacity: .8; }
+.ig-schau .sm-text { max-height: 260px; overflow-y: auto; }
+/* Der Absprungknopf ist ein <a> und braucht die Knopfform ausdruecklich. */
+.ig-schau .sm-knoepfe { justify-content: center; margin-top: 16px; }
+.ig-schau a.btn-klein {
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  background: linear-gradient(60deg, #f09433 0%, #dc2743 45%, #bc1888 100%);
+  color: #fff; border: 0; padding: 10px 22px; font-size: .82rem;
+  box-shadow: 0 2px 10px rgba(188,24,136,.28);
+}
+.ig-schau a.btn-klein:hover {
+  background: linear-gradient(60deg, #f0a04a 0%, #e63a55 45%, #cf2a9a 100%);
+  box-shadow: 0 3px 14px rgba(188,24,136,.36);
+}
+
+/* ─── Vorrat verwalten ────────────────────────────────────────────────
+   Bilder nachlegen und herausnehmen. Bewusst als eigener Block ueber der
+   Auswahl: dort tippt man Bilder AN, hier aendert man den Vorrat selbst. */
+
+.vw-block {
+  margin: 12px 0 4px; padding: 14px 15px 6px;
+  background: var(--off); border: 1px solid var(--border); border-radius: 12px;
+}
+.vw-kopf {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.vw-kopf b { font-size: .88rem; }
+.vw-stand { font-size: .78rem; color: var(--muted); margin-right: auto; }
+.vw-neu { cursor: pointer; }
+
+.vw-raster { max-height: 340px; overflow-y: auto; }
+.vw-zelle {
+  position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden;
+  background: var(--white, #fff); border: 1px solid var(--border);
+}
+.vw-zelle img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vw-zelle.vw-geht { opacity: .35; }
+.vw-weg {
+  position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+  border: 0; border-radius: 50%; cursor: pointer; padding: 0;
+  background: rgba(255,255,255,.9); color: #262626;
+  font-size: 1rem; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.vw-weg:hover { background: var(--gold, #12557F); color: #fff; }
+
+/* Die Rueckfrage liegt im Bild – so sieht man, welches gemeint ist. Ein
+   Browserfenster kann das nicht und reisst einen aus der Seite. */
+.vw-frage {
+  position: absolute; inset: 0; z-index: 2;
+  background: rgba(21,21,26,.86); color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 8px; text-align: center;
+}
+.vw-frage[hidden] { display: none; }
+.vw-frage b { font-size: .8rem; }
+.vw-frage > span { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+.vw-frage button {
+  border: 0; border-radius: 999px; cursor: pointer; font: inherit;
+  font-size: .72rem; font-weight: 600; padding: 6px 10px;
+}
+.vw-ja { background: var(--gold, #12557F); color: #fff; }
+.vw-nein { background: rgba(255,255,255,.9); color: #262626; }
+.vw-schlimm { color: var(--gold, #12557F); font-weight: 600; }
+
+
+.sm-stand a { color: var(--gold, #12557F); }
+
+/* ─── Rückfrage vor dem Veröffentlichen ───────────────────────────────
+   Legt sich über die ganze Seite und macht den Hintergrund unscharf. Das
+   ist Absicht: was hier bestätigt wird, geht öffentlich raus und lässt sich
+   nicht zurückholen – dafür soll man einen Moment aus dem Arbeiten
+   herausgerissen werden. */
+html.vp-offen { overflow: hidden; }
+.vp-schleier {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: rgba(21, 21, 26, .45);
+  -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+}
+.vp-kasten {
+  width: min(23rem, 100%);
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 16px; padding: 26px 26px 22px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.3);
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  text-align: center;
+}
+.vp-achtung {
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 50%; flex: none;
+  background: rgba(168, 50, 61, .1); color: var(--gold, #12557F);
+}
+.vp-achtung svg { width: 20px; height: 20px; }
+.vp-kasten b { font-size: 1.02rem; color: var(--text); line-height: 1.3; text-wrap: balance; }
+.admin-karte .vp-kasten p,
+.vp-kasten p {
+  margin: 0; font-size: .86rem; line-height: 1.55; color: var(--muted);
+}
+.vp-kasten p strong { color: var(--text); font-weight: 700; }
+.vp-knoepfe { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 8px; }
+.vp-knoepfe button {
+  border: 0; border-radius: 999px; cursor: pointer; font: inherit;
+  font-size: .88rem; padding: 12px 18px; width: 100%;
+}
+.vp-knoepfe .vp-ja { background: var(--gold, #12557F); color: #fff; font-weight: 700; }
+.vp-ja:hover { background: #8f2a34; }
+.vp-knoepfe .vp-nein {
+  background: var(--off); color: var(--text); font-weight: 500;
+  border: 1px solid var(--border);
+}
+.vp-nein:hover { border-color: var(--muted) !important; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .vp-kasten { animation: vp-auf .16s ease-out; }
+  @keyframes vp-auf { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+}
+
+/* Instagram auf der Übersicht: dieselben Kacheln wie beim Monitoring
+   darüber. Zwei Kachelformen untereinander lesen sich wie zwei Systeme. */
+.ueb-ig-zahlen { margin-bottom: 0; }
+.ueb-bestand {
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* ─── Einzelner Beitrag: Zahlen, Hashtags, Video ──────────────────────
+   Dieselben hellen Kacheln wie sonst auf den Adminseiten – der beige Grund
+   der Bausteine ließ die Zahlen wie Beiwerk aussehen. */
+.ig-schau-zahlen { gap: 12px; }
+.ig-schau-zahlen .gd-feld {
+  position: relative; padding: 14px 16px 15px;
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--white, #fff); border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+/* Platz fuer das "i" in der Ecke: ohne ihn laeuft die Beschriftung darunter
+   durch und es sieht aus, als klebte beides aufeinander. */
+.ig-schau-zahlen .gd-feld:has(.gd-feld-info) > span { padding-right: 22px; }
+/* Der Vergleich steht als eigene Zeile unter der Beschriftung. Angehaengt
+   brach er mitten in der Zahl um ("−27" / "% zum Schnitt"). */
+.gd-feld-zusatz {
+  font-size: .72rem; color: var(--muted); margin-top: 2px; white-space: nowrap;
+}
+/* Das "i" sitzt in der Ecke der Kachel, nicht neben der Beschriftung: dort
+   überdeckte es die Zahl bei knappen Kacheln. */
+.gd-feld-info { position: absolute; top: 9px; right: 10px; }
+.gd-feld-info .info { margin: 0; }
+/* Das "i" sitzt am rechten Rand – eine mittig ausgerichtete Blase haengt dort
+   zur Haelfte ausserhalb. Also rechtsbuendig. */
+.gd-feld-info .info-blase {
+  left: auto; right: -6px; transform: none; max-width: min(260px, 74vw);
+}
+/* Im Beitragsfenster nach unten aufklappen: nach oben stiess die Blase an
+   den oberen Rand des Fensters und wurde abgeschnitten. */
+.ig-schau .gd-feld-info .info-blase { bottom: auto; top: calc(100% + 9px); }
+
+/* Hashtags und Adressen im Beitragstext – in der App nicht anklickbar, hier
+   schon: hier arbeitet man mit dem Beitrag und will nachsehen, wohin er führt. */
+.ig-schau .sm-text a {
+  color: var(--gold, #12557F); text-decoration: none;
+  text-underline-offset: 2px;
+}
+.ig-schau .sm-text a:hover { text-decoration: underline; }
+.ig-schau .sm-text a.sm-tag { font-weight: 700; color: #00294f; }
+.ig-schau .sm-text a.sm-tag:hover { color: var(--gold, #12557F); }
+
+/* Die Hashtag-Zeile in der Nachbildung – kräftiger, sie trägt die Reichweite. */
+.admin-karte .igv-tags,
+.igv-tags { font-weight: 700; }
+
+/* Reels laufen in der Einzelansicht wirklich. */
+.igv-bild video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block; background: #000;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ig-schau .sm-text a.sm-tag { color: #8ec5f5; }
+}
+
+/* Die Auswahl-Angabe steht unter dem Blättern der Bilder, nicht unter den
+   Knöpfen: sie sagt, wie viele Bilder angetippt sind – das gehört zur
+   Auswahl, nicht zum Absenden. Daneben bleibt Platz für Rückmeldungen. */
+/* Mit .admin-karte davor, sonst gewinnt ".admin-karte p { margin: 0 }" –
+   gleiche Kaskadenstufe, hoehere Spezifitaet. */
+.admin-karte .sm-stand-unten,
+.sm-stand-unten {
+  margin: 16px 0 2px; text-align: center; font-size: .78rem; color: var(--muted);
+}
+.sm-stand-unten:empty { display: none; }
+.sm-meldung { flex: 1 1 100%; text-align: center; font-size: .78rem; color: var(--muted); }
+.sm-meldung:empty { display: none; }
+.sm-meldung a { color: var(--gold, #12557F); }
+
+/* Vor und zurück durch die Beiträge – mittig über der Vorschau, wo man
+   ohnehin hinschaut. In der Ecke sah es aus wie eine Beschriftung des
+   Fensters, nicht wie eine Bedienung des Bildes darunter. */
+.ig-schau-blaettern {
+  /* left = das Innenmass des Blocks (17px), damit die Leiste genau ueber der
+     linken Spalte sitzt und nicht ueber deren Rand hinaus. */
+  position: absolute; top: 8px; left: 17px; z-index: 2;
+  width: 390px; max-width: calc(100% - 34px);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: .76rem; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 900px) { .ig-schau-blaettern { width: calc(100% - 34px); } }
+.ig-schau-pfeil {
+  width: 26px; height: 26px; border-radius: 50%; padding: 0;
+  border: 1px solid var(--border); background: var(--white, #fff); color: var(--muted);
+  font-size: 1rem; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.ig-schau-pfeil:hover:not(:disabled) { color: var(--gold, #12557F); border-color: var(--gold, #12557F); }
+.ig-schau-pfeil:disabled { opacity: .35; cursor: default; }
+.ig-schau .sm-links { padding-top: 26px; }
+
+/* ─── Kommentare zu einem Beitrag ─────────────────────────────────────
+   Lesen und beantworten, ohne die Seite zu verlassen. Antworten sitzen
+   eingerückt unter dem Kommentar, auf den sie sich beziehen – dieselbe
+   Anordnung wie in der App, damit man das Gespräch wiedererkennt. */
+.ig-gespraech { display: flex; flex-direction: column; gap: 10px; max-height: 340px; overflow-y: auto; }
+.ig-komm {
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 13px;
+}
+.ig-komm.verborgen { opacity: .55; }
+.ig-komm-kopf {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  font-size: .76rem; color: var(--muted); margin-bottom: 3px;
+}
+.ig-komm-kopf b { font-size: .82rem; color: var(--text); }
+.ig-komm-likes { font-variant-numeric: tabular-nums; }
+.ig-komm-marke {
+  font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  background: var(--off); border-radius: 999px; padding: 2px 8px; color: var(--muted);
+}
+.admin-karte .ig-komm p,
+.ig-komm p { margin: 0; font-size: .87rem; line-height: 1.5; color: var(--text); word-break: break-word; }
+.ig-komm p a { color: var(--gold, #12557F); text-decoration: none; }
+.ig-komm p a:hover { text-decoration: underline; }
+.ig-komm p a.sm-tag { font-weight: 700; color: #00294f; }
+
+/* Die Antwort gehört sichtbar zum Kommentar darüber – Einzug und ein
+   Strich an der Kante sagen das schneller als jede Beschriftung. */
+.ig-komm-antwort {
+  margin: 9px 0 0 14px; border: 0; border-left: 2px solid var(--border);
+  border-radius: 0; padding: 4px 0 4px 11px; background: none;
+}
+
+.ig-komm-werkzeug { display: flex; gap: 12px; margin-top: 8px; }
+.ig-komm-knopf {
+  border: 0; background: none; padding: 0; cursor: pointer; font: inherit;
+  font-size: .76rem; font-weight: 600; color: var(--muted);
+}
+.ig-komm-knopf:hover:not(:disabled) { color: var(--gold, #12557F); }
+.ig-komm-knopf:disabled { opacity: .5; cursor: default; }
+
+.ig-komm-feld { margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+.ig-komm-feld textarea {
+  width: 100%; resize: vertical; font: inherit; font-size: .86rem; line-height: 1.5;
+  border: 1px solid var(--border); border-radius: 9px; padding: 9px 11px;
+  background: var(--off); color: var(--text);
+}
+.ig-komm-feld textarea:focus { outline: 2px solid var(--gold, #12557F); outline-offset: 1px; }
+.ig-komm-feld-knoepfe { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+/* "Öffentlich" steht im Knopf, nicht in einer Warnung daneben: was der Knopf
+   tut, soll auf ihm stehen. */
+.ig-komm-senden {
+  border: 0; border-radius: 999px; cursor: pointer; font: inherit;
+  font-size: .78rem; font-weight: 700; padding: 8px 16px;
+  background: var(--carbon, #071A2B); color: #fff;
+}
+.ig-komm-senden:hover:not(:disabled) { background: #2a2a33; }
+.ig-komm-senden:disabled { opacity: .5; cursor: default; }
+.ig-komm-stand { font-size: .76rem; color: var(--muted); }
+
+/* ─── Besucher im Verlauf (Übersicht) ─────────────────────────────────
+   Volle Breite unter den vier Kacheln, so hoch wie die Beitragskacheln
+   darunter. Ohne Achsen und Blase: die Kacheln sagen, wie viel – die Linie
+   sagt, wohin. Für Tageswerte gibt es das Monitoring. */
+.ueb-verlauf {
+  background: var(--white, #fff); border: 1px solid var(--border);
+  border-radius: var(--radius, 14px); box-shadow: var(--shadow);
+  padding: 14px 18px 12px; margin-top: 16px;
+}
+.ueb-verlauf-kopf {
+  display: flex; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; margin-bottom: 6px;
+}
+.ueb-verlauf-kopf b {
+  font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+}
+.ueb-verlauf-legende { display: flex; gap: 14px; flex-wrap: wrap; margin-right: auto; }
+.ueb-verlauf-legende span {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .8rem; color: var(--text); font-variant-numeric: tabular-nums;
+}
+.ueb-verlauf-legende i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.ueb-verlauf-kopf a {
+  font-size: .78rem; font-weight: 600; color: var(--gold, #12557F);
+  text-decoration: none; white-space: nowrap;
+}
+.ueb-verlauf-kopf a:hover { text-decoration: underline; }
+/* Die viewBox wird auf die Breite gestreckt – deshalb feste Höhe statt
+   Seitenverhältnis, sonst wächst das Diagramm mit dem Fenster mit. */
+.ueb-verlauf-linie { display: block; width: 100%; height: 112px; }
+.ueb-verlauf-fuss {
+  display: flex; justify-content: space-between;
+  font-size: .7rem; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+@media (max-width: 620px) {
+  .ueb-verlauf { padding: 12px 14px 10px; }
+  .ueb-verlauf-linie { height: 92px; }
+}
+
+/* Nur für Screenreader: das Wort steht im Markup, damit die Überschrift
+   nicht leer ist, aber im Bild reicht das Zeichen. */
+.nur-vorlesen {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* Der Kontoname gehört zum Zeichen daneben, nicht an den rechten Rand –
+   also vor die Trennlinie statt dahinter. */
+.ig-kopf > .ig-konto { order: 1; }
+.ig-kopf::before { order: 2; }
+
+/* ─── Angaben aufs Bild ───────────────────────────────────────────────
+   Was hier steht, wird beim Verschicken ins Bild gerechnet. Deshalb sitzt
+   die Vorschau an derselben Stelle und in derselben Größe wie später im
+   Canvas – sonst plant man mit einem Bild und verschickt ein anderes. */
+.igv-label {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  padding: 30px 16px 13px;
+  /* Schatten kommt aus dem gewaehlten Stil, nicht von hier. */
+  color: #fff; font-size: .8rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  pointer-events: none;
+}
+.igv-label[hidden] { display: none; }
+
+.sm-label {
+  display: flex; flex-direction: column; gap: 9px;
+  background: var(--off); border: 1px solid var(--border);
+  border-radius: 10px; padding: 13px 15px; margin-bottom: 12px;
+}
+.sm-label-an {
+  display: inline-flex; align-items: center; gap: 9px; cursor: pointer;
+  font-size: .85rem; font-weight: 600; color: var(--text);
+}
+.sm-label-an input { width: 16px; height: 16px; accent-color: var(--gold, #12557F); flex: none; }
+.sm-label-text {
+  width: 100%; font: inherit; font-size: .86rem;
+  border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px;
+  background: var(--white, #fff); color: var(--text);
+}
+.sm-label-text:focus { outline: 2px solid var(--gold, #12557F); outline-offset: 1px; }
+.sm-label-text:disabled { opacity: .45; }
+.admin-karte .sm-label .gd-notiz,
+.sm-label .gd-notiz { margin: 0; font-size: .76rem; }
+
+/* Was das Modell zu den Fotos gesagt hat. Bewusst als Notiz, nicht als
+   Ergebnis: der Plan ist ein Vorschlag, geklickt wird weiter von Hand. */
+.plan-notiz { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.plan-notiz[hidden] { display: none; }
+.plan-notiz i { font-style: normal; font-size: .72rem; opacity: .8; }
+.plan-warnung { color: var(--gold, #12557F); font-weight: 700; }
+
+/* ─── Unterpunkte in der Leiste ───────────────────────────────────────
+   Nur beim offenen Bereich sichtbar: zehn Einträge untereinander wären
+   keine Navigation, sondern ein Inhaltsverzeichnis. */
+.admin-unter {
+  display: flex; flex-direction: column; gap: 1px;
+  margin: 2px 0 6px 0; padding-left: 30px;
+}
+.admin-unter a {
+  color: rgba(255,255,255,.55); text-decoration: none;
+  font-size: .84rem; padding: 6px 13px; border-radius: 8px;
+  transition: var(--transition, .2s ease);
+}
+.admin-unter a:hover { color: #fff; background: rgba(255,255,255,.07); }
+.admin-unter a.hier { color: #fff; font-weight: 600; background: rgba(255,255,255,.09); }
+/* Eingeklappt und quer gibt es keine Unterpunkte – dort ist kein Platz,
+   und der Bereich selbst führt ohnehin zur ersten Unterseite. */
+html.leiste-zu .admin-unter { display: none; }
+/* Quer laufen die Unterpunkte in derselben Zeile mit, direkt hinter ihrem
+   Bereich: ausgeblendet waeren sie am Telefon gar nicht erreichbar. Kleiner
+   und ohne Zeichen, damit man sieht, dass sie zum Punkt davor gehoeren. */
+@media (max-width: 940px) {
+  .admin-unter {
+    flex-direction: row; align-items: center; gap: 4px;
+    margin: 0; padding: 0 0 0 4px; flex: none;
+  }
+  .admin-unter::before {
+    content: ''; width: 1px; height: 18px; flex: none;
+    background: rgba(255,255,255,.18); margin-right: 4px;
+  }
+  .admin-unter a {
+    white-space: nowrap; padding: 7px 11px; font-size: .8rem;
+    background: rgba(255,255,255,.06);
+  }
+  .admin-unter a.hier { background: rgba(255,255,255,.16); }
+}
+
+/* ─── Eigene Galerie ──────────────────────────────────────────────────
+   Der Bildvorrat als eigene Seite: hier wird gepflegt, nicht ausgewählt. */
+.gal-kopf {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.gal-stand { font-size: .88rem; color: var(--muted); margin-right: auto; }
+.gal-stand b { font-size: 1.1rem; color: var(--text); font-variant-numeric: tabular-nums; }
+.gal-neu { cursor: pointer; }
+.gal-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.gal-filter .wk-chip i { font-style: normal; opacity: .6; font-variant-numeric: tabular-nums; }
+/* Höher als im Baukasten: hier schaut man die Bilder an, statt sie
+   nebenbei anzutippen. */
+.gal-raster {
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  max-height: none; overflow: visible;
+}
+
+/* Angesehene Bilder tragen eine feine Kante – so sieht man auf einen Blick,
+   was das Modell schon kennt und was noch nicht. */
+.gal-raster .vw-zelle.gesehen { border-color: rgba(47, 107, 79, .55); }
+
+/* Der Weg zum Beitrag beginnt hier – deshalb steht dieser Knopf allein und
+   nicht in der Reihe mit Bearbeiten und Wuerfeln. */
+.bau-leiste {
+  display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+  /* Luft nach oben und rechts fuer den Knopf. Nach unten zieht die Leiste
+     sich zusammen, damit 'Thema' links auf der Hoehe des Knopfes beginnt –
+     der Knopf steht rechts, die Themen links, sie kommen sich nicht ins
+     Gehege. */
+  position: relative;
+  flex-wrap: wrap; margin: 12px 0 -34px; padding-right: 8px;
+}
+.bau-knopf {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: inherit; font-size: .84rem; font-weight: 700; cursor: pointer;
+  color: #fff; background: var(--gold, #12557F);
+  border: 0; border-radius: 999px; padding: 10px 20px;
+  transition: var(--transition, .2s ease);
+}
+.bau-knopf:hover:not(:disabled) { background: var(--carbon, #071A2B); }
+.bau-knopf:disabled { opacity: .55; cursor: default; }
+.plan-notiz.plan-fehler { color: var(--gold, #12557F); }
+
+/* Neue Kategorie anlegen – die Zeile klappt unter den Filtern auf. */
+.gal-neue {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin: 0 0 14px; padding: 12px; border-radius: 12px;
+  background: var(--off); border: 1px solid var(--border);
+}
+.gal-neue[hidden] { display: none; }
+.gal-neue input {
+  font-family: inherit; font-size: .8rem; padding: 8px 12px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--white, #fff);
+  color: var(--text);
+}
+.gal-neue input[data-kat-titel] { width: 190px; }
+.gal-neue input[data-kat-hinweis] { flex: 1; min-width: 220px; }
+/* Das Kreuz sitzt im Chip und loescht die Kategorie, ohne sie vorher
+   auszuwaehlen – deshalb ein eigener Klickbereich statt eines zweiten Knopfes
+   daneben. */
+.wk-chip .chip-weg {
+  margin-left: 6px; padding: 0 3px; border-radius: 999px;
+  font-weight: 700; opacity: .45; cursor: pointer;
+}
+.wk-chip .chip-weg:hover { opacity: 1; color: var(--gold, #12557F); }
+
+/* Woraus gebaut wird – die zweite Achse unter den Formatreitern. Flacher
+   gehalten als die Reiter darueber: die Frage ist untergeordnet. */
+/* Der Weg zur anderen Quelle steht unter dem Knopf, bei der Sache um die es
+   geht – nicht in der Kopfzeile ueber allem. */
+.bau-leiste .sm-quelle-notiz {
+  position: absolute; top: 100%; right: 8px; margin: 2px 0 0;
+  text-align: right; pointer-events: auto;
+}
+.sm-quelle-notiz:empty { display: none; }
+/* Die Kopfzeile traegt ihren Strich wie auf den anderen Unterseiten – der
+   Schalter sitzt darauf und schneidet ihn frei: sein Hintergrund reicht mit
+   einem Schattenring ueber die eigene Kante hinaus, dadurch laeuft die Linie
+   links und rechts weiter und hoert vor ihm auf. */
+.admin-karte:has(#gd-liste) > .ueb-kopf > .sm-reiter {
+  box-shadow: 0 0 0 10px var(--white, #fff);
+}
+
+/* Fuehrt aus dem Baukasten in die Galerie, wo Themen entstehen. */
+.wk-chip.wk-chip-mehr { text-decoration: none; color: var(--muted); border-style: dashed; }
+.wk-chip.wk-chip-mehr:hover { color: var(--gold, #12557F); border-color: var(--gold, #12557F); }
+
+/* Steht in der Kopfzeile ueber den Bildern, nicht als eigener Block: die
+   Schaltung gehoert zu dem, was mit den Bildern passiert. */
+.sm-logo-an {
+  display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
+  font-size: .72rem; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.sm-logo-an input { accent-color: var(--gold, #12557F); cursor: pointer; }
+.sm-logo-an:hover { color: var(--text); }
+.sm-kopf-bilder { margin-bottom: 8px; }
+
+/* Die Marke in der Vorschau, an derselben Stelle wie im gerechneten Bild:
+   unten rechts, ohne Hintergrund. Sie heisst .igv-marke und nicht .igv-logo –
+   letzteres ist das Profilbild im Kopf der Nachbildung, und die Namensgleich-
+   heit hat dort die ganze Zeile zerlegt. */
+.igv-marke {
+  position: absolute; right: 5%; bottom: 4.5%; z-index: 2;
+  container-type: inline-size;
+  width: 20.4%; filter: drop-shadow(0 1px 5px rgba(0,0,0,.5));
+}
+.igv-marke[hidden] { display: none; }
+.igv-marke svg { display: block; width: 100%; height: auto; }
+
+/* Die Plus-Kachel steht vorn im Raster – dort, wo man Bilder aussucht,
+   gehoert das Hinzufuegen hin. Gestrichelt, damit sie nicht wie ein Foto
+   aussieht, das man anklicken koennte. */
+.sm-foto.sm-foto-neu {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; cursor: pointer; color: var(--gold, #12557F);
+  background: rgba(168, 50, 61, .07);
+  border: 1.5px dashed rgba(168, 50, 61, .55);
+}
+.sm-foto.sm-foto-neu svg { width: 22px; height: 22px; }
+.sm-foto.sm-foto-neu span { font-size: .66rem; font-weight: 700; }
+/* Beim Darueberfahren derselbe volle Ton wie beim Knopf oben – beides fuegt
+   dem Beitrag etwas hinzu. */
+.sm-foto.sm-foto-neu:hover {
+  background: var(--gold, #12557F); border-color: var(--gold, #12557F); color: #fff;
+}
+
+
+
+/* Dasselbe in der Nachbildung: ist die Marke zu sehen, endet der Text davor. */
+/* Die alte Pauschalregel: sie liess die Angaben IMMER ausweichen, egal wo die
+   Marke steht – und mit Polster statt Rand. Beides falsch, seit es neun
+   Stellungen gibt und die Angaben einen Kasten haben koennen. Die genauen
+   Regeln weiter unten machen es richtig. */
+/* Der Nebenweg zur anderen Quelle: ein Wort in der Zeile, kein Schalter. */
+.sm-quelle-weg {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: inherit; font-size: .72rem; font-weight: 600;
+  color: var(--muted); background: none; border: 0; padding: 2px 0;
+  cursor: pointer;
+}
+.sm-quelle-weg:hover { color: var(--gold, #12557F); }
+
+/* Wo Text und Marke sitzen, entscheidet am Ende das Auge – nicht das Modell. */
+.sm-stellen {
+  display: flex; align-items: center; gap: 3px; flex-wrap: wrap; margin: 6px 0 2px;
+}
+/* Feste Breite fuers Wort davor: sonst beginnen 'Angaben' und 'Logo' die
+   Knopfreihen an verschiedenen Stellen und nichts steht untereinander. */
+.sm-stellen > span:first-child {
+  flex: none; width: 52px; font-size: .72rem; color: var(--muted);
+}
+.sm-stellen button {
+  font-family: inherit; font-size: .72rem; font-weight: 600; cursor: pointer;
+  padding: 4px 11px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--white, #fff); color: var(--muted);
+}
+.sm-stellen button:hover { color: var(--text); }
+.sm-stellen button.hier {
+  background: var(--carbon, #071A2B); border-color: var(--carbon, #071A2B); color: #fff;
+}
+/* Zwei Reihen Knoepfe statt eines Rasters: man liest, was man waehlt. Die
+   Reihen sind durch einen groesseren Abstand getrennt, damit die senkrechte
+   und die waagrechte Wahl nicht als eine Reihe von sechs gelesen werden. */
+.sm-stellen-reihe { display: inline-flex; gap: 3px; margin-right: 10px; }
+/* Das Mal-Zeichen trennt die senkrechte von der waagrechten Wahl: drei mal
+   drei, nicht sechs nebeneinander. */
+.sm-stellen-mal {
+  color: var(--border); font-weight: 400; line-height: 1;
+  margin: 0 5px; align-self: center;
+}
+.sm-stellen-reihe { margin-right: 0; }
+
+/* Ueberschrift und Reiter auf einer Zeile: die Kachel begann mit zwei fast
+   leeren Zeilen uebereinander, bevor ueberhaupt etwas zu sehen war. */
+/* Der Schalter sitzt mittig in der Kachel, nicht rechts neben der
+   Ueberschrift – dafuer aus dem Fluss genommen, sonst schoebe ihn die
+   Ueberschrift aus der Mitte. */
+.admin-karte:has(#gd-liste) > .ueb-kopf { position: relative; margin-bottom: 24px; }
+.ueb-kopf > .sm-reiter {
+  order: 2; flex: none; margin: 0;
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+}
+/* Auf schmalen Schirmen wird es sonst eng: dann wieder untereinander. */
+@media (max-width: 700px) {
+  .ueb-kopf > .sm-reiter { position: static; transform: none; margin: 10px auto 0; }
+  .admin-karte:has(#gd-liste) > .ueb-kopf { flex-wrap: wrap; }
+}
+/* Schaltung und Wahl auf einer Zeile: es ist eine Entscheidung mit zwei
+   Teilen, kein Absatz. Darunter Luft, sonst kleben die Bildkacheln daran. */
+.sm-logo-zeile {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
+  margin: 18px 0 0;
+}
+.sm-logo-zeile .sm-stellen { margin: 0; }
+.sm-logo-zeile .sm-stellen > span:first-child { display: none; }
+
+/* Nichts darf sich ueberlagern, auch wenn alle drei auf dieselbe Ecke zeigen.
+   Die Marke steht am weitesten aussen, die Angaben weichen ihr waagrecht aus,
+   und die Story-Zeile ruecht senkrecht ab. Gerechnet wird dasselbe: dort
+   kuerzt der Textplatz um die Logobreite, sobald beide in einer Zeile sitzen. */
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-rechts) .igv-label.pos-unten-links,
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-rechts) .igv-label.pos-unten-rechts,
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-rechts) .igv-label.pos-oben-links,
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-rechts) .igv-label.pos-oben-rechts { margin-right: 27%; }
+/* Spiegelbildlich fuer die linke Seite – und zwar fuer beide Ausrichtungen der
+   Angaben, nicht nur fuer die linksbuendigen. Die Zeile laeuft ueber die volle
+   Bildbreite und wird nur am Rand abgeschnitten: ein rechtsbuendiger langer
+   Fahrzeugname beginnt deshalb trotzdem ganz links und liefe unter ein links
+   stehendes Logo. Genau diese beiden Faelle fehlten hier. */
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-links) .igv-label.pos-unten-links,
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-links) .igv-label.pos-unten-rechts,
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-links) .igv-label.pos-oben-links,
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-links) .igv-label.pos-oben-rechts { margin-left: 27%; }
+/* Der Vorrang: Logo, dann Zeile, dann Angaben. Wer weiter hinten steht,
+   weicht aus – die Zeile dem Logo, die Angaben beiden. */
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-rechts) .igs-zeile.pos-unten-rechts,
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-links) .igs-zeile.pos-unten-links,
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-mitte) .igs-zeile.pos-unten-mitte { bottom: 20%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-rechts) .igs-zeile.pos-oben-rechts,
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-links) .igs-zeile.pos-oben-links,
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-mitte) .igs-zeile.pos-oben-mitte { top: 22%; }
+/* :not([hidden]) ist hier genauso noetig wie bei der Marke. Die Titelzeile
+   steckt als versteckter Platzhalter in JEDER Vorschau und traegt die zuletzt
+   gemerkte Stellung. Ohne die Pruefung verschwanden die Angaben, sobald diese
+   gemerkte Stellung zufaellig mit ihrer eigenen uebereinstimmte – bei
+   abgeschaltetem Titel, ohne erkennbaren Grund. */
+.igv-bild:has(.igs-zeile:not([hidden]).pos-unten-links) .igv-label.pos-unten-links,
+.igv-bild:has(.igs-zeile:not([hidden]).pos-unten-mitte) .igv-label.pos-unten-mitte,
+.igv-bild:has(.igs-zeile:not([hidden]).pos-unten-rechts) .igv-label.pos-unten-rechts { opacity: .001; }
+
+/* Das Thema folgt dicht auf den Knopf: dazwischen steht nur der Wechsel, und
+   der bringt seine eigene Zeilenhoehe mit. */
+.bau-leiste + .sm-kopf { margin-top: -6px; }
+/* Die Zahl der weiteren Themen: gehoert zum Etikett, aber leiser. */
+.sm-motiv i {
+  font-style: normal; margin-left: 5px; padding-left: 5px;
+  border-left: 1px solid rgba(255,255,255,.35); opacity: .85;
+}
+
+/* Die Reihenfolge der ausgewaehlten Bilder. Pfeile statt Ziehen: verlaesslich
+   mit Maus wie mit dem Finger. */
+.sm-reihe-liste {
+  display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0;
+}
+.sm-reihe-liste li {
+  position: relative; width: 76px; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--off);
+}
+.sm-reihe-liste img { display: block; width: 100%; height: 54px; object-fit: cover; }
+.sm-reihe-liste b {
+  position: absolute; top: 3px; left: 3px;
+  min-width: 16px; padding: 1px 4px; border-radius: 999px;
+  background: rgba(0,0,0,.68); color: #fff; font-size: .64rem; text-align: center;
+}
+.sm-reihe-liste span { display: flex; }
+.sm-reihe-liste button {
+  flex: 1; font-family: inherit; font-size: .8rem; line-height: 1; cursor: pointer;
+  padding: 3px 0; border: 0; border-top: 1px solid var(--border);
+  background: var(--white, #fff); color: var(--muted);
+}
+.sm-reihe-liste button + button { border-left: 1px solid var(--border); }
+.sm-reihe-liste button:hover:not(:disabled) { color: var(--gold, #12557F); }
+.sm-reihe-liste button:disabled { opacity: .3; cursor: default; }
+
+/* Der Schriftzug unter der Kurve – zuschaltbar, weil er auf ruhigen Bildern
+   gut aussieht und auf unruhigen im Weg ist. */
+.sm-schrift {
+  font-family: inherit; font-size: .72rem; font-weight: 600; cursor: pointer;
+  padding: 4px 11px; border-radius: 999px; margin-left: 4px;
+  border: 1px dashed var(--border); background: none; color: var(--muted);
+}
+.sm-schrift:hover { color: var(--gold, #12557F); border-color: var(--gold, #12557F); }
+.sm-schrift[aria-pressed="true"] {
+  background: var(--carbon, #071A2B); border-style: solid;
+  border-color: var(--carbon, #071A2B); color: #fff;
+}
+/* Genau so breit wie die Kurve darueber – deshalb eine Groesse, die sich an
+   der Breite der Marke bemisst, und kein Umbruch. */
+.igv-wort {
+  display: block; margin-top: -4px; text-align: center; white-space: nowrap;
+  font-style: normal; font-size: 6.4cqw; font-weight: 600; color: #fff;
+  letter-spacing: .005em; text-shadow: 0 1px 4px rgba(0,0,0,.6);
+}
+.igv-wort em { font-style: normal; font-weight: 400; font-size: .9em; opacity: .8; }
+.igv-wort[hidden] { display: none; }
+
+/* Der gemeinsame Schluss und der Knopf, der ihn mitnimmt, tragen dieselbe
+   blasse Farbe – so sieht man ohne Erklaerung, was zusammengehoert. */
+.sm-fuss-teil { color: var(--gold, #12557F); }
+.btn-klein.sm-fuer-alle {
+  background: rgba(168, 50, 61, .09); color: var(--gold, #12557F);
+  border: 1px solid rgba(168, 50, 61, .3);
+}
+.btn-klein.sm-fuer-alle:hover:not(:disabled) {
+  background: var(--gold, #12557F); color: #fff;
+}
+/* Zeichen je Bild ab dem zweiten – das erste behaelt es immer. */
+.sm-reihe-logo {
+  position: absolute; top: 3px; right: 3px; width: 18px; height: 18px;
+  padding: 0; line-height: 1; cursor: pointer; font-size: .7rem;
+  border: 0; border-radius: 999px;
+  background: rgba(0,0,0,.55); color: rgba(255,255,255,.45);
+}
+.sm-reihe-logo.hier { background: var(--gold, #12557F); color: #fff; }
+/* Der Knopf am Titelbild ist nicht klickbar, aber er soll genauso deutlich
+   sein wie die anderen – gedimmt sah er aus wie ausgeschaltet. */
+.sm-reihe-logo:disabled { cursor: default; opacity: 1; box-shadow: 0 0 0 1.5px rgba(255,255,255,.9); }
+/* Ist das Logo oben abgeschaltet, haben die Knoepfe je Bild keine Bedeutung
+   mehr – sie stehen blass da, statt eine Wahl vorzutaeuschen. */
+.sm-reihe-logo.aus {
+  background: rgba(0,0,0,.3); color: rgba(255,255,255,.3); box-shadow: none;
+}
+
+/* Auf schmalen Schirmen wuerden Knopf und Themen uebereinanderliegen. */
+@media (max-width: 900px) {
+  .bau-leiste { margin-bottom: 0; }
+}
+
+/* Das Fenster zum Gestalten der Angaben: links das Bild gross, rechts die
+   Regler. Schriftgroessen kann man an einer Briefmarke nicht beurteilen. */
+.stil-schleier {
+  position: fixed; inset: 0; z-index: 60; display: flex;
+  align-items: center; justify-content: center; padding: 20px;
+  background: rgba(10, 10, 14, .55); backdrop-filter: blur(4px);
+}
+.stil-fenster {
+  display: flex; gap: 0; flex-wrap: wrap; max-width: 760px; width: 100%;
+  max-height: 90vh; overflow: auto; align-items: stretch;
+  background: var(--white, #fff); border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .3);
+}
+/* Das Bild bestimmt die Hoehe des Fensters, nicht umgekehrt: mit 'stretch'
+   dehnte es sich ueber den Rahmen hinaus, sobald die Regler kuerzer waren. */
+.stil-bild {
+  position: relative; flex: 0 0 300px; width: 300px; min-width: 240px;
+  aspect-ratio: 4 / 5; align-self: flex-start;
+  background: #071A2B; border-radius: 16px 0 0 16px; overflow: hidden;
+}
+.stil-bild img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Die Probe steht dort, wo der Text spaeter steht: der Titel oben mittig, die
+   Angaben unten mittig – so wie die Ausgangsstellung im Baukasten. */
+.stil-probe {
+  position: absolute; left: 50%; transform: translateX(-50%); max-width: 90%;
+  display: inline-block; white-space: nowrap; overflow: hidden; text-align: center;
+}
+.stil-probe.stil-oben { top: 10%; }
+.stil-probe.stil-unten { bottom: 7%; }
+.stil-regler {
+  flex: 1 1 300px; min-width: 260px; padding: 18px 20px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.stil-regler h2 { font-size: 1.05rem; margin: 0; }
+.stil-zeile {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  font-size: .8rem; color: var(--muted);
+}
+.stil-zeile > span:first-child { flex: none; width: 92px; }
+.stil-zeile select, .stil-zeile input[type="range"] { flex: 1; font-family: inherit; }
+.stil-zeile select {
+  font-size: .8rem; padding: 6px 10px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--white, #fff); color: var(--text);
+}
+.stil-zeile i { font-style: normal; width: 42px; text-align: right; font-size: .74rem; }
+.stil-zeile[hidden] { display: none; }
+.stil-farben { display: flex; gap: 5px; flex-wrap: wrap; flex: 1; }
+.stil-farben button {
+  width: 22px; height: 22px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); transition: transform .12s ease;
+}
+.stil-farben button:hover { transform: scale(1.12); }
+@media (max-width: 700px) {
+  .stil-bild { border-radius: 16px 16px 0 0; min-height: 220px; }
+}
+/* Der Knopf dehnt sich sonst ueber die ganze Spalte: der Baukasten stellt
+   seine Kinder untereinander, und ein Knopf ohne eigene Breite fuellt aus. */
+.sm-schrift { align-self: flex-start; width: fit-content; flex: none; }
+/* Zwei Bloecke: erst was der Text macht, dann was die Marke macht. Ein feiner
+   Strich dazwischen, weil beides sonst als eine lange Reglerwand liest. */
+.sm-logo-zeile.sm-trennt {
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+}
+/* Eine Zeile je Sache: Haekchen, Knopf, Platzierung. Die Beschriftung vor den
+   Positionsknoepfen faellt dabei weg – das Haekchen links sagt es schon. */
+.sm-logo-zeile .sm-stellen > span:first-child { display: none; }
+.sm-logo-zeile .sm-label-an { flex: none; }
+
+/* Nur wo eine Themenzeile folgt, zieht die Leiste sich nach unten zusammen –
+   dort steht 'Thema' links und der Knopf rechts, sie kommen sich nicht ins
+   Gehege. Ohne Themen faellt der Wechsel sonst in den Text darunter. */
+@media (max-width: 900px) {
+  .bau-leiste { margin-bottom: 0; }
+  .bau-leiste .sm-quelle-notiz { position: static; }
+}
+
+/* Stehen Marke und Angaben in genau derselben Ecke, hilft seitliches
+   Ausweichen nicht – dann ruecken die Angaben senkrecht ab. Das Logo bleibt,
+   wo es hingesetzt wurde: Logo vor Zeile vor Angaben. */
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-links) .igv-label.pos-oben-links { margin-top: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-mitte) .igv-label.pos-oben-mitte { margin-top: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-rechts) .igv-label.pos-oben-rechts { margin-top: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-links) .igv-label.pos-unten-links { margin-bottom: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-mitte) .igv-label.pos-unten-mitte { margin-bottom: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-rechts) .igv-label.pos-unten-rechts { margin-bottom: 13%; }
+/* Die Zeile fuers Bild ist bearbeitbar – das soll man sehen. */
+.sm-zeile[contenteditable="true"] {
+  outline: none; border: 1px dashed var(--border); border-radius: 8px;
+  padding: 8px 12px; cursor: text; white-space: pre-wrap;
+}
+.sm-zeile[contenteditable="true"]:focus {
+  border-style: solid; border-color: var(--gold, #12557F);
+}
+/* Das Feld endet vor dem Knopf: der schwebt ueber diesem Bereich, damit der
+   Inhalt auf seiner Hoehe beginnt – und lief dem Text sonst in die Zeile. */
+@media (min-width: 901px) {
+  .sm-zeile[contenteditable="true"] { max-width: 68%; }
+}
+/* Der Kasten atmet: oben so viel Luft wie an den Seiten, unten etwas mehr,
+   damit die Logo-Zeile nicht auf der Kante sitzt. */
+.sm-label { padding-top: 9px; padding-bottom: 11px; }
+.sm-label .sm-label-text { margin: 7px 0 0; }
+.sm-logo-zeile.sm-trennt { margin-top: 11px; padding-top: 10px; }
+/* Zentrierter Text bekommt kein einseitiges Polster: es weicht der Marke aus,
+   verschiebt dabei aber die Mitte – und dann steht mittig nicht mehr mittig.
+   Wo beide zentriert sind, ruecken die Angaben ohnehin senkrecht ab. */
+.igv-label.pos-oben-mitte, .igv-label.pos-mitte-mitte, .igv-label.pos-unten-mitte {
+  padding-left: 16px; padding-right: 16px;
+}
+/* Gestalten oeffnet ein Fenster und aendert das Aussehen aller Beitraege –
+   das ist mehr als eine Schaltung, deshalb die Hausfarbe wie beim Generieren. */
+.sm-schrift[data-stil-auf] {
+  background: var(--gold, #12557F); border-color: var(--gold, #12557F);
+  border-style: solid; color: #fff;
+}
+.sm-schrift[data-stil-auf]:hover {
+  background: var(--carbon, #071A2B); border-color: var(--carbon, #071A2B); color: #fff;
+}
+/* Bei den eigenen Fotos steht die Logo-Zeile fuer sich, ohne Angabenblock
+   darueber – sie bekommt denselben Kasten, damit sie nicht nackt zwischen
+   Text und Bildern haengt. */
+.sm-rechts > .sm-logo-zeile:not(.sm-trennt) {
+  background: var(--off); border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 15px; margin: 14px 0 12px;
+}
+
+/* Zentrierte Angaben in derselben Ebene wie die Marke ruecken senkrecht ab.
+   Seitlich waere kein Platz zu schaffen, ohne die Mitte zu verschieben. */
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-links) .igv-label.pos-oben-mitte { margin-top: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-mitte) .igv-label.pos-oben-mitte { margin-top: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-rechts) .igv-label.pos-oben-mitte { margin-top: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-links) .igv-label.pos-unten-mitte { margin-bottom: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-mitte) .igv-label.pos-unten-mitte { margin-bottom: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-rechts) .igv-label.pos-unten-mitte { margin-bottom: 13%; }
+
+/* Steht die Marke mittig, laeuft auch buendiger Text in sie hinein – er ist
+   breit genug, um die Bildmitte zu erreichen. Seitlich kuerzen hilft dort
+   nicht, also weicht er senkrecht aus. */
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-mitte) .igv-label.pos-oben-links { margin-top: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-mitte) .igv-label.pos-oben-rechts { margin-top: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-mitte) .igv-label.pos-unten-links { margin-bottom: 13%; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-mitte) .igv-label.pos-unten-rechts { margin-bottom: 13%; }
+
+/* In der Mitte gilt es fuer alle neun Paarungen. Dort sitzen Marke und Angaben
+   auf derselben Hoehe, seitlich ist kein Platz zu schaffen, ohne die Mitte zu
+   verschieben – also ruecken die Angaben immer senkrecht ab. Als Liste stand
+   das dreimal verstreut und liess dabei die beiden Ueberkreuz-Faelle aus. */
+.igv-bild:has(.igv-marke:not([hidden]):is(.pos-mitte-links, .pos-mitte-mitte, .pos-mitte-rechts))
+  .igv-label:is(.pos-mitte-links, .pos-mitte-mitte, .pos-mitte-rechts) {
+  margin-top: 13%;
+}
+
+/* Die Story-Zeile weicht der Marke ueberall aus, wo sie ihr in die Quere
+   kommt – dieselbe Ebene, mittige Marke oder mittige Zeile. Das Logo bleibt
+   stehen: Logo vor Zeile vor Angaben. */
+/* In der Mitte gilt das fuer ALLE neun Paarungen, nicht nur fuer die
+   naheliegenden. Oben und unten haben von Haus aus einen Versatz – die Zeile
+   sitzt dort unter bzw. ueber der Marke. In der Mitte sitzen beide auf
+   derselben Hoehe, und die Zeile ist immer so breit wie das Bild: ein
+   linksbuendiger Titel laeuft deshalb bis in eine rechts stehende Marke
+   hinein. Als Liste ausgeschrieben fehlten genau diese beiden Ueberkreuz-
+   Faelle – darum steht hier eine Auswahl statt neun Zeilen zum Vergessen. */
+.igv-bild:has(.igv-marke:not([hidden]):is(.pos-mitte-links, .pos-mitte-mitte, .pos-mitte-rechts))
+  .igs-zeile:is(.pos-mitte-links, .pos-mitte-mitte, .pos-mitte-rechts) {
+  top: 62%; bottom: auto; transform: none;
+}
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-links) .igs-zeile.pos-oben-links { top: 22%; bottom: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-links) .igs-zeile.pos-oben-mitte { top: 22%; bottom: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-mitte) .igs-zeile.pos-oben-links { top: 22%; bottom: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-mitte) .igs-zeile.pos-oben-mitte { top: 22%; bottom: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-mitte) .igs-zeile.pos-oben-rechts { top: 22%; bottom: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-rechts) .igs-zeile.pos-oben-mitte { top: 22%; bottom: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-oben-rechts) .igs-zeile.pos-oben-rechts { top: 22%; bottom: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-links) .igs-zeile.pos-unten-links { bottom: 20%; top: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-links) .igs-zeile.pos-unten-mitte { bottom: 20%; top: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-mitte) .igs-zeile.pos-unten-links { bottom: 20%; top: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-mitte) .igs-zeile.pos-unten-mitte { bottom: 20%; top: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-mitte) .igs-zeile.pos-unten-rechts { bottom: 20%; top: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-rechts) .igs-zeile.pos-unten-mitte { bottom: 20%; top: auto; }
+.igv-bild:has(.igv-marke:not([hidden]).pos-unten-rechts) .igs-zeile.pos-unten-rechts { bottom: 20%; top: auto; }
+/* Etwas Luft zwischen dem Sticker-Vorschlag und dem Text darunter. */
+.sm-kopf-sticker + .sm-ton { margin-bottom: 14px; }
+/* Ohne Wort davor und linksbuendig: was gemeint ist, steht darueber. */
+.sm-zeile-wahl { justify-content: flex-start; margin: 6px 0 0; }
+.sm-zeile-wahl .sm-stellen { margin: 0; }
+.igs-zeile[hidden] { display: none; }
+/* Die Zeile fuers Bild im selben Kasten wie die Angaben: Haekchen, Knopf und
+   Platzierung oben, das Feld darunter. */
+.sm-label .sm-zeile[contenteditable="true"] { max-width: 100%; margin: 0; }
+
+/* Die Platzierung steht rechts, die Schaltungen links – so fluchten die
+   Zeilen untereinander, egal wie lang die Beschriftung davor ist. Und die
+   beiden Knoepfe bekommen dieselbe Breite, damit die Spalte gerade bleibt. */
+.sm-logo-zeile .sm-stellen { margin-left: auto; }
+.sm-schrift {
+  min-width: 104px; text-align: center;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* Der Generieren-Knopf schwebt ueber dem Anfang dieser Spalte, damit der
+   Inhalt auf seiner Hoehe beginnt. Die oberste Zeile im ersten Kasten muss
+   deshalb vor ihm enden – sonst laufen die Positionsknoepfe darunter. */
+@media (min-width: 901px) {
+  .bau-leiste + .sm-label > .sm-logo-zeile:first-child { padding-right: 215px; }
+}
+
+/* Ein heller Kasten haelt zusammen, was zu einem Bild gehoert – Angaben,
+   Zeile und Marke. Er ist so blass, dass er die Spalte nicht unruhig macht. */
+.sm-label,
+.sm-rechts > .sm-logo-zeile:not(.sm-trennt) {
+  background: var(--off); border: 1px solid var(--border);
+  border-radius: 10px; padding-left: 15px; padding-right: 15px;
+}
+
+/* Wo direkt der Text folgt, darf die Leiste sich nicht hochziehen: der
+   Wechsel haengt unter dem Knopf und faellt sonst in die erste Textzeile.
+   Nur Themenzeile und Story-Kasten vertragen das, dort steht links etwas
+   Schmales. */
+@media (min-width: 901px) {
+  .sm-block:not(:has(.wk-chips)):not(:has(.sm-zeile)) .bau-leiste { margin-bottom: 0; }
+}
+
+/* Auch wenn der Kasten nicht unmittelbar auf die Leiste folgt: die oberste
+   Zeile der Spalte liegt unter dem schwebenden Knopf und muss vor ihm enden. */
+@media (min-width: 901px) {
+  .sm-rechts > .sm-label:first-of-type > .sm-logo-zeile:first-child,
+  .sm-rechts > .sm-logo-zeile:first-of-type { padding-right: 215px; }
+}
+/* Der Schrift-Knopf wieder klein: er schaltet nur etwas an oder aus, waehrend
+   Gestalten ein Fenster oeffnet. Gleiche Breite waere gleiches Gewicht. */
+.sm-schrift[data-schrift-an] { min-width: 0; }
+/* Pfeile brauchen kein Wortformat: quadratisch, damit die Richtung mittig
+   sitzt und die Reihe ruhig bleibt. */
+.sm-stellen button {
+  width: 30px; padding: 5px 0; font-size: .86rem; line-height: 1;
+}
+.sm-stellen-mal { margin: 0 7px; }
+/* Der Kasten sitzt so dicht am Vorherigen wie die Logo-Zeile an seiner
+   unteren Kante – gleicher Abstand oben wie unten. */
+.sm-label { margin-top: 10px; }
+.sm-stand-unten { display: none; }
+/* Ohne Haekchen keine Wirkung – also auch kein volles Aussehen. */
+.sm-logo-zeile.sm-aus .sm-stellen,
+.sm-logo-zeile.sm-aus .sm-schrift { opacity: .4; pointer-events: none; }
+.sm-logo-zeile.sm-aus .sm-label-an { opacity: .6; }
+
+/* Bei den Stories beginnt der Kasten unter dem Knopf statt neben ihm: links
+   steht dort keine schmale Themenzeile, sondern eine volle Zeile mit
+   Schaltung, Knopf und sechs Pfeilen – die kommen sich sonst ins Gehege. */
+@media (min-width: 901px) {
+  .sm-block:has(.sm-zeile) .bau-leiste { margin-bottom: 6px; }
+  .sm-block:has(.sm-zeile) .sm-label:first-of-type > .sm-logo-zeile:first-child {
+    padding-right: 15px;
+  }
+}
+/* Feld und Pfeile nebeneinander: die Zeile fuers Bild ist kurz, das Feld
+   braucht keine volle Breite – und rechts daneben stehen die Pfeile frei. */
+.sm-zeile-reihe { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sm-zeile-reihe .sm-zeile[contenteditable="true"] { flex: 1 1 60%; max-width: 60%; }
+.sm-zeile-reihe .sm-stellen { margin: 0 0 0 auto; }
+@media (max-width: 900px) {
+  .sm-zeile-reihe .sm-zeile[contenteditable="true"] { flex-basis: 100%; max-width: 100%; }
+}
+
+/* Die Adresse der Fahrzeugseite. Klickbar ist ein Link auf Instagram nur im
+   Story-Sticker und in der Biografie – im Beitragstext bleibt er Text. */
+.sm-weg {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 10px 0 0; font-size: .76rem; color: var(--muted);
+}
+.sm-weg b { flex: none; color: var(--text); }
+.sm-weg code {
+  flex: 1 1 auto; min-width: 180px; font-size: .74rem;
+  background: var(--off); border: 1px solid var(--border);
+  border-radius: 7px; padding: 5px 9px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sm-weg i { flex-basis: 100%; font-style: normal; font-size: .7rem; opacity: .85; }
+
+/* Der Kopierknopf sitzt im Feld, oben rechts – nah an dem, was er mitnimmt.
+   Er steht neben dem Feld und nicht darin: im Text waere er beim Kopieren
+   mitgekommen. */
+.sm-kopierbar { position: relative; display: block; }
+.sm-kopierbar > .sm-text,
+.sm-kopierbar > .sm-zeile,
+.sm-kopierbar > .sm-label-text { padding-right: 38px; }
+.sm-kopierknopf {
+  position: absolute; top: 7px; right: 7px; z-index: 2;
+  opacity: .55;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; padding: 0; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 7px;
+  background: var(--white, #fff); color: var(--muted);
+  transition: var(--transition, .2s ease);
+}
+.sm-kopierknopf:hover { color: var(--gold, #12557F); border-color: var(--gold, #12557F); }
+.sm-kopierknopf.hier {
+  background: var(--gold, #12557F); border-color: var(--gold, #12557F); color: #fff;
+}
+/* Im einzeiligen Angabenfeld sitzt der Knopf mittig, nicht oben – dort waere
+   er ueber der Schrift statt neben ihr. */
+.sm-kopierbar > .sm-label-text + .sm-kopierknopf {
+  top: 50%; transform: translateY(-50%);
+}
+.sm-kopierknopf:hover { opacity: 1; }
+.sm-kopierknopf.hier { opacity: 1; }
+/* Die Huelle des Kopierknopfes tritt an die Stelle des Feldes: sie ist jetzt
+   das Flex-Kind, nicht mehr das Feld selbst. */
+.sm-zeile-reihe .sm-kopierbar { flex: 1 1 60%; max-width: 60%; }
+.sm-zeile-reihe .sm-kopierbar .sm-zeile[contenteditable="true"] {
+  flex: none; max-width: 100%; width: 100%;
+}
+@media (max-width: 900px) {
+  .sm-zeile-reihe .sm-kopierbar { flex-basis: 100%; max-width: 100%; }
+}
+/* Das Feld fuellt seine Huelle aus: ohne feste Breite schrumpfte es auf den
+   laengsten Wortbruch zusammen, weil die Huelle als Block keine Breite vererbt. */
+.sm-kopierbar > .sm-zeile[contenteditable="true"] {
+  display: block; width: 100%; max-width: 100%; box-sizing: border-box;
+}
+.sm-kopierbar { width: 100%; }
+
+/* Die Reihe mit Feld und Pfeilen folgt denselben Regeln wie die Zeilen
+   darueber: kein Wort vor den Pfeilen, und ohne Haekchen graut sie mit. */
+.sm-zeile-reihe .sm-stellen > span:first-child { display: none; }
+.sm-zeile-reihe.sm-aus .sm-stellen { opacity: .4; pointer-events: none; }
+.sm-zeile-reihe.sm-aus .sm-zeile { opacity: .55; }
+/* Der Kasten beginnt tiefer, damit der Wechsel darueber frei steht. */
+@media (min-width: 901px) {
+  .sm-block:has(.sm-zeile) .bau-leiste { margin-bottom: 0; }
+}
+/* Das erste Kind bringt seinen eigenen oberen Abstand mit – der addiert sich
+   zum Polster des Kastens, und oben wurde es dadurch fast doppelt so weit wie
+   unten. */
+.sm-label > *:first-child { margin-top: 0; }
+.sm-label > .sm-logo-zeile:first-child { margin-top: 0; }
+/* Das Titelfeld ist ein Eingabefeld, keine Anzeige – es muss nicht so gross
+   sein wie die Schrift im Bild. */
+.sm-zeile-reihe .sm-zeile[contenteditable="true"] {
+  font-size: .9rem; font-weight: 600; padding: 8px 12px; min-height: 0;
+}
+/* Das Wort vor den Pfeilen faellt ueberall weg – daneben steht schon, worum
+   es geht. Die Regel greift jetzt an jeder Stelle, nicht nur in den Zeilen
+   mit Haekchen. */
+.sm-stellen > span:first-child { display: none; }
+.sm-label .sm-stellen > span:first-child { display: none; }
+
+/* Das Polster des Grundes kommt aus der Klasse, nicht aus dem inline-Stil –
+   inline wuerde es die Regeln fuer Zentrierung und Ausweichen schlagen. Die
+   Angaben behalten dabei ihre seitlichen Werte, es aendert sich nur oben und
+   unten. */
+.igv-label.stil-grund-kasten { padding-top: 4px; padding-bottom: 4px; border-radius: 5px; }
+.igv-label.stil-grund-band { padding-top: 7px; padding-bottom: 7px; }
+.igv-label.stil-grund-kasten, .igv-label.stil-grund-band {
+  width: fit-content; max-width: 100%;
+}
+.igv-label.stil-grund-kasten.pos-oben-mitte, .igv-label.stil-grund-kasten.pos-mitte-mitte,
+.igv-label.stil-grund-kasten.pos-unten-mitte,
+.igv-label.stil-grund-band.pos-oben-mitte, .igv-label.stil-grund-band.pos-mitte-mitte,
+.igv-label.stil-grund-band.pos-unten-mitte { margin-left: auto; margin-right: auto; }
+.igv-label.stil-grund-kasten.pos-oben-rechts, .igv-label.stil-grund-kasten.pos-mitte-rechts,
+.igv-label.stil-grund-kasten.pos-unten-rechts,
+.igv-label.stil-grund-band.pos-oben-rechts, .igv-label.stil-grund-band.pos-mitte-rechts,
+.igv-label.stil-grund-band.pos-unten-rechts { margin-left: auto; }
+.igs-zeile b.stil-grund-kasten { padding: 4px 10px; border-radius: 5px; }
+.igs-zeile b.stil-grund-band { padding: 7px 14px; }
+/* Der Ausweichrand gilt auch, wenn der Kasten sich per auto nach rechts oder
+   in die Mitte schiebt: 'auto' teilt nur den uebrigen Platz auf, den Rand
+   nimmt es nicht weg. */
+.igv-label.stil-grund-kasten, .igv-label.stil-grund-band { box-sizing: border-box; }
+
+/* Der Papierkorb: dieselben Kacheln, nur blasser – und mit einem Weg zurueck. */
+.gal-korb .vw-zelle img { opacity: .55; }
+.gal-korb .vw-zelle:hover img { opacity: .8; }
+.vw-zurueck {
+  position: absolute; top: 6px; left: 6px; z-index: 2;
+  width: 24px; height: 24px; padding: 0; cursor: pointer; font-size: .8rem;
+  border: 0; border-radius: 999px; background: rgba(0,0,0,.62); color: #fff;
+}
+.vw-zurueck:hover { background: var(--carbon, #071A2B); }
+/* Nur im Hochformat sitzt der Knopf tiefer: dort steht der Instagram-Kopf im
+   Bild, beim Beitrag darueber. */
+.igv-hoch .igv-stift { top: 46px; }
+/* Unter hundert Prozent wird das Bild kleiner als sein Rahmen – dann steht
+   ringsum die Bildfarbe. Bei einer Story ist das ein gaengiger Look, sonst
+   holt man das ganze Fahrzeug nie ins Hochformat. */
+.igv-bild { background: #071A2B; }
