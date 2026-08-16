@@ -19,8 +19,14 @@ const LABEL: Record<string, string> = {
   veroeffentlicht: "Veröffentlicht",
 };
 
+type IgStatus =
+  | { verbunden: true; konto: { username: string; beitraege: number | null; follower: number | null } }
+  | { verbunden: false; fehler?: string }
+  | null;
+
 export default function InstagramProfil() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [ig, setIg] = useState<IgStatus>(null);
   const [fehler, setFehler] = useState("");
   const [laedt, setLaedt] = useState(true);
 
@@ -29,6 +35,9 @@ export default function InstagramProfil() {
       .then(d => setPosts(d.posts))
       .catch(e => setFehler(e.message))
       .finally(() => setLaedt(false));
+    api("/api/admin/instagram")
+      .then(d => setIg(d as IgStatus))
+      .catch(() => setIg({ verbunden: false }));
   }, []);
 
   const zahlen = useMemo(() => {
@@ -55,6 +64,37 @@ export default function InstagramProfil() {
       lead="Der Stand deines Kontos: was in Arbeit ist und was schon draußen ist."
     >
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
+
+      <div className="card p-5 mb-6">
+        {ig === null ? (
+          <p className="text-[var(--fg-subtle)] text-sm">Verbindung wird geprüft…</p>
+        ) : ig.verbunden ? (
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <span className="text-sm font-medium" style={{ color: "var(--accent)" }}>
+              ✓ Verbunden: @{ig.konto.username}
+            </span>
+            {ig.konto.follower !== null && (
+              <span className="text-[var(--fg-muted)] text-sm">
+                <strong className="text-[var(--fg)]">{ig.konto.follower}</strong> Follower
+              </span>
+            )}
+            {ig.konto.beitraege !== null && (
+              <span className="text-[var(--fg-muted)] text-sm">
+                <strong className="text-[var(--fg)]">{ig.konto.beitraege}</strong> Beiträge auf Instagram
+              </span>
+            )}
+          </div>
+        ) : (
+          <p className="text-[var(--fg-muted)] text-sm leading-relaxed">
+            <strong className="text-[var(--fg)]">@aiy.web ist noch nicht mit dem Dashboard verbunden.</strong>{" "}
+            {("fehler" in ig && ig.fehler) ? `Meta meldet: ${ig.fehler}` : (
+              <>Phase 2: Auf developers.facebook.com eine App anlegen (Typ Business), Produkt
+              „Instagram" → „API setup with Instagram business login", Token erzeugen und in
+              Cloudflare als Secret <code>INSTAGRAM_TOKEN</code> speichern → Retry deployment.</>
+            )}
+          </p>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <Zahl icon={<Camera size={18} />} label="Ideen" wert={zahlen.ideen} />

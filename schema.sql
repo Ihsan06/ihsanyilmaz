@@ -77,6 +77,14 @@ CREATE TABLE IF NOT EXISTS dokumente (
 );
 CREATE INDEX IF NOT EXISTS idx_dokumente_datum ON dokumente(erstellt_am DESC);
 
+-- Kleine Schlüssel-Wert-Ablage (z. B. verlängerter Instagram-Token —
+-- Secrets sind aus Functions heraus nicht beschreibbar, die DB schon)
+CREATE TABLE IF NOT EXISTS einstellungen (
+  schluessel  TEXT PRIMARY KEY,
+  wert        TEXT,
+  geaendert   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- Fehlgeschlagene Login-Versuche (Brute-Force-Bremse)
 CREATE TABLE IF NOT EXISTS login_versuche (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,

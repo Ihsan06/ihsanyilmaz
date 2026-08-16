@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Copy, Check } from "lucide-react";
+import { Plus, Trash2, Copy, Check, Send, X } from "lucide-react";
 import AdminShell, { api, datum } from "@/components/admin/AdminShell";
 
 type Post = {
@@ -11,6 +11,8 @@ type Post = {
   geplant_am: string | null;
   status: string;
 };
+
+type Bild = { schluessel: string; dateiname: string | null; typ: string | null };
 
 const STATUS = [
   { wert: "idee", label: "Idee" },
@@ -29,13 +31,52 @@ export default function InstagramSeite() {
   const [fehler, setFehler] = useState("");
   const [laedt, setLaedt] = useState(true);
 
+  // Instagram-Direktveröffentlichung
+  const [verbunden, setVerbunden] = useState<boolean | null>(null);
+  const [posten, setPosten] = useState<Post | null>(null);      // für welchen Beitrag ist der Bildwähler offen
+  const [bilder, setBilder] = useState<Bild[]>([]);
+  const [gewaehlt, setGewaehlt] = useState<string | null>(null);
+  const [sendet, setSendet] = useState(false);
+
   const laden = () =>
     api("/api/admin/posts")
       .then(d => setPosts(d.posts))
       .catch(e => setFehler(e.message))
       .finally(() => setLaedt(false));
 
-  useEffect(() => { laden(); }, []);
+  useEffect(() => {
+    laden();
+    api("/api/admin/instagram").then(d => setVerbunden(!!d.verbunden)).catch(() => setVerbunden(false));
+  }, []);
+
+  const posterOeffnen = async (p: Post) => {
+    setGewaehlt(null);
+    setPosten(p);
+    if (!bilder.length) {
+      await api("/api/admin/bild")
+        .then(d => setBilder(d.bilder))
+        .catch(e => setFehler(e.message));
+    }
+  };
+
+  const veroeffentlichen = async () => {
+    if (!posten || !gewaehlt) return;
+    setSendet(true);
+    setFehler("");
+    try {
+      const caption = [posten.caption, posten.hashtags].filter(Boolean).join("\n\n");
+      await api("/api/admin/instagram", {
+        method: "POST",
+        body: JSON.stringify({ schluessel: gewaehlt, caption, postId: posten.id }),
+      });
+      setPosten(null);
+      laden();
+    } catch (err) {
+      setFehler(err instanceof Error ? err.message : "Veröffentlichen fehlgeschlagen.");
+    } finally {
+      setSendet(false);
+    }
+  };
 
   const anlegen = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,11 +119,21 @@ export default function InstagramSeite() {
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
       <div className="card p-5 mb-6">
-        <p className="text-[var(--fg-muted)] text-sm leading-relaxed">
-          Beiträge hier vorbereiten, planen und abhaken. Zum Veröffentlichen die Caption kopieren
-          und in der Instagram-App einfügen — automatisches Posten braucht einen Business-Account
-          mit Meta-App-Freigabe und lässt sich später ergänzen.
-        </p>
+        {verbunden === true ? (
+          <p className="text-sm leading-relaxed" style={{ color: "var(--accent)" }}>
+            ✓ Mit Instagram verbunden — Beiträge lassen sich direkt von hier veröffentlichen
+            (Bild aus der Galerie wählen, Caption geht automatisch mit).
+          </p>
+        ) : (
+          <p className="text-[var(--fg-muted)] text-sm leading-relaxed">
+            Beiträge vorbereiten, planen und abhaken — zum Posten „Text kopieren" und in der
+            Instagram-App einfügen. {verbunden === false && (
+              <>Für das <strong className="text-[var(--fg)]">direkte Veröffentlichen von hier</strong> fehlt
+              noch der Meta-Zugang (Phase 2): App auf developers.facebook.com anlegen, Token erzeugen
+              und in Cloudflare als Secret <code>INSTAGRAM_TOKEN</code> hinterlegen.</>
+            )}
+          </p>
+        )}
       </div>
 
       <button onClick={() => setFormOffen(o => !o)} className="btn-primary px-5 py-2.5 text-sm mb-6">
@@ -186,9 +237,95 @@ export default function InstagramSeite() {
                     {kopiert === p.id ? <><Check size={14} /> Kopiert</> : <><Copy size={14} /> Text kopieren</>}
                   </button>
                 )}
+                {verbunden && p.status !== "veroeffentlicht" && (
+                  <button
+                    onClick={() => posterOeffnen(p)}
+                    className="btn-primary px-3 py-1.5 text-xs"
+                  >
+                    <Send size={13} /> Posten
+                  </button>
+                )}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Bildwähler fürs Direkt-Veröffentlichen */}
+      {posten && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: "rgba(7,26,43,0.72)" }}
+          onClick={() => !sendet && setPosten(null)}
+          role="dialog" aria-modal="true" aria-label="Bild für den Beitrag wählen"
+        >
+          <div className="card w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 px-5 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+              <span className="flex-1 min-w-0 truncate text-sm font-medium text-[var(--fg)]">
+                Bild wählen für: {posten.titel}
+              </span>
+              <button onClick={() => setPosten(null)} disabled={sendet} aria-label="Schließen"
+                className="p-1.5 rounded-[8px] text-[var(--fg-muted)] hover:text-[var(--fg)]">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto p-4">
+              {bilder.length === 0 ? (
+                <p className="text-[var(--fg-subtle)] text-sm">
+                  Keine Bilder in der Galerie — erst unter Instagram → Galerie hochladen.
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {bilder.map(b => {
+                    const jpg = b.typ === "image/jpeg";
+                    return (
+                      <button
+                        key={b.schluessel}
+                        onClick={() => jpg && setGewaehlt(b.schluessel)}
+                        disabled={!jpg}
+                        title={jpg ? (b.dateiname || "") : "Kein JPG — Instagram nimmt per API nur JPG an"}
+                        className="relative rounded-[8px] overflow-hidden border-2 transition-all"
+                        style={{
+                          aspectRatio: "1 / 1",
+                          borderColor: gewaehlt === b.schluessel ? "var(--accent)" : "transparent",
+                          opacity: jpg ? 1 : 0.35,
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/api/admin/bild?schluessel=${encodeURIComponent(b.schluessel)}`}
+                          alt={b.dateiname || ""} loading="lazy"
+                          className="w-full h-full object-cover block"
+                        />
+                        {gewaehlt === b.schluessel && (
+                          <span className="absolute top-1.5 right-1.5 rounded-full p-1"
+                            style={{ background: "var(--accent)", color: "#fff" }}>
+                            <Check size={12} />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-5 py-3 border-t"
+              style={{ borderColor: "var(--border)" }}>
+              <span className="text-[var(--fg-subtle)] text-xs">
+                Caption + Hashtags gehen automatisch mit.
+              </span>
+              <button
+                onClick={veroeffentlichen}
+                disabled={!gewaehlt || sendet}
+                className="btn-primary px-5 py-2 text-sm disabled:opacity-60"
+              >
+                <Send size={14} /> {sendet ? "Wird veröffentlicht…" : "Jetzt auf Instagram posten"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </AdminShell>

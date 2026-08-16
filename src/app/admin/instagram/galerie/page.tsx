@@ -16,6 +16,28 @@ function mb(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+// Instagram nimmt über die API nur JPG an — deshalb wandelt die Galerie
+// alles beim Hochladen um (und verkleinert nebenbei auf max. 2048 px).
+// Klappt das Dekodieren nicht (z. B. HEIC in älteren Browsern), geht das
+// Original durch — besser ein Bild im falschen Format als gar keins.
+async function zuJpeg(datei: File): Promise<File> {
+  if (!datei.type.startsWith("image/") || datei.type === "image/jpeg") return datei;
+  try {
+    const bmp = await createImageBitmap(datei);
+    const max = 2048;
+    const f = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * f);
+    c.height = Math.round(bmp.height * f);
+    c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise<Blob | null>(r => c.toBlob(r, "image/jpeg", 0.9));
+    if (!blob) return datei;
+    return new File([blob], datei.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return datei;
+  }
+}
+
 export default function GalerieSeite() {
   const [bilder, setBilder] = useState<Bild[]>([]);
   const [summe, setSumme] = useState(0);
@@ -42,7 +64,8 @@ export default function GalerieSeite() {
     setFehler("");
     setLaedtHoch(true);
     try {
-      for (const datei of Array.from(dateien)) {
+      for (const roh of Array.from(dateien)) {
+        const datei = await zuJpeg(roh);
         const form = new FormData();
         form.append("datei", datei);
         // Kein Content-Type setzen — der Browser ergänzt die multipart-Grenze selbst.
