@@ -1,0 +1,17 @@
+# Konfiguration des Pages-Projekts (ihsan-yilmaz) — bewusst im Repo:
+# Cloudflare liest sie beim Deployment und uebernimmt Kompatibilitaetsdatum
+# und Bindings. Ohne das Datum parst die Produktionsumgebung Datei-Uploads
+# (request.formData) als Text — genau so fiel es beim Direkt-Posten auf.
+# Geheimnisse gehoeren NICHT hierher; die liegen im Cloudflare-Dashboard.
+name = "ihsan-yilmaz"
+pages_build_output_dir = "out"
+compatibility_date = "2026-06-23"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aiy-dashboard"
+database_id = "1e61f87f-53ba-4d7c-9288-56775168a65b"
+
+[[r2_buckets]]
+binding = "BILDER"
+bucket_name = "aiy-bilder"
