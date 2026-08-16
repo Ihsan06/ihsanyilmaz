@@ -12,7 +12,7 @@ type Transaktion = {
   datum: string;
 };
 
-const KATEGORIEN = ["Website-Projekt", "Wartung", "KI-Abos (Anthropic & Co.)", "Software / Tools", "Hardware", "Fahrtkosten", "Sonstiges"];
+const KATEGORIEN = ["Website-Projekt", "Wartung", "KI-Abos (Anthropic & Co.)", "Hosting & Domain", "Software / Tools", "Hardware", "Fahrtkosten", "Sonstiges"];
 
 // Marken-Logos wie beim Banking: Firma aus der Beschreibung erkennen und deren
 // echtes Favicon zeigen. Reihenfolge zählt — Apple-Produkte VOR dem Händler,
@@ -24,6 +24,7 @@ const MARKEN: [RegExp, string][] = [
   [/cyberport/i, "cyberport.de"],
   [/consors/i, "consorsfinanz.de"],
   [/media\s*markt/i, "mediamarkt.de"],
+  [/namecheap|domain/i, "namecheap.com"],
   [/cloudflare/i, "cloudflare.com"],
   [/resend/i, "resend.com"],
   [/telegram/i, "telegram.org"],
