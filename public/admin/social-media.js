@@ -976,8 +976,7 @@
       <p class="gd-notiz plan-notiz" data-plan-notiz hidden></p>
       <div class="sm-kopf" style="margin-top:18px"><b>Bilder</b>
         <span class="sm-stand"></span></div>
-      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>
-      <p class="sm-schaerfe" data-schaerfe hidden></p>`, true);
+      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>`, true);
   }
 
   // Gemeinsamer Rahmen: Vorschau links, Werkzeug rechts, oben rechts zu.
@@ -1138,8 +1137,7 @@
       ${labelHtml(labelVorschlag(v))}
       <div class="sm-kopf" style="margin-top:18px"><b>Bild</b>
         <span class="sm-stand"></span></div>
-      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>
-      <p class="sm-schaerfe" data-schaerfe hidden></p>`);
+      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>`);
   }
 
   // Eine Story aus eigenen Fotos: die Zeile kommt aus dem Thema oder – wenn
@@ -1211,34 +1209,6 @@
   const standVon = u => bildStand.get(u) || { z: 100, x: 0, y: 0 };
 
 
-  // Ausgegeben wird auf 1440 px Breite. Ist die Vorlage kleiner, wird sie
-  // hochgerechnet – und genau das sieht man auf Instagram als Matsch. Der
-  // Hinweis kommt VOR dem Posten, weil er danach nichts mehr nuetzt.
-  const AUSGABE_BREIT = 1440;
-
-  function schaerfePruefen(feld, bild) {
-    const ziel = feld.querySelector('[data-schaerfe]');
-    if (!ziel) return;
-
-    const pruefen = () => {
-      const bw = bild.naturalWidth, bh = bild.naturalHeight;
-      if (!bw || !bh) { ziel.hidden = true; return; }
-      const hoch = !!feld.querySelector('.igv-hoch') || format === 'story';
-      const zh = Math.round(hoch ? AUSGABE_BREIT * 16 / 9 : AUSGABE_BREIT * 5 / 4);
-      // Dasselbe Einpassen wie beim Zuschneiden: fuellend, also die groessere
-      // der beiden Streckungen zaehlt.
-      const streckung = Math.max(AUSGABE_BREIT / bw, zh / bh);
-      if (streckung <= 1.25) { ziel.hidden = true; return; }
-      ziel.hidden = false;
-      ziel.textContent = `Dieses Bild ist mit ${bw} × ${bh} px kleiner als die Ausgabe `
-        + `(${AUSGABE_BREIT} × ${zh}) und wird ${streckung.toFixed(1)}-fach hochgerechnet – `
-        + `auf Instagram sieht das unscharf aus.`;
-    };
-
-    if (bild.complete && bild.naturalWidth) pruefen();
-    else bild.addEventListener('load', pruefen, { once: true });
-  }
-
   function vorschauBild(feld) {
     const v = feld.querySelector('[data-vorschau]');
     if (!v) return;
@@ -1297,7 +1267,6 @@
       punkte.querySelectorAll('span').forEach((p, n) => p.classList.toggle('hier', n === lauf.i));
       anwenden();
       markeAbgleichen(feld, lauf.gewaehlt[lauf.i]);
-      schaerfePruefen(feld, lauf.bild);
     };
     lauf.anwenden = anwenden;
     lauf.zeigen = zeigen;
@@ -1694,6 +1663,12 @@
         const c = document.createElement('canvas');
         c.width = breite; c.height = hoehe;
         const g = c.getContext('2d');
+        // Beste Skalierungsstufe anfordern. Gemessen bringt sie in Chrome
+        // fast nichts (0 % beim Verkleinern, ~3 % beim Vergroessern) – dort
+        // ist die Vorgabe schon gut. In anderen Browsern kann sie helfen,
+        // kosten tut sie nichts.
+        g.imageSmoothingEnabled = true;
+        g.imageSmoothingQuality = 'high';
         g.fillStyle = '#ffffff';
         g.fillRect(0, 0, breite, hoehe);
 
@@ -1756,8 +1731,7 @@
       <div class="sm-kopf" style="margin-top:18px"><b>Titelbild</b></div>
       ${labelHtml(labelVorschlag(v))}
       <p class="gd-notiz plan-notiz" data-plan-notiz hidden></p>
-      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>
-      <p class="sm-schaerfe" data-schaerfe hidden></p>`, true);
+      <div class="sm-bilder"><p class="mon-laedt">Bilder werden geladen …</p></div>`, true);
   }
 
   function verdrahten(feld, id, variante) {
@@ -2585,7 +2559,6 @@
           <div class="sm-raster wk-raster"></div>
           <div class="wk-blatt"></div>
         </div>
-        <p class="sm-schaerfe" data-schaerfe hidden></p>
         <div data-reihe></div>
       </div>
       <div class="sm-fuss">
