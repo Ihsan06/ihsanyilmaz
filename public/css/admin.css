@@ -3665,3 +3665,12 @@ html.leiste-zu .admin-unter { display: none; }
    beim Zeigen: in der Ruhe soll es nicht lauter sein als die Pfeile. */
 .sm-reihe-liste .sm-reihe-raus { font-size: .92rem; }
 .sm-reihe-liste .sm-reihe-raus:hover:not(:disabled) { color: #c23b3b; }
+
+/* Das Vorschaubild in der Bildfolge ist ein Knopf: ein Klick stellt die
+   grosse Vorschau auf dieses Bild. */
+.sm-reihe-liste .sm-reihe-bild {
+  display: block; width: 100%; padding: 0; margin: 0;
+  border: 0; background: none; cursor: pointer;
+}
+.sm-reihe-liste .sm-reihe-bild img { transition: transform .15s ease; }
+.sm-reihe-liste .sm-reihe-bild:hover img { transform: scale(1.06); }

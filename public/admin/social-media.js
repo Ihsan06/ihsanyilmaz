@@ -2707,7 +2707,10 @@
     ziel.innerHTML = `<div class="sm-kopf" style="margin-top:14px"><b>Bildfolge</b></div>
       <ol class="sm-reihe-liste">
         ${wege.map((u, i) => `<li data-u="${schuetzen(u)}"${u === gezeigt ? ' class="gezeigt"' : ''}>
-          <img src="${schuetzen(u)}" alt="" loading="lazy" />
+          <button type="button" class="sm-reihe-bild" data-zeigen="${schuetzen(u)}"
+                  title="In der Vorschau anzeigen" aria-label="Bild ${i + 1} in der Vorschau anzeigen">
+            <img src="${schuetzen(u)}" alt="" loading="lazy" />
+          </button>
           <b>${i + 1}</b>
           <button type="button" class="sm-reihe-logo${
             logoAn && (i === 0 || !ohneLogo.has(u)) ? ' hier' : ''}${logoAn ? '' : ' aus'}"
@@ -2741,6 +2744,19 @@
       const neu = [...wege];
       [neu[von], neu[nach]] = [neu[nach], neu[von]];
       auswahlSetzen(feld, neu);
+    }));
+
+    // Klick aufs Bild in der Folge: die Vorschau springt dorthin – und zwar
+    // in beide Richtungen. Gerade bei acht Bildern ist das schneller, als
+    // sich mit den Pfeilen durchzuklicken.
+    ziel.querySelectorAll('[data-zeigen]').forEach(k => k.addEventListener('click', () => {
+      const kasten = feld.querySelector('.igv-bild');
+      const lauf = kasten && kasten.__lauf;
+      if (!lauf) return;
+      const stelle = lauf.gewaehlt.indexOf(k.dataset.zeigen);
+      if (stelle < 0) return;
+      lauf.i = stelle;
+      lauf.zeigen();
     }));
 
     // Das Kreuz zwischen den Pfeilen: Bild aus dem Beitrag nehmen. Bisher
