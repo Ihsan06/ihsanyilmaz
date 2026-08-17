@@ -20,7 +20,7 @@ const KOPF = {
   'Cache-Control': 'no-store, private'
 };
 
-const KONTO = 'autohausdiezmann';
+const KONTO = 'aiy.web';
 const BASIS = 'https://graph.instagram.com';
 const ERNEUERN_AB_TAGEN = 30;   // Haelfte der Laufzeit – Luft nach beiden Seiten
 const BEITRAEGE = 36;   // drei Seiten zu zwoelf
@@ -51,7 +51,10 @@ export async function onRequestGet({ env }) {
     fehler = 'Kein Zugriffstoken hinterlegt (INSTAGRAM_TOKEN).';
   }
 
-  return antwort({ ok: true, konto: KONTO, fehler, medien, ...(await verlauf(db)) });
+  // profil traegt den Stand von jetzt (Benutzername, Follower, Folgt,
+  // Beitraege). Ohne es sah die Profilseite nur die Konstante und den
+  // gespeicherten Verlauf – die aktuellen Zahlen fehlten.
+  return antwort({ ok: true, konto: KONTO, profil, fehler, medien, ...(await verlauf(db)) });
 }
 
 // ─── Instagram ───
