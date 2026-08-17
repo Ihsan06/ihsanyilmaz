@@ -32,16 +32,12 @@ export default function Instagram() {
   return (
     <section id="instagram" className="surface-alt py-24">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div>
-            <span className="eyebrow inline-block mb-3">Instagram</span>
-            <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] leading-tight">
-              Einblicke in <span className="accent-text">meine Arbeit</span>
-            </h2>
-          </div>
+        {/* Ohne Ueberschrift: die Kacheln sagen selbst, was sie sind. Profil
+            und Bilder stehen deshalb buendig an derselben linken Kante. */}
+        <div className="mb-8">
           <a
             href={PROFIL} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 no-underline group shrink-0"
+            className="inline-flex items-center gap-3 no-underline group"
           >
             <span className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
               style={{ background: "var(--accent)" }}>
@@ -76,7 +72,7 @@ export default function Instagram() {
           ))}
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8">
           <a href={PROFIL} target="_blank" rel="noopener noreferrer"
             className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm no-underline">
             <InstaZeichen groesse={18} farbe="currentColor" />
