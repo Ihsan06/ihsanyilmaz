@@ -37,7 +37,7 @@ export default function Contact() {
               <span className="accent-text">zusammenarbeiten</span>
             </h2>
             <p className="text-[var(--fg-muted)] text-lg leading-relaxed mb-10">
-              Sie möchten einen professionellen Webauftritt für Ihren Gastronomiebetrieb? Nehmen Sie gerne Kontakt auf — ich melde mich innerhalb von 24 Stunden bei Ihnen.
+              Schreiben Sie mir, worum es geht — ich melde mich innerhalb von 24 Stunden.
             </p>
             <div className="card flex items-center gap-3 p-4">
               <div className="icon-tile w-10 h-10">

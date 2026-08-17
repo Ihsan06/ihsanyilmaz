@@ -4,31 +4,31 @@ const services = [
   {
     icon: Globe,
     title: "Website & Landingpage",
-    description: "Eine saubere, moderne Website für Ihren Betrieb — Leistungen, Öffnungszeiten, Kontakt und Fotos an einem Ort.",
+    description: "Leistungen, Öffnungszeiten, Kontakt und Fotos an einem Ort.",
     tags: ["Design", "Öffnungszeiten", "Kontakt", "Fotos"],
   },
   {
     icon: Sparkles,
     title: "Smarte KI-Funktionen",
-    description: "Praktische KI-Helfer auf Ihrer Website: Anfragen automatisch beantworten, Termine annehmen und häufige Fragen rund um die Uhr klären.",
+    description: "Anfragen beantworten, Termine annehmen — rund um die Uhr.",
     tags: ["KI-Assistent", "Termine", "24/7", "Zeitersparnis"],
   },
   {
     icon: MapPin,
     title: "Google & Local SEO",
-    description: "Damit Kunden Sie bei Google und in Google Maps finden, wenn sie in der Nähe suchen — mit eingerichtetem Profil und Grundoptimierung.",
+    description: "Gefunden werden, wenn Kunden in der Nähe suchen.",
     tags: ["Google Maps", "SEO", "Bewertungen"],
   },
   {
     icon: Smartphone,
     title: "Mobil & Schnell",
-    description: "Vollständig fürs Smartphone optimiert und blitzschnell — denn die meisten Kunden suchen unterwegs vom Handy aus.",
+    description: "Schnell und bedienbar auf dem Handy — dort suchen die meisten.",
     tags: ["Responsive", "Schnell", "Handy-freundlich"],
   },
   {
     icon: Handshake,
     title: "Beratung & Service",
-    description: "Persönliche Beratung von der ersten Idee bis zum Launch — und auch danach. Änderungen, Updates und Fragen klären wir direkt und unkompliziert.",
+    description: "Von der ersten Idee bis danach — eine Ansprechperson.",
     tags: ["Persönlich", "Updates", "Wartung", "Direkt erreichbar"],
   },
 ];

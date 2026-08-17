@@ -1,9 +1,9 @@
 import { Smile, Clock, Euro, CheckCircle } from "lucide-react";
 
 const highlights = [
-  { icon: Smile, title: "Persönlich & unkompliziert", text: "Kein Agentur-Overhead, keine langen Wartezeiten. Sie haben eine Ansprechperson — mich." },
-  { icon: Clock, title: "Schnelle Umsetzung", text: "Ihre Website ist in der Regel innerhalb weniger Wochen fertig und online." },
-  { icon: Euro, title: "Faire Preise", text: "Keine versteckten Kosten. Festpreise, die für kleine Betriebe passen." },
+  { icon: Smile, title: "Persönlich & unkompliziert", text: "Eine Ansprechperson, keine Warteschleife." },
+  { icon: Clock, title: "Schnelle Umsetzung", text: "In der Regel wenige Wochen bis online." },
+  { icon: Euro, title: "Faire Preise", text: "Festpreis vorab, keine versteckten Kosten." },
 ];
 
 const values = [
@@ -27,7 +27,7 @@ export default function About() {
 
             <div className="mb-8">
               <p className="text-[var(--fg-muted)] text-lg leading-relaxed">
-                Ich bin Ihsan — IT-Fachmann aus Würzburg, mit einem B.Sc. in Wirtschaftswissenschaften und einem M.Sc. in Wirtschaftsinformatik (Julius-Maximilians-Universität Würzburg). Ich helfe lokalen Betrieben mit modernen Websites und smarten Funktionen, die dank KI-Tools heute bezahlbar sind.
+                Ich bin Ihsan, Wirtschaftsinformatiker aus Würzburg. Ich baue Websites für lokale Betriebe — mit Funktionen, die früher nur große Firmen hatten.
               </p>
               <a
                 href="https://www.linkedin.com/in/ihsan-yilmaz-3a634713a/"
