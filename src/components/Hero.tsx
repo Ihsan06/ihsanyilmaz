@@ -1,4 +1,4 @@
-import { Globe, Sparkles, MapPin, Smartphone, Handshake } from "lucide-react";
+import { Globe, Sparkles, MapPin } from "lucide-react";
 
 const services = [
   {
@@ -18,18 +18,6 @@ const services = [
     title: "Google & Local SEO",
     description: "Gefunden werden, wenn Kunden in der Nähe suchen.",
     tags: ["Google Maps", "SEO", "Bewertungen"],
-  },
-  {
-    icon: Smartphone,
-    title: "Mobil & Schnell",
-    description: "Schnell und bedienbar auf dem Handy — dort suchen die meisten.",
-    tags: ["Responsive", "Schnell", "Handy-freundlich"],
-  },
-  {
-    icon: Handshake,
-    title: "Beratung & Service",
-    description: "Von der ersten Idee bis danach — eine Ansprechperson.",
-    tags: ["Persönlich", "Updates", "Wartung", "Direkt erreichbar"],
   },
 ];
 

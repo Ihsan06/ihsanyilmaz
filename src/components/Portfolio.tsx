@@ -16,6 +16,13 @@ const projects = [
     tech: ["Next.js", "Tailwind CSS", "Cloudflare Pages", "Smarte Speisekarte"],
   },
   {
+    tag: "Automatisierung",
+    status: "Online",
+    title: "Instagram-Automatisierung",
+    description: "Beiträge im Browser bauen, einplanen — und zur gewählten Zeit geht alles von selbst raus.",
+    tech: ["Cloudflare Worker", "Instagram-API", "Bildbearbeitung", "Zeitplanung"],
+  },
+  {
     tag: "Webentwicklung",
     status: "In Arbeit",
     title: "Mietwagen-Buchungstool",
