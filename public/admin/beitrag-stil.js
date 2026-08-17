@@ -55,7 +55,11 @@
     grund: 'schatten',
     grundfarbe: '#000000',
     deckung: 62,
-    drehung: 0        // Grad, -180 bis 180
+    drehung: 0,        // Grad, -180 bis 180
+    buendig: 'mitte',  // innerhalb des Kastens: links | mitte | rechts
+    kursiv: false,
+    unterstrichen: false,
+    durchgestrichen: false
   };
 
   // Zwei getrennte Saetze: der Titel steht gross im Bild, die Angaben sind
@@ -111,8 +115,16 @@
     // wandert er beim Drehen aus seiner Ecke heraus.
     const dreh = st.drehung
       ? `transform:rotate(${st.drehung}deg);transform-origin:center center;` : '';
+    const strich = [st.unterstrichen ? 'underline' : '', st.durchgestrichen ? 'line-through' : '']
+      .filter(Boolean).join(' ');
+    const schnitt = (st.kursiv ? 'font-style:italic;' : 'font-style:normal;')
+      + `text-decoration:${strich || 'none'};`;
+    // Buendigkeit gilt INNERHALB des Kastens – wo der Kasten sitzt, sagt die
+    // Stellenwahl im Baukasten.
+    const buendig = `text-align:${st.buendig || 'mitte'};`
+      .replace('mitte', 'center').replace('links', 'left').replace('rechts', 'right');
     return `font-family:${st.schrift};font-size:${px}px;font-weight:${st.dicke};`
-      + `color:${st.farbe};${grund}${schatten}${dreh}`;
+      + `color:${st.farbe};${grund}${schatten}${dreh}${schnitt}${buendig}`;
   }
 
   function mitDeckung(hex, prozent) {
@@ -125,7 +137,9 @@
     if (!text) return;
     const st = stile[was] || stile.angaben;
     const px = Math.round(breite * st.groesse / 1000);
-    g.font = `${st.dicke} ${px}px ${st.schrift}`;
+    // Kursiv steckt in der Schriftangabe; Unter- und Durchstreichung kennt
+    // Canvas nicht – die Linien zieht der Zug unten selbst.
+    g.font = `${st.kursiv ? 'italic ' : ''}${st.dicke} ${px}px ${st.schrift}`;
     g.textAlign = ausrichtung || 'left';
     g.textBaseline = 'alphabetic';
 
@@ -172,6 +186,23 @@
       g.shadowBlur = 0; g.shadowOffsetY = 0;
       g.fillText(text, x, y);
     }
+
+    // Die Striche in Textfarbe, Staerke an der Schriftgroesse bemessen.
+    if (st.unterstrichen || st.durchgestrichen) {
+      g.shadowBlur = 0; g.shadowOffsetY = 0;
+      g.strokeStyle = st.farbe;
+      g.lineWidth = Math.max(1, Math.round(px * 0.06));
+      g.lineCap = 'butt';
+      const ziehen = hoeheY => {
+        g.beginPath();
+        g.moveTo(links, hoeheY);
+        g.lineTo(links + w, hoeheY);
+        g.stroke();
+      };
+      if (st.unterstrichen) ziehen(y + Math.round(px * 0.16));
+      if (st.durchgestrichen) ziehen(y - Math.round(px * 0.30));
+    }
+
     if (gedreht) g.restore();
     g.textAlign = 'left';
   }
@@ -198,6 +229,34 @@
         <label class="stil-zeile"><span>Größe</span>
           <input type="range" min="18" max="60" data-groesse /><i data-groesse-wert></i></label>
 
+        <div class="stil-zeile"><span>Bündig</span>
+          <div class="stil-zeichen">
+            <button type="button" data-buendig="links" title="Linksbündig" aria-label="Linksbündig">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h13"/></svg></button>
+            <button type="button" data-buendig="mitte" title="Zentriert" aria-label="Zentriert">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M6 18h12"/></svg></button>
+            <button type="button" data-buendig="rechts" title="Rechtsbündig" aria-label="Rechtsbündig">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round"><path d="M4 6h16M10 12h10M7 18h13"/></svg></button>
+          </div>
+        </div>
+
+        <div class="stil-zeile"><span>Schnitt</span>
+          <div class="stil-zeichen">
+            <button type="button" data-schnitt="kursiv" title="Kursiv" aria-label="Kursiv">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round"><path d="M15 4h-5M14 20H9M14.5 4 9.5 20"/></svg></button>
+            <button type="button" data-schnitt="unterstrichen" title="Unterstrichen" aria-label="Unterstrichen">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round"><path d="M7 4v7a5 5 0 0 0 10 0V4M5 20h14"/></svg></button>
+            <button type="button" data-schnitt="durchgestrichen" title="Durchgestrichen" aria-label="Durchgestrichen">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round"><path d="M4 12h16M7 6.5V6a4 4 0 0 1 8 0M9 17.5a4 4 0 0 0 7-2.5"/></svg></button>
+          </div>
+        </div>
+
         <label class="stil-zeile"><span>Stärke</span>
           <select data-dicke>
             <option value="400">Normal</option>
@@ -223,12 +282,22 @@
         <label class="stil-zeile" data-nur-flaeche><span>Deckkraft</span>
           <input type="range" min="10" max="100" data-deckung /><i data-deckung-wert></i></label>
 
-        <label class="stil-zeile"><span>Drehung</span>
-          <input type="range" min="-180" max="180" step="1" data-drehung /><i data-drehung-wert></i></label>
-        <div class="stil-zeile stil-drehung-schnell"><span></span>
-          <div>${[-90, -45, 0, 45, 90].map(g =>
-            `<button type="button" data-dreh-fest="${g}">${g === 0 ? 'gerade' : g + '°'}</button>`).join('')}</div>
+        <div class="stil-zeile"><span>Drehung</span>
+          <div class="stil-dreh">
+            <!-- Zifferblatt mit Zeiger: ziehen dreht den Text. Ein Regler
+                 sagt nicht, wo oben ist – ein Zeiger schon. Der Doppelklick
+                 stellt ihn wieder gerade. -->
+            <div class="stil-uhr" data-uhr tabindex="0" role="slider"
+                 aria-label="Drehung" aria-valuemin="-180" aria-valuemax="180" aria-valuenow="0"
+                 title="Ziehen zum Drehen · Doppelklick stellt gerade">
+              <span class="stil-uhr-strich"></span>
+              <span class="stil-uhr-zeiger" data-uhr-zeiger></span>
+              <span class="stil-uhr-mitte"></span>
+            </div>
+            <i data-drehung-wert></i>
+          </div>
         </div>
+        <input type="hidden" data-drehung value="0" />
 
 
         <div class="sm-knoepfe">
@@ -247,7 +316,14 @@
       probe.setAttribute('style', alsCss(welcher, k.querySelector('.stil-bild').clientWidth));
       f('groesse-wert').textContent = stil().groesse;
       f('deckung-wert').textContent = stil().deckung + ' %';
-      f('drehung-wert').textContent = (stil().drehung || 0) + '°';
+      const grad = stil().drehung || 0;
+      f('drehung-wert').textContent = grad + '°';
+      const z = k.querySelector('[data-uhr-zeiger]');
+      if (z) z.style.transform = `rotate(${grad}deg)`;
+      k.querySelectorAll('[data-buendig]').forEach(b =>
+        b.classList.toggle('hier', b.dataset.buendig === (stil().buendig || 'mitte')));
+      k.querySelectorAll('[data-schnitt]').forEach(b =>
+        b.classList.toggle('hier', !!stil()[b.dataset.schnitt]));
       k.querySelectorAll('[data-nur-flaeche]').forEach(z => {
         z.hidden = stil().grund === 'keiner' || stil().grund === 'schatten';
       });
@@ -272,14 +348,65 @@
     f('dicke').addEventListener('change', e => { stil().dicke = Number(e.target.value); nachziehen(); });
     f('grund').addEventListener('change', e => { stil().grund = e.target.value; nachziehen(); });
     f('deckung').addEventListener('input', e => { stil().deckung = Number(e.target.value); nachziehen(); });
-    f('drehung').addEventListener('input', e => { stil().drehung = Number(e.target.value); nachziehen(); });
-    // Die haeufigen Winkel als Knopf: am Regler trifft man 90 Grad nur mit Glueck.
-    k.querySelectorAll('[data-drehFest], [data-dreh-fest]').forEach(b =>
-      b.addEventListener('click', () => {
-        stil().drehung = Number(b.dataset.drehFest);
-        f('drehung').value = stil().drehung;
-        nachziehen();
-      }));
+    // ─── Zifferblatt ───
+    const uhr = k.querySelector('[data-uhr]');
+    const zeiger = k.querySelector('[data-uhr-zeiger]');
+    const uhrSetzen = grad => {
+      // Auf ganze Grad, und bei knapp daneben auf die Viertel einrasten:
+      // von Hand trifft man 90 sonst nie genau.
+      let g = Math.round(grad);
+      for (const fest of [-180, -135, -90, -45, 0, 45, 90, 135, 180]) {
+        if (Math.abs(g - fest) <= 4) { g = fest; break; }
+      }
+      if (g > 180) g -= 360;
+      if (g < -180) g += 360;
+      stil().drehung = g;
+      f('drehung').value = String(g);
+      uhr.setAttribute('aria-valuenow', String(g));
+      nachziehen();
+    };
+    const ausZeiger = e => {
+      const r = uhr.getBoundingClientRect();
+      const p = e.touches ? e.touches[0] : e;
+      const dx = p.clientX - (r.left + r.width / 2);
+      const dy = p.clientY - (r.top + r.height / 2);
+      // 0 Grad zeigt nach oben, im Uhrzeigersinn positiv – wie beim Text.
+      uhrSetzen(Math.atan2(dx, -dy) * 180 / Math.PI);
+    };
+    const ziehen = e => { e.preventDefault(); ausZeiger(e); };
+    const loslassen = () => {
+      document.removeEventListener('mousemove', ziehen);
+      document.removeEventListener('mouseup', loslassen);
+      document.removeEventListener('touchmove', ziehen);
+      document.removeEventListener('touchend', loslassen);
+    };
+    const greifen = e => {
+      e.preventDefault();
+      ausZeiger(e);
+      document.addEventListener('mousemove', ziehen);
+      document.addEventListener('mouseup', loslassen);
+      document.addEventListener('touchmove', ziehen, { passive: false });
+      document.addEventListener('touchend', loslassen);
+    };
+    uhr.addEventListener('mousedown', greifen);
+    uhr.addEventListener('touchstart', greifen, { passive: false });
+    uhr.addEventListener('dblclick', () => uhrSetzen(0));
+    uhr.addEventListener('keydown', e => {
+      const schritt = e.shiftKey ? 15 : 1;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); uhrSetzen(stil().drehung - schritt); }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); uhrSetzen(stil().drehung + schritt); }
+      if (e.key === '0') { e.preventDefault(); uhrSetzen(0); }
+    });
+
+    // Buendigkeit und Schnitte
+    k.querySelectorAll('[data-buendig]').forEach(b => b.addEventListener('click', () => {
+      stil().buendig = b.dataset.buendig; nachziehen();
+    }));
+    k.querySelectorAll('[data-schnitt]').forEach(b => b.addEventListener('click', () => {
+      const was = b.dataset.schnitt;
+      stil()[was] = !stil()[was];
+      nachziehen();
+    }));
     k.querySelectorAll('[data-farbe]').forEach(b => b.addEventListener('click', () => {
       stil().farbe = b.dataset.farbe; nachziehen();
     }));

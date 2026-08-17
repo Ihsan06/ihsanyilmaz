@@ -8,7 +8,8 @@ const KOPF = {
   'Cache-Control': 'no-store, private'
 };
 
-const FELDER = ['schrift', 'groesse', 'dicke', 'farbe', 'grund', 'grundfarbe', 'deckung', 'drehung'];
+const FELDER = ['schrift', 'groesse', 'dicke', 'farbe', 'grund', 'grundfarbe', 'deckung',
+  'drehung', 'buendig', 'kursiv', 'unterstrichen', 'durchgestrichen'];
 
 export async function onRequestGet({ env }) {
   const db = env.DB;
@@ -31,7 +32,8 @@ export async function onRequestPost({ env, request }) {
     const raus = {};
     for (const f of FELDER) {
       if (!q || q[f] === undefined) continue;
-      raus[f] = typeof q[f] === 'number' ? q[f] : String(q[f]).slice(0, 120);
+      raus[f] = (typeof q[f] === 'number' || typeof q[f] === 'boolean')
+        ? q[f] : String(q[f]).slice(0, 120);
     }
     return raus;
   };

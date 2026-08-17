@@ -1235,10 +1235,18 @@
     }
     // Ohne Vorschlag: die erste Zeile des Textes, sonst der Themenname.
     const saetze = (w.text || '').split('\n').map(z => z.trim()).filter(Boolean);
+    // Der zweite Baustein bekommt den naechsten Satz des Themas – der traegt
+    // bei diesen Texten den Nutzen, waehrend der erste die Frage stellt.
+    // Auf einen Satz gekuerzt: mehr passt auf ein Bild ohnehin nicht.
+    const zweiter = (saetze[1] || '')
+      .split(/(?<=[.!?])\s+/)[0]
+      .replace(/[:,]$/, '')
+      .slice(0, 90);
     return {
       zeile: (saetze[0] || (thema && thema.titel) || 'AIY | Ihsan Yilmaz')
         .replace(/[?:.]$/, '').slice(0, 42),
       unterzeile: '',
+      text: zweiter,
       stelle: 'unten',
       sticker: { was: stickerWort(null) }
     };
@@ -1641,10 +1649,12 @@
       : 'rgba(0,0,0,.72)';
 
     const drehung = Number(stil.drehung) || 0;
+    const kursiv = stil.kursiv ? 'italic ' : '';
+    const buendig = stil.buendig || 'mitte';
 
     const rand = Math.round(breite * 0.075);
     const platz = breite - rand * 2;
-    const schrift = (px, dick) => `${dick} ${px}px ${familie}`;
+    const schrift = (px, dick) => `${kursiv}${dick} ${px}px ${familie}`;
 
     // Eine Zeile, die nicht passt, wird umbrochen – nicht abgeschnitten und
     // nicht endlos verkleinert.
@@ -1730,18 +1740,39 @@
 
       g.font = schrift(b.px, b.dick);
       g.textBaseline = 'middle';
-      g.textAlign = 'left';
+      // Innerhalb des Kastens ausrichten. Der Kasten selbst ist so breit wie
+      // seine Zeile – ein Unterschied entsteht erst, wenn Ober- und
+      // Unterzeile verschieden lang sind.
+      const breiteste = bloecke.reduce((n, e) => Math.max(n, e.breite), 0);
+      const innen = buendig === 'links' ? x + luftX
+        : (buendig === 'rechts' ? x + breiteste - luftX
+          : x + breiteste / 2);
+      g.textAlign = buendig === 'links' ? 'left' : (buendig === 'rechts' ? 'right' : 'center');
+      const mitteY = y + b.hoehe / 2 + 1;
       if (grund === 'schatten') {
         g.shadowColor = 'rgba(0,0,0,.72)';
         g.shadowBlur = Math.round(breite * 0.018);
         g.shadowOffsetY = Math.round(breite * 0.002);
       }
       g.fillStyle = farbe;
-      g.fillText(b.t, x + luftX, y + b.hoehe / 2 + 1);
+      g.fillText(b.t, innen, mitteY);
       // Zweiter Zug ohne Schatten: sonst wirkt die Kante verwaschen.
       if (grund === 'schatten') {
         g.shadowBlur = 0; g.shadowOffsetY = 0;
-        g.fillText(b.t, x + luftX, y + b.hoehe / 2 + 1);
+        g.fillText(b.t, innen, mitteY);
+      }
+      if (stil.unterstrichen || stil.durchgestrichen) {
+        const wortBreite = b.breite - luftX * 2;
+        const l = buendig === 'links' ? innen
+          : (buendig === 'rechts' ? innen - wortBreite : innen - wortBreite / 2);
+        g.strokeStyle = farbe;
+        g.lineWidth = Math.max(1, Math.round(b.px * 0.06));
+        const linie = versatz => {
+          g.beginPath(); g.moveTo(l, mitteY + versatz);
+          g.lineTo(l + wortBreite, mitteY + versatz); g.stroke();
+        };
+        if (stil.unterstrichen) linie(Math.round(b.px * 0.46));
+        if (stil.durchgestrichen) linie(0);
       }
       y += b.hoehe + abstand;
     });
@@ -2641,7 +2672,8 @@
             ${stellenWahl('angaben', 'unten-mitte')}
           </div>
           <input type="text" class="sm-label-text" data-label-text
-                 value="" placeholder="Zweite Aussage im Bild"
+                 value="${schuetzen(istStory && st ? (st.text || '') : '')}"
+                 placeholder="Zweite Aussage im Bild"
                  ${schalter.angaben ? '' : 'disabled'} />
         </div>
 
@@ -2854,7 +2886,12 @@
     if (wege.length < 2) { ziel.innerHTML = ''; return; }
     const logoAn = logoVon(feld);
 
-    ziel.innerHTML = `<div class="sm-kopf" style="margin-top:14px"><b>Bildfolge</b></div>
+    // Bei Stories ist es keine Folge in einem Beitrag, sondern eine Reihe
+    // eigenstaendiger Stories – der Name soll das sagen.
+    const wieViele = format === 'story'
+      ? `${wege.length} Stories` : 'Bildfolge';
+    ziel.innerHTML = `<div class="sm-kopf" style="margin-top:14px"><b>${wieViele}</b>${
+      format === 'story' ? ' <span>gehen nacheinander raus</span>' : ''}</div>
       <ol class="sm-reihe-liste">
         ${wege.map((u, i) => `<li data-u="${schuetzen(u)}"${u === gezeigt ? ' class="gezeigt"' : ''}>
           <button type="button" class="sm-reihe-bild" data-zeigen="${schuetzen(u)}"
@@ -3020,13 +3057,18 @@
     const ziel = feld.querySelector('.sm-bilder');
 
     feld.querySelectorAll('.wk-chip').forEach(k => k.addEventListener('click', () => {
-      wkThema = k.dataset.thema; wkVariante = 0; wkEigen = null; werkstattZeigen();
+      wkThema = k.dataset.thema; wkVariante = 0; wkEigen = null;
+      bildTexte.clear(); werkstattZeigen();
     }));
 
     const wuerfeln = feld.querySelector('[data-wuerfeln]');
-    if (wuerfeln) wuerfeln.addEventListener('click', () => { wkVariante += 1; wkEigen = null; werkstattZeigen(); });
+    if (wuerfeln) wuerfeln.addEventListener('click', () => {
+      wkVariante += 1; wkEigen = null; bildTexte.clear(); werkstattZeigen();
+    });
     const zurueckVar = feld.querySelector('[data-zurueck-var]');
-    if (zurueckVar) zurueckVar.addEventListener('click', () => { wkVariante -= 1; wkEigen = null; werkstattZeigen(); });
+    if (zurueckVar) zurueckVar.addEventListener('click', () => {
+      wkVariante -= 1; wkEigen = null; bildTexte.clear(); werkstattZeigen();
+    });
     // Fotos direkt aus dem Beitrag heraus hinzufuegen: sie landen im Vorrat
     // wie ueber die Galerie – samt Beschreibung im Hintergrund – und sind
     // gleich ausgewaehlt. Wer beim Bauen merkt, dass ein Bild fehlt, soll
@@ -3097,6 +3139,7 @@
         if (!e.ok) throw new Error(e.fehler || 'HTTP ' + a.status);
 
         wkEigen = { ...e.beitrag, gelesen: e.gelesen, cent: e.cent };
+        bildTexte.clear();   // der neue Vorschlag gilt, nicht das Gemerkte
         wkAuswahl.clear();
         e.beitrag.bilder.forEach(s => wkAuswahl.add('/bilder/' + s));
 

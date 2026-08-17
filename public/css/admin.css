@@ -3675,12 +3675,43 @@ html.leiste-zu .admin-unter { display: none; }
 .sm-reihe-liste .sm-reihe-bild img { transition: transform .15s ease; }
 .sm-reihe-liste .sm-reihe-bild:hover img { transform: scale(1.06); }
 
-/* Die haeufigen Winkel als Knopfreihe unter dem Drehregler: 90 Grad trifft
-   man am Regler nur mit Glueck. */
-.stil-drehung-schnell > div { display: flex; gap: 6px; flex-wrap: wrap; }
-.stil-drehung-schnell button {
-  border: 1px solid var(--border); border-radius: 999px; cursor: pointer;
-  font: inherit; font-size: .74rem; padding: 4px 10px;
+/* ─── Zifferblatt fuer die Drehung ────────────────────────────────────
+   Ein Regler sagt nicht, wo oben ist. Der Zeiger schon: er steht so, wie
+   der Text im Bild steht. Ziehen dreht, Doppelklick stellt gerade. */
+.stil-dreh { display: flex; align-items: center; gap: 12px; }
+.stil-uhr {
+  position: relative; width: 54px; height: 54px; flex: none;
+  border-radius: 50%; cursor: grab; touch-action: none;
+  background: var(--off); border: 1px solid var(--border);
+}
+.stil-uhr:active { cursor: grabbing; }
+.stil-uhr:focus-visible { outline: 2px solid var(--gold, #12557F); outline-offset: 2px; }
+/* Der feine Strich oben markiert die Null. */
+.stil-uhr-strich {
+  position: absolute; left: 50%; top: 4px; width: 1px; height: 6px;
+  margin-left: -.5px; background: var(--border);
+}
+.stil-uhr-zeiger {
+  position: absolute; left: 50%; top: 50%; width: 2px; height: 21px;
+  margin-left: -1px; transform-origin: 50% 100%; transform: rotate(0deg);
+  background: var(--gold, #12557F); border-radius: 1px;
+  margin-top: -21px;
+}
+.stil-uhr-mitte {
+  position: absolute; left: 50%; top: 50%; width: 7px; height: 7px;
+  margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  background: var(--gold, #12557F);
+}
+
+/* Buendigkeit und Schriftschnitt als Zeichenknoepfe. */
+.stil-zeichen { display: flex; gap: 6px; }
+.stil-zeichen button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 30px; cursor: pointer; padding: 0;
+  border: 1px solid var(--border); border-radius: 8px;
   background: var(--off); color: var(--muted);
 }
-.stil-drehung-schnell button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+.stil-zeichen button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+.stil-zeichen button.hier {
+  background: var(--gold, #12557F); border-color: var(--gold, #12557F); color: #fff;
+}
