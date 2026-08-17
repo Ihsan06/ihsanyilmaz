@@ -378,7 +378,11 @@
       // auswaehlen: der Zaehler stieg, und in der Auswahl lag undefined.
       ziel.querySelectorAll('.sm-foto:not(.sm-foto-neu)').forEach(k => k.addEventListener('click', () => {
         k.classList.toggle('aktiv');
-        k.setAttribute('aria-pressed', String(k.classList.contains('aktiv')));
+        const dazu = k.classList.contains('aktiv');
+        k.setAttribute('aria-pressed', String(dazu));
+        // Wie im Werkstatt-Baukasten: das eben gewaehlte Bild kommt in die
+        // Vorschau, das abgewaehlte gibt sie ans Titelbild zurueck.
+        gezeigt = dazu ? k.dataset.u : null;
         zaehlen();
         vorschauBild(feld);
         reiheZeichnen(feld);
@@ -3014,6 +3018,12 @@
       if (drin) wkAuswahl.delete(k.dataset.u); else wkAuswahl.add(k.dataset.u);
       k.classList.toggle('aktiv', !drin);
       k.setAttribute('aria-pressed', String(!drin));
+
+      // Wer ein Bild dazunimmt, will es sehen: die Vorschau springt darauf.
+      // Beim Abwaehlen dagegen wuerde sie ins Leere zeigen – dann faellt sie
+      // auf das Titelbild zurueck (gezeigt = null).
+      gezeigt = drin ? null : k.dataset.u;
+
       standZaehlen(feld); vorschauBild(feld); reiheZeichnen(feld);
     });
   }
