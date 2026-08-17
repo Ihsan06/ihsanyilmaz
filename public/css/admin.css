@@ -3647,3 +3647,21 @@ html.leiste-zu .admin-unter { display: none; }
   .plan-bilder img + img { margin-left: -104px; }
 }
 
+
+/* ─── Welches Bild gerade in der Vorschau steht ───────────────────────────
+   Bisher musste man raten: die Vorschau zeigte Bild 3, und unten sahen alle
+   Kacheln gleich aus. Jetzt traegt die gezeigte einen Ring in der Hausfarbe –
+   im Waehler wie in der Bildfolge. */
+.sm-foto.gezeigt {
+  outline: 3px solid var(--gold, #12557F);
+  outline-offset: 2px;
+}
+.sm-reihe-liste li.gezeigt {
+  border-color: var(--gold, #12557F);
+  box-shadow: 0 0 0 2px var(--gold, #12557F);
+}
+
+/* Das Kreuz zwischen den Pfeilen nimmt das Bild aus dem Beitrag. Rot erst
+   beim Zeigen: in der Ruhe soll es nicht lauter sein als die Pfeile. */
+.sm-reihe-liste .sm-reihe-raus { font-size: .92rem; }
+.sm-reihe-liste .sm-reihe-raus:hover:not(:disabled) { color: #c23b3b; }

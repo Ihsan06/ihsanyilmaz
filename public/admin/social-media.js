@@ -1251,7 +1251,10 @@
     // davon – und jeder haelt sein eigenes, veraltetes 'gewaehlt' und 'i' fest.
     // Ein Druck auf einen Pfeil verschob den Ausschnitt dann um vier Schritte
     // und nebenbei den von Bildern, die gar nicht zu sehen waren.
-    const lauf = { gewaehlt, i: 0, bild };
+    // Beim Neuzeichnen dort weitermachen, wo man war. Vorher sprang die
+    // Vorschau bei jeder Kleinigkeit – Logo umschalten, Seite blaettern –
+    // zurueck auf das erste Bild, obwohl man gerade das dritte ansah.
+    const lauf = { gewaehlt, i: Math.max(0, gewaehlt.indexOf(gezeigt)), bild };
     kasten.__lauf = lauf;
 
     const anwenden = () => {
@@ -1267,6 +1270,7 @@
       punkte.querySelectorAll('span').forEach((p, n) => p.classList.toggle('hier', n === lauf.i));
       anwenden();
       markeAbgleichen(feld, lauf.gewaehlt[lauf.i]);
+      aktivZeigen(feld, lauf.gewaehlt[lauf.i]);
     };
     lauf.anwenden = anwenden;
     lauf.zeigen = zeigen;
@@ -2653,6 +2657,37 @@
   // ist dreimal gescheitert: die Vorschau baut ihr Bild bei jedem Zeichnen
   // neu auf, und je nach Quelle steht dort mal ein Vorratsweg, mal eine
   // fremde Adresse.
+  // Welches Bild gerade in der Vorschau steht, soll man unten wiederfinden:
+  // die Kachel im Waehler und der Eintrag in der Bildfolge bekommen eine
+  // Markierung – und liegt die Kachel auf einer anderen Seite, blaettert der
+  // Waehler dorthin. Sonst sucht man bei vielen Bildern auf mehreren Seiten.
+  function aktivZeigen(feld, weg) {
+    feld.querySelectorAll('.sm-foto').forEach(k =>
+      k.classList.toggle('gezeigt', !!weg && k.dataset.u === weg));
+    feld.querySelectorAll('.sm-reihe-liste li').forEach(li =>
+      li.classList.toggle('gezeigt', !!weg && li.dataset.u === weg));
+    seiteFuerBild(feld, weg);
+  }
+
+  // Blaettert den Vorrat auf die Seite, auf der das gezeigte Bild liegt.
+  //
+  // Nur wenn sich das gezeigte Bild WIRKLICH geaendert hat. Ohne diese
+  // Bedingung wuerde jedes Neuzeichnen die Seite zurueckziehen – wer von Hand
+  // weiterblaettert, um ein anderes Foto zu suchen, landete sofort wieder bei
+  // dem, das gerade in der Vorschau steht. Das Blaettern waere unbenutzbar.
+  let zuletztGesprungen = null;
+  function seiteFuerBild(feld, weg) {
+    if (weg === zuletztGesprungen) return;
+    zuletztGesprungen = weg;
+    if (!weg || !feld.querySelector('.wk-raster') || !vorrat) return;
+    const stelle = (vorrat.bilder || []).findIndex(b => '/bilder/' + b.schluessel === weg);
+    if (stelle < 0) return;
+    const seite = Math.floor(stelle / VORRAT_PRO_SEITE);
+    if (seite === wkSeite) return;
+    wkSeite = seite;
+    seiteZeichnen(vorrat);
+  }
+
   function markeAbgleichen(feld, weg) {
     const marke = feld.querySelector('.igv-marke');
     if (!marke) return;
@@ -2672,7 +2707,7 @@
 
     ziel.innerHTML = `<div class="sm-kopf" style="margin-top:14px"><b>Bildfolge</b></div>
       <ol class="sm-reihe-liste">
-        ${wege.map((u, i) => `<li>
+        ${wege.map((u, i) => `<li data-u="${schuetzen(u)}"${u === gezeigt ? ' class="gezeigt"' : ''}>
           <img src="${schuetzen(u)}" alt="" loading="lazy" />
           <b>${i + 1}</b>
           <button type="button" class="sm-reihe-logo${
@@ -2684,6 +2719,8 @@
           <span>
             <button type="button" data-schieb="${i}" data-hin="-1" ${i === 0 ? 'disabled' : ''}
                     aria-label="nach vorn">‹</button>
+            <button type="button" class="sm-reihe-raus" data-raus="${schuetzen(u)}"
+                    title="Aus dem Beitrag nehmen" aria-label="Aus dem Beitrag nehmen">×</button>
             <button type="button" data-schieb="${i}" data-hin="1"
                     ${i === wege.length - 1 ? 'disabled' : ''} aria-label="nach hinten">›</button>
           </span>
@@ -2706,6 +2743,17 @@
       [neu[von], neu[nach]] = [neu[nach], neu[von]];
       auswahlSetzen(feld, neu);
     }));
+
+    // Das Kreuz zwischen den Pfeilen: Bild aus dem Beitrag nehmen. Bisher
+    // ging das nur ueber die Kachel im Waehler – und die liegt bei einem
+    // grossen Vorrat oft auf einer ganz anderen Seite.
+    ziel.querySelectorAll('[data-raus]').forEach(k => k.addEventListener('click', () => {
+      const u = k.dataset.raus;
+      // Was man gerade ansieht, verschwindet gleich – dann zeigt die Vorschau
+      // wieder das Titelbild statt ins Leere.
+      if (gezeigt === u) gezeigt = null;
+      auswahlSetzen(feld, wege.filter(x => x !== u));
+    }));
   }
 
   // Woher die Auswahl kommt, ist in beiden Welten verschieden: bei eigenen
@@ -2721,12 +2769,23 @@
       wege.forEach(u => wkAuswahl.add(u));
       if (vorrat) seiteZeichnen(vorrat);
     } else {
-      // Die Kacheln selbst umsortieren: von dort liest das Zuschneiden ab.
       const raster = feld.querySelector('.sm-raster');
+      const kacheln = [...raster.querySelectorAll('.sm-foto:not(.sm-foto-neu)')];
+      // Erst den Stand setzen, dann sortieren. Frueher wurde hier NUR
+      // umsortiert – wer ein Bild aus der Folge nahm, hatte es hinterher
+      // trotzdem noch ausgewaehlt, weil die Kachel 'aktiv' blieb.
+      kacheln.forEach(k => {
+        const an = wege.includes(k.dataset.u);
+        k.classList.toggle('aktiv', an);
+        k.setAttribute('aria-pressed', String(an));
+      });
+      // Die Kacheln selbst umsortieren: von dort liest das Zuschneiden ab.
       wege.slice().reverse().forEach(u => {
-        const k = [...raster.querySelectorAll('.sm-foto')].find(x => x.dataset.u === u);
+        const k = kacheln.find(x => x.dataset.u === u);
         if (k) raster.insertBefore(k, raster.firstChild);
       });
+      const stand = feld.querySelector('.sm-stand');
+      if (stand) stand.textContent = `${wege.length} von ${kacheln.length} ausgewählt`;
     }
     reiheZeichnen(feld);
     vorschauBild(feld);
