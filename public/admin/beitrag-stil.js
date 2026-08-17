@@ -284,20 +284,18 @@
 
         <div class="stil-zeile"><span>Drehung</span>
           <div class="stil-dreh">
-            <!-- Zifferblatt mit Zeiger: ziehen dreht den Text. Ein Regler
-                 sagt nicht, wo oben ist – ein Zeiger schon. Der Doppelklick
-                 stellt ihn wieder gerade. -->
-            <div class="stil-uhr" data-uhr tabindex="0" role="slider"
-                 aria-label="Drehung" aria-valuemin="-180" aria-valuemax="180" aria-valuenow="0"
-                 title="Ziehen zum Drehen · Doppelklick stellt gerade">
-              <span class="stil-uhr-strich"></span>
-              <span class="stil-uhr-zeiger" data-uhr-zeiger></span>
-              <span class="stil-uhr-mitte"></span>
-            </div>
-            <i data-drehung-wert></i>
+            <!-- Zahlenfeld plus die vier haeufigen Winkel: so machen es
+                 Zeichenprogramme auch. Tippen fuer genau, Pfeiltasten fuer
+                 Schritt fuer Schritt, Knopf fuer den Regelfall. -->
+            <span class="stil-grad">
+              <input type="number" min="-180" max="180" step="1" data-drehung
+                     aria-label="Drehung in Grad" /><i>°</i>
+            </span>
+            <span class="stil-grad-fest">${[-90, -45, 0, 45, 90].map(g =>
+              `<button type="button" data-dreh-fest="${g}">${g === 0 ? 'gerade' : g + '°'}</button>`
+            ).join('')}</span>
           </div>
         </div>
-        <input type="hidden" data-drehung value="0" />
 
 
         <div class="sm-knoepfe">
@@ -317,9 +315,8 @@
       f('groesse-wert').textContent = stil().groesse;
       f('deckung-wert').textContent = stil().deckung + ' %';
       const grad = stil().drehung || 0;
-      f('drehung-wert').textContent = grad + '°';
-      const z = k.querySelector('[data-uhr-zeiger]');
-      if (z) z.style.transform = `rotate(${grad}deg)`;
+      k.querySelectorAll('[data-dreh-fest]').forEach(b =>
+        b.classList.toggle('hier', Number(b.dataset.drehFest) === grad));
       k.querySelectorAll('[data-buendig]').forEach(b =>
         b.classList.toggle('hier', b.dataset.buendig === (stil().buendig || 'mitte')));
       k.querySelectorAll('[data-schnitt]').forEach(b =>
@@ -348,55 +345,17 @@
     f('dicke').addEventListener('change', e => { stil().dicke = Number(e.target.value); nachziehen(); });
     f('grund').addEventListener('change', e => { stil().grund = e.target.value; nachziehen(); });
     f('deckung').addEventListener('input', e => { stil().deckung = Number(e.target.value); nachziehen(); });
-    // ─── Zifferblatt ───
-    const uhr = k.querySelector('[data-uhr]');
-    const zeiger = k.querySelector('[data-uhr-zeiger]');
-    const uhrSetzen = grad => {
-      // Auf ganze Grad, und bei knapp daneben auf die Viertel einrasten:
-      // von Hand trifft man 90 sonst nie genau.
-      let g = Math.round(grad);
-      for (const fest of [-180, -135, -90, -45, 0, 45, 90, 135, 180]) {
-        if (Math.abs(g - fest) <= 4) { g = fest; break; }
-      }
-      if (g > 180) g -= 360;
-      if (g < -180) g += 360;
+    // ─── Drehung ───
+    const drehSetzen = grad => {
+      let g = Math.round(Number(grad) || 0);
+      g = Math.max(-180, Math.min(180, g));
       stil().drehung = g;
-      f('drehung').value = String(g);
-      uhr.setAttribute('aria-valuenow', String(g));
+      if (f('drehung').value !== String(g)) f('drehung').value = String(g);
       nachziehen();
     };
-    const ausZeiger = e => {
-      const r = uhr.getBoundingClientRect();
-      const p = e.touches ? e.touches[0] : e;
-      const dx = p.clientX - (r.left + r.width / 2);
-      const dy = p.clientY - (r.top + r.height / 2);
-      // 0 Grad zeigt nach oben, im Uhrzeigersinn positiv – wie beim Text.
-      uhrSetzen(Math.atan2(dx, -dy) * 180 / Math.PI);
-    };
-    const ziehen = e => { e.preventDefault(); ausZeiger(e); };
-    const loslassen = () => {
-      document.removeEventListener('mousemove', ziehen);
-      document.removeEventListener('mouseup', loslassen);
-      document.removeEventListener('touchmove', ziehen);
-      document.removeEventListener('touchend', loslassen);
-    };
-    const greifen = e => {
-      e.preventDefault();
-      ausZeiger(e);
-      document.addEventListener('mousemove', ziehen);
-      document.addEventListener('mouseup', loslassen);
-      document.addEventListener('touchmove', ziehen, { passive: false });
-      document.addEventListener('touchend', loslassen);
-    };
-    uhr.addEventListener('mousedown', greifen);
-    uhr.addEventListener('touchstart', greifen, { passive: false });
-    uhr.addEventListener('dblclick', () => uhrSetzen(0));
-    uhr.addEventListener('keydown', e => {
-      const schritt = e.shiftKey ? 15 : 1;
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); uhrSetzen(stil().drehung - schritt); }
-      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); uhrSetzen(stil().drehung + schritt); }
-      if (e.key === '0') { e.preventDefault(); uhrSetzen(0); }
-    });
+    f('drehung').addEventListener('input', e => drehSetzen(e.target.value));
+    k.querySelectorAll('[data-dreh-fest]').forEach(b =>
+      b.addEventListener('click', () => drehSetzen(b.dataset.drehFest)));
 
     // Buendigkeit und Schnitte
     k.querySelectorAll('[data-buendig]').forEach(b => b.addEventListener('click', () => {

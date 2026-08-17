@@ -3675,32 +3675,29 @@ html.leiste-zu .admin-unter { display: none; }
 .sm-reihe-liste .sm-reihe-bild img { transition: transform .15s ease; }
 .sm-reihe-liste .sm-reihe-bild:hover img { transform: scale(1.06); }
 
-/* ─── Zifferblatt fuer die Drehung ────────────────────────────────────
-   Ein Regler sagt nicht, wo oben ist. Der Zeiger schon: er steht so, wie
-   der Text im Bild steht. Ziehen dreht, Doppelklick stellt gerade. */
-.stil-dreh { display: flex; align-items: center; gap: 12px; }
-.stil-uhr {
-  position: relative; width: 54px; height: 54px; flex: none;
-  border-radius: 50%; cursor: grab; touch-action: none;
-  background: var(--off); border: 1px solid var(--border);
+/* ─── Drehung ────────────────────────────────────────────────────────
+   Zahlenfeld und die haeufigen Winkel daneben – wie in Zeichenprogrammen.
+   Tippen fuer genau, Knopf fuer den Regelfall. */
+.stil-dreh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.stil-grad { position: relative; display: inline-flex; align-items: center; }
+.stil-grad input {
+  width: 68px; font: inherit; font-size: .85rem; text-align: right;
+  padding: 7px 20px 7px 10px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--off); color: var(--text);
 }
-.stil-uhr:active { cursor: grabbing; }
-.stil-uhr:focus-visible { outline: 2px solid var(--gold, #12557F); outline-offset: 2px; }
-/* Der feine Strich oben markiert die Null. */
-.stil-uhr-strich {
-  position: absolute; left: 50%; top: 4px; width: 1px; height: 6px;
-  margin-left: -.5px; background: var(--border);
+.stil-grad i {
+  position: absolute; right: 9px; font-style: normal;
+  font-size: .8rem; color: var(--muted); pointer-events: none;
 }
-.stil-uhr-zeiger {
-  position: absolute; left: 50%; top: 50%; width: 2px; height: 21px;
-  margin-left: -1px; transform-origin: 50% 100%; transform: rotate(0deg);
-  background: var(--gold, #12557F); border-radius: 1px;
-  margin-top: -21px;
+.stil-grad-fest { display: inline-flex; gap: 5px; flex-wrap: wrap; }
+.stil-grad-fest button {
+  border: 1px solid var(--border); border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: .73rem; padding: 4px 9px;
+  background: var(--off); color: var(--muted);
 }
-.stil-uhr-mitte {
-  position: absolute; left: 50%; top: 50%; width: 7px; height: 7px;
-  margin: -3.5px 0 0 -3.5px; border-radius: 50%;
-  background: var(--gold, #12557F);
+.stil-grad-fest button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+.stil-grad-fest button.hier {
+  background: var(--gold, #12557F); border-color: var(--gold, #12557F); color: #fff;
 }
 
 /* Buendigkeit und Schriftschnitt als Zeichenknoepfe. */
