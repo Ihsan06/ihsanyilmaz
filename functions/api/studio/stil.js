@@ -8,7 +8,7 @@ const KOPF = {
   'Cache-Control': 'no-store, private'
 };
 
-const FELDER = ['schrift', 'groesse', 'dicke', 'farbe', 'grund', 'grundfarbe', 'deckung'];
+const FELDER = ['schrift', 'groesse', 'dicke', 'farbe', 'grund', 'grundfarbe', 'deckung', 'drehung'];
 
 export async function onRequestGet({ env }) {
   const db = env.DB;

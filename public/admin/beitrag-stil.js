@@ -54,7 +54,8 @@
     farbe: '#ffffff',
     grund: 'schatten',
     grundfarbe: '#000000',
-    deckung: 62
+    deckung: 62,
+    drehung: 0        // Grad, -180 bis 180
   };
 
   // Zwei getrennte Saetze: der Titel steht gross im Bild, die Angaben sind
@@ -106,8 +107,12 @@
     const schatten = st.grund === 'schatten'
       ? 'text-shadow:0 2px 8px rgba(0,0,0,.85),0 0 3px rgba(0,0,0,.7);'
       : 'text-shadow:none;';
+    // Die Drehung dreht um die Mitte des Textes; ohne transform-origin
+    // wandert er beim Drehen aus seiner Ecke heraus.
+    const dreh = st.drehung
+      ? `transform:rotate(${st.drehung}deg);transform-origin:center center;` : '';
     return `font-family:${st.schrift};font-size:${px}px;font-weight:${st.dicke};`
-      + `color:${st.farbe};${grund}${schatten}`;
+      + `color:${st.farbe};${grund}${schatten}${dreh}`;
   }
 
   function mitDeckung(hex, prozent) {
@@ -123,6 +128,20 @@
     g.font = `${st.dicke} ${px}px ${st.schrift}`;
     g.textAlign = ausrichtung || 'left';
     g.textBaseline = 'alphabetic';
+
+    // Gedreht wird um die Mitte des Textes – wie in der Vorschau. Alles
+    // Folgende rechnet danach in einem gedrehten Koordinatensystem, deshalb
+    // steht der Zug hier ganz vorn und wird am Ende zurueckgenommen.
+    const gedreht = !!st.drehung;
+    if (gedreht) {
+      const bw = g.measureText(text).width;
+      const mx = ausrichtung === 'center' ? x : (ausrichtung === 'right' ? x - bw / 2 : x + bw / 2);
+      const my = y - px / 2;
+      g.save();
+      g.translate(mx, my);
+      g.rotate(st.drehung * Math.PI / 180);
+      g.translate(-mx, -my);
+    }
 
     const w = g.measureText(text).width;
     const luftX = Math.round(px * 0.42);
@@ -153,6 +172,7 @@
       g.shadowBlur = 0; g.shadowOffsetY = 0;
       g.fillText(text, x, y);
     }
+    if (gedreht) g.restore();
     g.textAlign = 'left';
   }
 
@@ -203,6 +223,13 @@
         <label class="stil-zeile" data-nur-flaeche><span>Deckkraft</span>
           <input type="range" min="10" max="100" data-deckung /><i data-deckung-wert></i></label>
 
+        <label class="stil-zeile"><span>Drehung</span>
+          <input type="range" min="-180" max="180" step="1" data-drehung /><i data-drehung-wert></i></label>
+        <div class="stil-zeile stil-drehung-schnell"><span></span>
+          <div>${[-90, -45, 0, 45, 90].map(g =>
+            `<button type="button" data-dreh-fest="${g}">${g === 0 ? 'gerade' : g + '°'}</button>`).join('')}</div>
+        </div>
+
 
         <div class="sm-knoepfe">
           <button type="button" class="btn-klein" data-sichern>Übernehmen</button>
@@ -220,6 +247,7 @@
       probe.setAttribute('style', alsCss(welcher, k.querySelector('.stil-bild').clientWidth));
       f('groesse-wert').textContent = stil().groesse;
       f('deckung-wert').textContent = stil().deckung + ' %';
+      f('drehung-wert').textContent = (stil().drehung || 0) + '°';
       k.querySelectorAll('[data-nur-flaeche]').forEach(z => {
         z.hidden = stil().grund === 'keiner' || stil().grund === 'schatten';
       });
@@ -232,6 +260,7 @@
     f('dicke').value = String(stil().dicke);
     f('grund').value = stil().grund;
     f('deckung').value = stil().deckung;
+    f('drehung').value = stil().drehung || 0;
     nachziehen();
 
     f('schrift').addEventListener('change', e => {
@@ -243,6 +272,14 @@
     f('dicke').addEventListener('change', e => { stil().dicke = Number(e.target.value); nachziehen(); });
     f('grund').addEventListener('change', e => { stil().grund = e.target.value; nachziehen(); });
     f('deckung').addEventListener('input', e => { stil().deckung = Number(e.target.value); nachziehen(); });
+    f('drehung').addEventListener('input', e => { stil().drehung = Number(e.target.value); nachziehen(); });
+    // Die haeufigen Winkel als Knopf: am Regler trifft man 90 Grad nur mit Glueck.
+    k.querySelectorAll('[data-drehFest], [data-dreh-fest]').forEach(b =>
+      b.addEventListener('click', () => {
+        stil().drehung = Number(b.dataset.drehFest);
+        f('drehung').value = stil().drehung;
+        nachziehen();
+      }));
     k.querySelectorAll('[data-farbe]').forEach(b => b.addEventListener('click', () => {
       stil().farbe = b.dataset.farbe; nachziehen();
     }));

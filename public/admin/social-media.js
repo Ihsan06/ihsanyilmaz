@@ -438,8 +438,8 @@
         // die Vorschau zeigte sie, und im fertigen Bild fehlte sie. Wo es kein
         // Titelfeld gibt (Beitrag aus dem Bestand), liefert zeilenVon() null.
         const b = await zuschneiden(quelle, standVon(wege[i]), hoch,
-          i === 0 ? labelVon(feld) : '', logoFuer(feld, wege[i], i),
-          zeilenVon(feld), stelleVon(feld), schriftVon(feld), aiyVon(feld));
+          labelFuer(feld, wege[i], i), logoFuer(feld, wege[i], i),
+          zeilenFuer(feld, wege[i]), stelleVon(feld), schriftVon(feld), aiyVon(feld));
         dateien.push(new File([b], `bild-${i + 1}.jpg`, { type: 'image/jpeg' }));
       }
 
@@ -593,10 +593,12 @@
       const quelle = wege[i].startsWith('/')
         ? wege[i]
         : '/api/studio/foto?u=' + encodeURIComponent(wege[i]);
-      // Wie beim Teilen: der Titel gehoert in beide Formate.
+      // Jedes Bild traegt seine eigenen Texte – bei mehreren Stories hat
+      // jede ihre Aussage. Was nie beschriftet wurde, nimmt den Stand der
+      // Felder; so bleibt der einfache Fall (ein Bild, ein Titel) gleich.
       const b = await zuschneiden(quelle, standVon(wege[i]), hoch || story,
-        i === 0 ? labelVon(feld) : '', logoFuer(feld, wege[i], i),
-        zeilenVon(feld), stelleVon(feld), schriftVon(feld), aiyVon(feld));
+        labelFuer(feld, wege[i], i), logoFuer(feld, wege[i], i),
+        zeilenFuer(feld, wege[i]), stelleVon(feld), schriftVon(feld), aiyVon(feld));
       const formular = new FormData();
       formular.append('datei', new File([b], `beitrag-${i + 1}.jpg`, { type: 'image/jpeg' }));
       const a = await fetch('/api/studio/bild', {
@@ -907,6 +909,33 @@
 
   // Getrennt vom Text abgefragt: das Zeichen kann auch allein aufs Bild, ohne
   // dass Modell und Laufleistung darunterstehen.
+  // Texte fuer ein bestimmtes Bild. Ist fuer das Bild nichts abgelegt,
+  // gilt der Stand der Felder – dann verhaelt sich alles wie zuvor.
+  function zeilenFuer(feld, weg) {
+    const an = feld.querySelector('[data-zeile-an]');
+    if (an && !an.checked) return null;
+    if (!bildTexte.has(weg)) return zeilenVon(feld);
+    const roh = String(texteVon(weg).titel || '');
+    const zeilen = roh.split('\n').map(x => x.trim()).filter(Boolean);
+    if (!zeilen.length) return null;
+    const z = feld.querySelector('.igs-zeile');
+    return {
+      zeile: zeilen[0],
+      unterzeile: zeilen[1] || '',
+      stelle: z ? posVon(z, 'oben-mitte') : 'oben-mitte'
+    };
+  }
+
+  function labelFuer(feld, weg, i) {
+    const an = feld && feld.querySelector('[data-label-an]');
+    if (!an || !an.checked) return '';
+    if (!bildTexte.has(weg)) {
+      // Alter Fall: nur das Titelbild bekommt den Text.
+      return i === 0 ? labelVon(feld) : '';
+    }
+    return String(texteVon(weg).label || '').trim();
+  }
+
   function zeilenVon(feld) {
     const an = feld.querySelector('[data-zeile-an]');
     if (an && !an.checked) return null;
@@ -1247,6 +1276,12 @@
   // x und y sind Anteile der Rahmenbreite bzw. -hoehe, keine Pixel. Nur so
   // laesst sich dieselbe Verschiebung auf ein 1080er Bild uebertragen.
   const bildStand = new Map();
+
+  // Titel und Text gehoeren zum einzelnen Bild, nicht zum Beitrag: bei
+  // mehreren Stories bekommt jede ihre eigene Aussage. Geschluesselt wie
+  // bildStand ueber die Bildadresse.
+  const bildTexte = new Map();
+  const texteVon = u => bildTexte.get(u) || { titel: '', label: '' };
   const standVon = u => bildStand.get(u) || { z: 100, x: 0, y: 0 };
 
 
@@ -1312,6 +1347,7 @@
       anwenden();
       markeAbgleichen(feld, lauf.gewaehlt[lauf.i]);
       aktivZeigen(feld, lauf.gewaehlt[lauf.i]);
+      texteAnlegen(feld, lauf.gewaehlt[lauf.i]);
     };
     lauf.anwenden = anwenden;
     lauf.zeigen = zeigen;
@@ -1604,6 +1640,8 @@
           stil.deckung == null ? 72 : stil.deckung)
       : 'rgba(0,0,0,.72)';
 
+    const drehung = Number(stil.drehung) || 0;
+
     const rand = Math.round(breite * 0.075);
     const platz = breite - rand * 2;
     const schrift = (px, dick) => `${dick} ${px}px ${familie}`;
@@ -1662,6 +1700,19 @@
 
     const r = Math.round(breite * 0.009);
     const h = (st.stelle || 'unten-links').split('-')[1] || 'links';
+
+    // Der ganze Titelblock dreht als Einheit – zeilenweise gedreht stuenden
+    // Ober- und Unterzeile schief zueinander.
+    if (drehung) {
+      const breiteste = bloecke.reduce((n, b) => Math.max(n, b.breite), 0);
+      const mx = h === 'links' ? rand + breiteste / 2
+        : (h === 'mitte' ? breite / 2 : breite - rand - breiteste / 2);
+      g.save();
+      g.translate(mx, y + ganz / 2);
+      g.rotate(drehung * Math.PI / 180);
+      g.translate(-mx, -(y + ganz / 2));
+    }
+
     bloecke.forEach(b => {
       const x = h === 'links' ? rand
         : (h === 'mitte' ? Math.round((breite - b.breite) / 2) : breite - rand - b.breite);
@@ -1694,6 +1745,7 @@
       }
       y += b.hoehe + abstand;
     });
+    if (drehung) g.restore();
     g.textAlign = 'left';
     g.textBaseline = 'alphabetic';
   }
@@ -2048,7 +2100,13 @@
       schalterMerken('angaben', an.checked);
       nachziehen(); zeilenGrauen(feld); stellungAnlegen(feld);
     });
-    text.addEventListener('input', nachziehen);
+    text.addEventListener('input', () => {
+      nachziehen();
+      if (gezeigt) {
+        const t = texteVon(gezeigt);
+        bildTexte.set(gezeigt, { ...t, label: text.value });
+      }
+    });
     nachziehen();
 
     // Auch der Schrift-Knopf kommt gemerkt aus der Vorlage – das Wort in der
@@ -2097,7 +2155,14 @@
       an.addEventListener('change', () => { schalterMerken('zeile', an.checked); nachziehen(); });
       nachziehen();
     }
-    f.addEventListener('input', fuellen);
+    f.addEventListener('input', () => {
+      fuellen();
+      // Was man tippt, gehoert zu dem Bild, das gerade in der Vorschau steht.
+      if (gezeigt) {
+        const t = texteVon(gezeigt);
+        bildTexte.set(gezeigt, { ...t, titel: f.textContent });
+      }
+    });
   }
 
   // Wie weit sich ein Bild schieben laesst, haengt nicht nur am Zoom, sondern
@@ -2544,7 +2609,7 @@
 
         <p class="gd-notiz plan-notiz" data-plan-notiz hidden></p>
 
-        <div class="sm-kopf"><b>Titelüberschrift</b> <span>(optional)</span></div>
+        <div class="sm-kopf"><b>Titelüberschrift und Text</b> <span>(optional)</span></div>
         <div class="sm-label">
           <div class="sm-logo-zeile">
             <label class="sm-label-an">
@@ -2562,6 +2627,22 @@
                  istStory ? st.zeile : (themen.find(t => t.id === wkThema) || {}).titel || '')}</p>
             ${stellenWahl('zeile', 'oben-mitte')}
           </div>
+
+          <!-- Der zweite Textbaustein: laeuft unabhaengig vom Titel, hat
+               seinen eigenen Stil und seine eigene Stelle im Bild. So lassen
+               sich zwei Aussagen unterbringen, ohne sie in eine Zeile zu
+               quetschen. -->
+          <div class="sm-logo-zeile sm-trennt">
+            <label class="sm-label-an">
+              <input type="checkbox" data-label-an ${schalter.angaben ? 'checked' : ''} />
+              <span>Text</span>
+            </label>
+            <button type="button" class="sm-schrift" data-stil-auf="angaben">Gestalten …</button>
+            ${stellenWahl('angaben', 'unten-mitte')}
+          </div>
+          <input type="text" class="sm-label-text" data-label-text
+                 value="" placeholder="Zweite Aussage im Bild"
+                 ${schalter.angaben ? '' : 'disabled'} />
         </div>
 
         ${istStory ? '' : `
@@ -2721,6 +2802,39 @@
     if (seite === wkSeite) return;
     wkSeite = seite;
     seiteZeichnen(vorrat);
+  }
+
+  // Beim Bildwechsel die Textfelder auf dieses Bild umstellen. Noch nie
+  // beschriftete Bilder erben, was gerade in den Feldern steht – sonst
+  // stuende man bei jeder neuen Story vor leeren Feldern, obwohl man den
+  // Titel gerade erst getippt hat.
+  function texteAnlegen(feld, weg) {
+    if (!weg) return;
+    const titelFeld = feld.querySelector('[data-zeile-feld]');
+    const textFeld = feld.querySelector('[data-label-text]');
+
+    if (!bildTexte.has(weg)) {
+      bildTexte.set(weg, {
+        titel: titelFeld ? titelFeld.textContent : '',
+        label: textFeld ? textFeld.value : ''
+      });
+      return;   // Die Felder stehen schon richtig – nichts zu tun.
+    }
+
+    const t = texteVon(weg);
+    if (titelFeld && titelFeld.textContent !== t.titel) {
+      titelFeld.textContent = t.titel;
+      titelFeld.dispatchEvent(new Event('input', { bubbles: false }));
+    }
+    if (textFeld && textFeld.value !== t.label) {
+      textFeld.value = t.label;
+      const v = feld.querySelector('[data-vorschau] .igv-label');
+      const an = feld.querySelector('[data-label-an]');
+      if (v) {
+        v.textContent = an && an.checked ? t.label.trim() : '';
+        v.hidden = !(an && an.checked) || !t.label.trim();
+      }
+    }
   }
 
   function markeAbgleichen(feld, weg) {
@@ -2948,16 +3062,16 @@
 
     bearbeitenVerdrahten(feld);
     mehrVerdrahten(feld);
-    logoVerdrahten(feld);
+    // labelVerdrahten statt logoVerdrahten: es verdrahtet beides – den
+    // zweiten Textbaustein UND (in sich) das Logo – und bringt die Marke
+    // in die gemerkte Fassung. Ohne Letzteres stand hier nach dem Laden die
+    // Vollform aus der Vorlage, waehrend die Knoepfe schon den gemerkten
+    // Stand zeigten.
+    labelVerdrahten(feld);
     zeileVerdrahten(feld);
     stellungAnlegen(feld);
     zeilenGrauen(feld);
     stilAnlegen(feld);
-    // Die Marke in die gemerkte Fassung bringen. Ohne das stand hier nach
-    // dem Laden die Vollform aus der Vorlage, waehrend die Knoepfe AIY und
-    // Schrift schon den gemerkten Stand zeigten – man musste erst zweimal
-    // klicken, bis Bild und Knopf wieder dasselbe sagten.
-    markeZeichnen(feld);
 
     // Aus dem Nichts einen ganzen Beitrag: welche Bilder, wie viele, in
     // welcher Reihenfolge – und der Text dazu, geschrieben zu genau diesen

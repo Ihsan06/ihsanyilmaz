@@ -3674,3 +3674,13 @@ html.leiste-zu .admin-unter { display: none; }
 }
 .sm-reihe-liste .sm-reihe-bild img { transition: transform .15s ease; }
 .sm-reihe-liste .sm-reihe-bild:hover img { transform: scale(1.06); }
+
+/* Die haeufigen Winkel als Knopfreihe unter dem Drehregler: 90 Grad trifft
+   man am Regler nur mit Glueck. */
+.stil-drehung-schnell > div { display: flex; gap: 6px; flex-wrap: wrap; }
+.stil-drehung-schnell button {
+  border: 1px solid var(--border); border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: .74rem; padding: 4px 10px;
+  background: var(--off); color: var(--muted);
+}
+.stil-drehung-schnell button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
