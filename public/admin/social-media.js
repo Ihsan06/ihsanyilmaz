@@ -333,14 +333,7 @@
                   stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <span>Beitrag teilen</span></button>
-        <button type="button" class="btn-klein" data-planen>
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
-               stroke-width="1.9" aria-hidden="true">
-            <rect x="3" y="4.5" width="18" height="16" rx="2.5"/>
-            <path d="M3 9.5h18M8 2.8v3.4M16 2.8v3.4" stroke-linecap="round"/>
-            <path d="M12 12.5v3l2 1.4" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span>Beitrag planen</span></button>
+        ${planKnopf()}
         <span class="sm-meldung"></span>
       </div>`;
 
@@ -493,23 +486,42 @@
   // unter einer Adresse liegen. Der Zuschnitt passiert weiterhin hier im
   // Browser (sonst schneidet Instagram selbst, und meist falsch), das
   // Ergebnis geht kurz nach R2 und wird hinterher wieder geloescht.
-  async function veroeffentlichen(feld, ziel, knopf, mitgegeben) {
-    const wege = mitgegeben || [...ziel.querySelectorAll('.sm-foto.aktiv')].map(k => k.dataset.u);
-    if (!wege.length) { knopfText(knopf, 'Erst Bilder auswählen'); return; }
+  // Was vor jedem Weg nach draussen gilt – Posten wie Einplanen. Stand
+  // dreimal fast gleich im Code; beim naechsten Grenzwert waere eine der
+  // Stellen liegengeblieben.
+  // Der Planen-Knopf stand zweimal im Markup – einmal davon mit fest
+  // verdrahtetem "Beitrag planen", auch wenn gerade eine Story gebaut wurde.
+  function planKnopf() {
+    return `<button type="button" class="btn-klein" data-planen>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+           stroke-width="1.9" aria-hidden="true">
+        <rect x="3" y="4.5" width="18" height="16" rx="2.5"/>
+        <path d="M3 9.5h18M8 2.8v3.4M16 2.8v3.4" stroke-linecap="round"/>
+        <path d="M12 12.5v3l2 1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>${format === 'story' ? 'Story planen' : 'Beitrag planen'}</span></button>`;
+  }
 
-    const text = (feld.querySelector('[data-kopie]') || {}).textContent || '';
-    const hoch = !!feld.querySelector('.igv-hoch');
-    const story = format === 'story';
+  function auswahlPruefen(wege, story, knopf) {
+    if (!wege.length) { knopfText(knopf, 'Erst Bilder auswählen'); return false; }
     if (story && wege.length > 1) {
       knopfText(knopf, 'Eine Story nimmt genau ein Bild');
-      return;
+      return false;
     }
     // Vor dem Zuschneiden pruefen, nicht danach: sonst wandern zwoelf fertige
     // Bilder nach R2 und der Endpunkt lehnt anschliessend alles ab.
     if (!story && wege.length > 10) {
       knopfText(knopf, `Höchstens 10 Bilder – ausgewählt sind ${wege.length}`);
-      return;
+      return false;
     }
+    return true;
+  }
+
+  async function veroeffentlichen(feld, ziel, knopf, mitgegeben) {
+    const wege = mitgegeben || [...ziel.querySelectorAll('.sm-foto.aktiv')].map(k => k.dataset.u);
+    const text = (feld.querySelector('[data-kopie]') || {}).textContent || '';
+    const story = format === 'story';
+    if (!auswahlPruefen(wege, story, knopf)) return;
 
     knopf.disabled = true;
     let abgelegt = [];
@@ -582,15 +594,9 @@
   // dem Posten (oder beim Loeschen des Eintrags).
   async function einplanen(feld, ziel, knopf, mitgegeben, wann) {
     const wege = mitgegeben || [...ziel.querySelectorAll('.sm-foto.aktiv')].map(k => k.dataset.u);
-    if (!wege.length) { knopfText(knopf, 'Erst Bilder auswählen'); return; }
-
     const text = (feld.querySelector('[data-kopie]') || {}).textContent || '';
     const story = format === 'story';
-    if (story && wege.length > 1) { knopfText(knopf, 'Eine Story nimmt genau ein Bild'); return; }
-    if (!story && wege.length > 10) {
-      knopfText(knopf, `Höchstens 10 Bilder – ausgewählt sind ${wege.length}`);
-      return;
-    }
+    if (!auswahlPruefen(wege, story, knopf)) return;
 
     knopf.disabled = true;
     let abgelegt = [];
@@ -2584,14 +2590,7 @@
                       stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>Beitrag teilen</span></button>
-            <button type="button" class="btn-klein" data-planen>
-              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
-                   stroke-width="1.9" aria-hidden="true">
-                <rect x="3" y="4.5" width="18" height="16" rx="2.5"/>
-                <path d="M3 9.5h18M8 2.8v3.4M16 2.8v3.4" stroke-linecap="round"/>
-                <path d="M12 12.5v3l2 1.4" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>${format === 'story' ? 'Story planen' : 'Beitrag planen'}</span></button>
+            ${planKnopf()}
             <span class="sm-meldung"></span>
           </div>
         </div>
@@ -2902,6 +2901,11 @@
     stellungAnlegen(feld);
     zeilenGrauen(feld);
     stilAnlegen(feld);
+    // Die Marke in die gemerkte Fassung bringen. Ohne das stand hier nach
+    // dem Laden die Vollform aus der Vorlage, waehrend die Knoepfe AIY und
+    // Schrift schon den gemerkten Stand zeigten – man musste erst zweimal
+    // klicken, bis Bild und Knopf wieder dasselbe sagten.
+    markeZeichnen(feld);
 
     // Aus dem Nichts einen ganzen Beitrag: welche Bilder, wie viele, in
     // welcher Reihenfolge – und der Text dazu, geschrieben zu genau diesen
