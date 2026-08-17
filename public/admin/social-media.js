@@ -504,8 +504,11 @@
 
   function auswahlPruefen(wege, story, knopf) {
     if (!wege.length) { knopfText(knopf, 'Erst Bilder auswählen'); return false; }
-    if (story && wege.length > 1) {
-      knopfText(knopf, 'Eine Story nimmt genau ein Bild');
+    // Mehrere Bilder heissen bei Stories: mehrere Stories nacheinander –
+    // genau so, wie man sie auch in der App hintereinander stellt. Instagram
+    // nimmt je Aufruf genau ein Bild, die Schleife steckt in veroeffentlichen().
+    if (story && wege.length > 10) {
+      knopfText(knopf, `Höchstens 10 Stories auf einmal – ausgewählt sind ${wege.length}`);
       return false;
     }
     // Vor dem Zuschneiden pruefen, nicht danach: sonst wandern zwoelf fertige
@@ -529,23 +532,42 @@
       knopfText(knopf, 'Bilder werden zugeschnitten …');
       abgelegt = await zugeschnittenAblegen(feld, knopf, wege, story);
 
-      knopfText(knopf, 'Wird veröffentlicht …');
-      const a = await fetch('/api/studio/veroeffentlichen', {
-        method: 'POST', credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bilder: abgelegt.map(p => location.origin + p),
-          text, format: story ? 'story' : 'beitrag'
-        })
-      });
-      const d = await a.json();
-      if (!d || !d.ok) throw new Error((d && d.fehler) || 'HTTP ' + a.status);
+      // Ein Beitrag geht als Ganzes raus, Stories einzeln: Instagram nimmt
+      // je Story genau ein Bild. Bei mehreren laeuft die Schleife hier, damit
+      // man sieht, welche gerade dran ist – und welche gescheitert waere.
+      const pakete = story
+        ? abgelegt.map(p => [p])
+        : [abgelegt];
+      let letzterWeg = '';
+      for (let i = 0; i < pakete.length; i++) {
+        knopfText(knopf, pakete.length > 1
+          ? `Story ${i + 1} von ${pakete.length} …`
+          : 'Wird veröffentlicht …');
+        const a = await fetch('/api/studio/veroeffentlichen', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bilder: pakete[i].map(p => location.origin + p),
+            text: story ? '' : text,
+            format: story ? 'story' : 'beitrag'
+          })
+        });
+        const d = await a.json();
+        if (!d || !d.ok) {
+          throw new Error((pakete.length > 1 ? `Story ${i + 1}: ` : '')
+            + ((d && d.fehler) || 'HTTP ' + a.status));
+        }
+        letzterWeg = d.weg || letzterWeg;
+      }
 
       alsGepostetMerken(feld.dataset.fahrzeug || '', story ? 'story' : 'neuzugang');
       alsBenutztMerken(wege);
       alteBearbeitungWegraeumen();
-      knopfText(knopf, story ? 'Story steht ✓' : 'Beitrag steht ✓');
-      erfolgZeigen(story ? 'Story' : 'Beitrag', d.weg);
+      const wort = story ? (pakete.length > 1 ? `${pakete.length} Stories stehen ✓` : 'Story steht ✓')
+        : 'Beitrag steht ✓';
+      knopfText(knopf, wort);
+      erfolgZeigen(story ? (pakete.length > 1 ? `${pakete.length} Stories` : 'Story') : 'Beitrag',
+        letzterWeg);
       igLaden();
     } catch (err) {
       console.error('Veroeffentlichen:', err);
@@ -604,27 +626,40 @@
       knopfText(knopf, 'Bilder werden zugeschnitten …');
       abgelegt = await zugeschnittenAblegen(feld, knopf, wege, story);
 
-      knopfText(knopf, 'Wird eingeplant …');
-      const a = await fetch('/api/studio/warteschlange', {
-        method: 'POST', credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          zeitpunkt: wann,
-          bilder: abgelegt.map(p => location.origin + p),
-          text, format: story ? 'story' : 'beitrag'
-        })
-      });
-      const d = await a.json();
-      if (!d || !d.ok) throw new Error((d && d.fehler) || 'HTTP ' + a.status);
+      // Jede Story wird ein eigener Eintrag – sonst haelte der Cron-Worker
+      // sie fuer eine Galerie und Instagram lehnte sie ab. Ein Beitrag
+      // bleibt ein Eintrag mit allen Bildern.
+      const pakete = story ? abgelegt.map(p => [p]) : [abgelegt];
+      for (let i = 0; i < pakete.length; i++) {
+        knopfText(knopf, pakete.length > 1
+          ? `Story ${i + 1} von ${pakete.length} wird eingeplant …`
+          : 'Wird eingeplant …');
+        const a = await fetch('/api/studio/warteschlange', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            zeitpunkt: wann,
+            bilder: pakete[i].map(p => location.origin + p),
+            text: story ? '' : text,
+            format: story ? 'story' : 'beitrag'
+          })
+        });
+        const d = await a.json();
+        if (!d || !d.ok) {
+          throw new Error((pakete.length > 1 ? `Story ${i + 1}: ` : '')
+            + ((d && d.fehler) || 'HTTP ' + a.status));
+        }
+      }
 
       alsBenutztMerken(wege);
       alteBearbeitungWegraeumen();
       const schoen = new Date(wann).toLocaleString('de-DE',
         { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-      knopfText(knopf, 'Eingeplant ✓');
+      knopfText(knopf, pakete.length > 1 ? `${pakete.length} Stories eingeplant ✓` : 'Eingeplant ✓');
       const zeile = knopf.parentElement && knopf.parentElement.querySelector('.sm-meldung');
       if (zeile) {
-        zeile.innerHTML = `Eingeplant für ${schuetzen(schoen)} Uhr ·
+        zeile.innerHTML = `${pakete.length > 1 ? pakete.length + ' Stories eingeplant' : 'Eingeplant'}
+          für ${schuetzen(schoen)} Uhr ·
           <a href="/admin/planen">zur Warteschlange ↗</a>`;
       }
     } catch (err) {
@@ -719,11 +754,11 @@
         </svg>
       </span>
       <b id="vp-fertig-titel">${schuetzen(was)} veröffentlicht</b>
-      <p>${was === 'Story' ? 'Sie steht' : 'Er steht'} jetzt öffentlich auf
-        <strong>@aiy.web</strong>.</p>
+      <p>${/Stories$/.test(was) ? 'Sie stehen' : (was === 'Story' ? 'Sie steht' : 'Er steht')}
+        jetzt öffentlich auf <strong>@aiy.web</strong>.</p>
       <div class="vp-knoepfe">
         ${weg ? `<a class="vp-ja" href="${schuetzen(weg)}" target="_blank" rel="noopener">
-          ${schuetzen(was)} ansehen
+          ${/Stories$/.test(was) ? 'Stories ansehen' : schuetzen(was) + ' ansehen'}
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
                stroke-width="2" aria-hidden="true">
             <path d="M14 4h6v6M20 4l-8.5 8.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -2529,6 +2564,7 @@
           </div>
         </div>
 
+        ${istStory ? '' : `
         <div class="sm-kopf" style="margin-top:18px"><b>Text</b>
           <span>${wkEigen ? 'zu den Bildern geschrieben'
             : (ohneText ? 'noch keiner' : `Variante ${nr} von ${bau.varianten}`)}</span></div>
@@ -2547,7 +2583,7 @@
             <polyline points="20.5 3.5 20.5 9 15 9" stroke-linecap="round" stroke-linejoin="round"/>
           </svg></button>
           <button type="button" class="btn-klein sm-leise" data-bearbeiten>Bearbeiten</button>
-        </div>
+        </div>`}
 
         <div class="sm-logo-zeile">
           <label class="sm-label-an">
