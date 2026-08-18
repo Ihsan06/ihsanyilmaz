@@ -5,10 +5,9 @@ import AdminShell, { api, datum } from "@/components/admin/AdminShell";
 
 type Bild = {
   schluessel: string;
-  dateiname: string | null;
-  groesse: number;
-  typ: string | null;
-  erstellt_am: string;
+  quelle: string | null;
+  motiv: string | null;
+  angelegt: string;
 };
 
 function mb(bytes: number) {
@@ -40,19 +39,20 @@ async function zuJpeg(datei: File): Promise<File> {
 
 export default function GalerieSeite() {
   const [bilder, setBilder] = useState<Bild[]>([]);
-  const [summe, setSumme] = useState(0);
-  const [speicherDa, setSpeicherDa] = useState(true);
+  const [kategorien, setKategorien] = useState<{ id: string; titel: string }[]>([]);
   const [laedtHoch, setLaedtHoch] = useState(false);
   const [fehler, setFehler] = useState("");
   const [laedt, setLaedt] = useState(true);
   const dateiFeld = useRef<HTMLInputElement>(null);
 
+  // Eine Quelle für alle Bilder: derselbe Vorrat, aus dem auch der
+  // Baukasten unter "Content erstellen" wählt. Vorher lag hier eine zweite
+  // Sammlung, und beide Seiten zeigten verschiedene Bilder.
   const laden = () =>
-    api("/api/admin/bild")
+    api("/api/studio/vorrat")
       .then(d => {
-        setBilder(d.bilder);
-        setSumme(d.summeBytes);
-        setSpeicherDa(d.speicherVerbunden);
+        setBilder(Array.isArray(d.bilder) ? d.bilder : []);
+        setKategorien(Array.isArray(d.kategorien) ? d.kategorien : []);
       })
       .catch(e => setFehler(e.message))
       .finally(() => setLaedt(false));
@@ -69,7 +69,7 @@ export default function GalerieSeite() {
         const form = new FormData();
         form.append("datei", datei);
         // Kein Content-Type setzen — der Browser ergänzt die multipart-Grenze selbst.
-        const res = await fetch("/api/admin/bild", { method: "POST", body: form });
+        const res = await fetch("/api/studio/vorrat", { method: "POST", body: form });
         const d = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(d?.error || "Upload fehlgeschlagen.");
       }
@@ -83,9 +83,10 @@ export default function GalerieSeite() {
   };
 
   const loeschen = async (schluessel: string) => {
-    if (!confirm("Dieses Bild wirklich löschen?")) return;
+    if (!confirm("Dieses Bild in den Papierkorb legen?")) return;
     setBilder(b => b.filter(x => x.schluessel !== schluessel));
-    await api("/api/admin/bild", { method: "DELETE", body: JSON.stringify({ schluessel }) })
+    await api("/api/studio/vorrat?schluessel=" + encodeURIComponent(schluessel),
+      { method: "DELETE" })
       .then(laden)
       .catch(e => setFehler(e.message));
   };
@@ -98,22 +99,11 @@ export default function GalerieSeite() {
     >
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
-      {!speicherDa && (
-        <div className="card p-5 mb-6">
-          <p className="text-[var(--fg)] font-medium mb-1">Bildspeicher noch nicht verbunden</p>
-          <p className="text-[var(--fg-muted)] text-sm leading-relaxed">
-            Die Galerie ist fertig eingebaut, es fehlt nur der Speicher. In Cloudflare unter{" "}
-            <em>R2 → Create bucket</em> einen Bucket anlegen (z.&nbsp;B. <code>aiy-bilder</code>) und
-            ihn im Pages-Projekt unter <em>Settings → Bindings → Add → R2 bucket</em> als{" "}
-            <code>BILDER</code> hinterlegen. Danach einmal neu deployen.
-          </p>
-        </div>
-      )}
 
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <button
           onClick={() => dateiFeld.current?.click()}
-          disabled={laedtHoch || !speicherDa}
+          disabled={laedtHoch}
           className="btn-primary px-5 py-2.5 text-sm disabled:opacity-60"
         >
           <Upload size={16} /> {laedtHoch ? "Wird hochgeladen…" : "Bilder hinzufügen"}
@@ -123,7 +113,7 @@ export default function GalerieSeite() {
           multiple hidden onChange={e => hochladen(e.target.files)}
         />
         <span className="text-[var(--fg-subtle)] text-sm">
-          {bilder.length} {bilder.length === 1 ? "Bild" : "Bilder"} · {mb(summe)} belegt
+          {bilder.length} {bilder.length === 1 ? "Bild" : "Bilder"} im Vorrat
         </span>
       </div>
 
@@ -146,8 +136,8 @@ export default function GalerieSeite() {
               <div className="relative" style={{ aspectRatio: "1 / 1", background: "var(--surface-2)" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`/api/admin/bild?schluessel=${encodeURIComponent(b.schluessel)}`}
-                  alt={b.dateiname || "Galeriebild"}
+                  src={`/bilder/${b.schluessel}`}
+                  alt={b.quelle || "Galeriebild"}
                   loading="lazy"
                   className="w-full h-full object-cover block"
                 />
@@ -161,11 +151,11 @@ export default function GalerieSeite() {
                 </button>
               </div>
               <figcaption className="p-3">
-                <div className="text-[var(--fg)] text-xs font-medium truncate" title={b.dateiname || ""}>
-                  {b.dateiname || "Bild"}
+                <div className="text-[var(--fg)] text-xs font-medium truncate" title={b.quelle || ""}>
+                  {b.quelle || "Bild"}
                 </div>
                 <div className="text-[var(--fg-subtle)] text-xs mt-0.5">
-                  {mb(b.groesse)} · {datum(b.erstellt_am)}
+                  {kategorien.find(k => k.id === b.motiv)?.titel || "unsortiert"} · {datum(b.angelegt)}
                 </div>
               </figcaption>
             </figure>
