@@ -742,6 +742,22 @@
     });
   }
 
+  // Nach dem Posten ist der Beitrag draussen – der Baukasten soll dann leer
+  // dastehen und nicht mit derselben Auswahl, die gerade rausgegangen ist.
+  let frischNachPosten = false;
+
+  function nachPostenZuruecksetzen() {
+    frischNachPosten = true;
+    wkAuswahl.clear();
+    bildTexte.clear();
+    bildStand.clear();
+    ohneLogo.clear();
+    gezeigt = null;
+    wkSeite = 0;
+    wkEigen = null;
+    werkstattZeigen();
+  }
+
   // Nach dem Posten dasselbe Fenster wie vor dem Posten, nur andersherum:
   // erst die Rueckfrage, dann die Bestaetigung. Eine Zeile im Fuss war zu
   // leise fuer etwas, das gerade oeffentlich geworden ist – und der Weg zum
@@ -782,6 +798,10 @@
       schleier.remove();
       document.documentElement.classList.remove('vp-offen');
       document.removeEventListener('keydown', taste);
+      // Egal auf welchem Weg das Fenster zugeht: der Baukasten faengt von
+      // vorn an. Nur im Werkstatt-Baukasten – beim Fahrzeug haengt die
+      // Auswahl am Fahrzeug, nicht am Beitrag.
+      if (document.getElementById('wk-block')) nachPostenZuruecksetzen();
     };
     const taste = e => { if (e.key === 'Escape') zu(); };
     document.addEventListener('keydown', taste);
@@ -3192,7 +3212,10 @@
       bearbeitung = null;
     }
     // Zum Anfang ein Bild, damit die Vorschau nicht leer bleibt.
-    if (!wkAuswahl.size) vorschlagen(d, 1);
+    // Nach dem Posten faengt man mit leerer Auswahl an – sonst haengt am
+    // frischen Beitrag sofort wieder ein Bild, das man erst abwaehlen muss.
+    if (!wkAuswahl.size && !frischNachPosten) vorschlagen(d, 1);
+    frischNachPosten = false;
   }
 
   // ─── Instagram ───────────────────────────────────────────────────────
