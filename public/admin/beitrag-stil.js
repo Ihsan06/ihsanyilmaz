@@ -55,11 +55,7 @@
     grund: 'schatten',
     grundfarbe: '#000000',
     deckung: 62,
-    drehung: 0,        // Grad, -180 bis 180
-    buendig: 'mitte',  // innerhalb des Kastens: links | mitte | rechts
-    kursiv: false,
-    unterstrichen: false,
-    durchgestrichen: false
+    drehung: 0         // Grad, -180 bis 180
   };
 
   // Zwei getrennte Saetze: der Titel steht gross im Bild, die Angaben sind
@@ -115,16 +111,8 @@
     // wandert er beim Drehen aus seiner Ecke heraus.
     const dreh = st.drehung
       ? `transform:rotate(${st.drehung}deg);transform-origin:center center;` : '';
-    const strich = [st.unterstrichen ? 'underline' : '', st.durchgestrichen ? 'line-through' : '']
-      .filter(Boolean).join(' ');
-    const schnitt = (st.kursiv ? 'font-style:italic;' : 'font-style:normal;')
-      + `text-decoration:${strich || 'none'};`;
-    // Buendigkeit gilt INNERHALB des Kastens – wo der Kasten sitzt, sagt die
-    // Stellenwahl im Baukasten.
-    const buendig = `text-align:${st.buendig || 'mitte'};`
-      .replace('mitte', 'center').replace('links', 'left').replace('rechts', 'right');
     return `font-family:${st.schrift};font-size:${px}px;font-weight:${st.dicke};`
-      + `color:${st.farbe};${grund}${schatten}${dreh}${schnitt}${buendig}`;
+      + `color:${st.farbe};${grund}${schatten}${dreh}`;
   }
 
   function mitDeckung(hex, prozent) {
@@ -137,9 +125,7 @@
     if (!text) return;
     const st = stile[was] || stile.angaben;
     const px = Math.round(breite * st.groesse / 1000);
-    // Kursiv steckt in der Schriftangabe; Unter- und Durchstreichung kennt
-    // Canvas nicht – die Linien zieht der Zug unten selbst.
-    g.font = `${st.kursiv ? 'italic ' : ''}${st.dicke} ${px}px ${st.schrift}`;
+    g.font = `${st.dicke} ${px}px ${st.schrift}`;
     g.textAlign = ausrichtung || 'left';
     g.textBaseline = 'alphabetic';
 
@@ -187,22 +173,6 @@
       g.fillText(text, x, y);
     }
 
-    // Die Striche in Textfarbe, Staerke an der Schriftgroesse bemessen.
-    if (st.unterstrichen || st.durchgestrichen) {
-      g.shadowBlur = 0; g.shadowOffsetY = 0;
-      g.strokeStyle = st.farbe;
-      g.lineWidth = Math.max(1, Math.round(px * 0.06));
-      g.lineCap = 'butt';
-      const ziehen = hoeheY => {
-        g.beginPath();
-        g.moveTo(links, hoeheY);
-        g.lineTo(links + w, hoeheY);
-        g.stroke();
-      };
-      if (st.unterstrichen) ziehen(y + Math.round(px * 0.16));
-      if (st.durchgestrichen) ziehen(y - Math.round(px * 0.30));
-    }
-
     if (gedreht) g.restore();
     g.textAlign = 'left';
   }
@@ -228,34 +198,6 @@
 
         <label class="stil-zeile"><span>Größe</span>
           <input type="range" min="18" max="60" data-groesse /><i data-groesse-wert></i></label>
-
-        <div class="stil-zeile"><span>Bündig</span>
-          <div class="stil-zeichen">
-            <button type="button" data-buendig="links" title="Linksbündig" aria-label="Linksbündig">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h13"/></svg></button>
-            <button type="button" data-buendig="mitte" title="Zentriert" aria-label="Zentriert">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M6 18h12"/></svg></button>
-            <button type="button" data-buendig="rechts" title="Rechtsbündig" aria-label="Rechtsbündig">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round"><path d="M4 6h16M10 12h10M7 18h13"/></svg></button>
-          </div>
-        </div>
-
-        <div class="stil-zeile"><span>Schnitt</span>
-          <div class="stil-zeichen">
-            <button type="button" data-schnitt="kursiv" title="Kursiv" aria-label="Kursiv">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round"><path d="M15 4h-5M14 20H9M14.5 4 9.5 20"/></svg></button>
-            <button type="button" data-schnitt="unterstrichen" title="Unterstrichen" aria-label="Unterstrichen">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round"><path d="M7 4v7a5 5 0 0 0 10 0V4M5 20h14"/></svg></button>
-            <button type="button" data-schnitt="durchgestrichen" title="Durchgestrichen" aria-label="Durchgestrichen">
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round"><path d="M4 12h16M7 6.5V6a4 4 0 0 1 8 0M9 17.5a4 4 0 0 0 7-2.5"/></svg></button>
-          </div>
-        </div>
 
         <label class="stil-zeile"><span>Stärke</span>
           <select data-dicke>
@@ -291,9 +233,14 @@
               <input type="number" min="-180" max="180" step="1" data-drehung
                      aria-label="Drehung in Grad" /><i>°</i>
             </span>
-            <span class="stil-grad-fest">${[-90, -45, 0, 45, 90].map(g =>
-              `<button type="button" data-dreh-fest="${g}">${g === 0 ? 'gerade' : g + '°'}</button>`
-            ).join('')}</span>
+            <button type="button" class="stil-dreh-null" data-dreh-null
+                    title="Wieder gerade stellen" aria-label="Drehung zurücksetzen">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                   stroke-width="2" aria-hidden="true">
+                <path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" stroke-linecap="round"/>
+                <polyline points="3.5 3.5 3.5 9 9 9" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -314,13 +261,8 @@
       probe.setAttribute('style', alsCss(welcher, k.querySelector('.stil-bild').clientWidth));
       f('groesse-wert').textContent = stil().groesse;
       f('deckung-wert').textContent = stil().deckung + ' %';
-      const grad = stil().drehung || 0;
-      k.querySelectorAll('[data-dreh-fest]').forEach(b =>
-        b.classList.toggle('hier', Number(b.dataset.drehFest) === grad));
-      k.querySelectorAll('[data-buendig]').forEach(b =>
-        b.classList.toggle('hier', b.dataset.buendig === (stil().buendig || 'mitte')));
-      k.querySelectorAll('[data-schnitt]').forEach(b =>
-        b.classList.toggle('hier', !!stil()[b.dataset.schnitt]));
+      const dreh = k.querySelector('[data-dreh-null]');
+      if (dreh) dreh.disabled = !(stil().drehung || 0);
       k.querySelectorAll('[data-nur-flaeche]').forEach(z => {
         z.hidden = stil().grund === 'keiner' || stil().grund === 'schatten';
       });
@@ -354,18 +296,7 @@
       nachziehen();
     };
     f('drehung').addEventListener('input', e => drehSetzen(e.target.value));
-    k.querySelectorAll('[data-dreh-fest]').forEach(b =>
-      b.addEventListener('click', () => drehSetzen(b.dataset.drehFest)));
-
-    // Buendigkeit und Schnitte
-    k.querySelectorAll('[data-buendig]').forEach(b => b.addEventListener('click', () => {
-      stil().buendig = b.dataset.buendig; nachziehen();
-    }));
-    k.querySelectorAll('[data-schnitt]').forEach(b => b.addEventListener('click', () => {
-      const was = b.dataset.schnitt;
-      stil()[was] = !stil()[was];
-      nachziehen();
-    }));
+    k.querySelector('[data-dreh-null]').addEventListener('click', () => drehSetzen(0));
     k.querySelectorAll('[data-farbe]').forEach(b => b.addEventListener('click', () => {
       stil().farbe = b.dataset.farbe; nachziehen();
     }));

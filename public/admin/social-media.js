@@ -1673,12 +1673,10 @@
       : 'rgba(0,0,0,.72)';
 
     const drehung = Number(stil.drehung) || 0;
-    const kursiv = stil.kursiv ? 'italic ' : '';
-    const buendig = stil.buendig || 'mitte';
 
     const rand = Math.round(breite * 0.075);
     const platz = breite - rand * 2;
-    const schrift = (px, dick) => `${kursiv}${dick} ${px}px ${familie}`;
+    const schrift = (px, dick) => `${dick} ${px}px ${familie}`;
 
     // Eine Zeile, die nicht passt, wird umbrochen – nicht abgeschnitten und
     // nicht endlos verkleinert.
@@ -1764,14 +1762,7 @@
 
       g.font = schrift(b.px, b.dick);
       g.textBaseline = 'middle';
-      // Innerhalb des Kastens ausrichten. Der Kasten selbst ist so breit wie
-      // seine Zeile – ein Unterschied entsteht erst, wenn Ober- und
-      // Unterzeile verschieden lang sind.
-      const breiteste = bloecke.reduce((n, e) => Math.max(n, e.breite), 0);
-      const innen = buendig === 'links' ? x + luftX
-        : (buendig === 'rechts' ? x + breiteste - luftX
-          : x + breiteste / 2);
-      g.textAlign = buendig === 'links' ? 'left' : (buendig === 'rechts' ? 'right' : 'center');
+      g.textAlign = 'left';
       const mitteY = y + b.hoehe / 2 + 1;
       if (grund === 'schatten') {
         g.shadowColor = 'rgba(0,0,0,.72)';
@@ -1779,24 +1770,11 @@
         g.shadowOffsetY = Math.round(breite * 0.002);
       }
       g.fillStyle = farbe;
-      g.fillText(b.t, innen, mitteY);
+      g.fillText(b.t, x + luftX, mitteY);
       // Zweiter Zug ohne Schatten: sonst wirkt die Kante verwaschen.
       if (grund === 'schatten') {
         g.shadowBlur = 0; g.shadowOffsetY = 0;
-        g.fillText(b.t, innen, mitteY);
-      }
-      if (stil.unterstrichen || stil.durchgestrichen) {
-        const wortBreite = b.breite - luftX * 2;
-        const l = buendig === 'links' ? innen
-          : (buendig === 'rechts' ? innen - wortBreite : innen - wortBreite / 2);
-        g.strokeStyle = farbe;
-        g.lineWidth = Math.max(1, Math.round(b.px * 0.06));
-        const linie = versatz => {
-          g.beginPath(); g.moveTo(l, mitteY + versatz);
-          g.lineTo(l + wortBreite, mitteY + versatz); g.stroke();
-        };
-        if (stil.unterstrichen) linie(Math.round(b.px * 0.46));
-        if (stil.durchgestrichen) linie(0);
+        g.fillText(b.t, x + luftX, mitteY);
       }
       y += b.hoehe + abstand;
     });

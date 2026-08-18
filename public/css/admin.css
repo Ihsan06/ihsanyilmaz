@@ -3689,26 +3689,14 @@ html.leiste-zu .admin-unter { display: none; }
   position: absolute; right: 9px; font-style: normal;
   font-size: .8rem; color: var(--muted); pointer-events: none;
 }
-.stil-grad-fest { display: inline-flex; gap: 5px; flex-wrap: wrap; }
-.stil-grad-fest button {
-  border: 1px solid var(--border); border-radius: 999px; cursor: pointer;
-  font: inherit; font-size: .73rem; padding: 4px 9px;
-  background: var(--off); color: var(--muted);
-}
-.stil-grad-fest button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
-.stil-grad-fest button.hier {
-  background: var(--gold, #12557F); border-color: var(--gold, #12557F); color: #fff;
-}
-
-/* Buendigkeit und Schriftschnitt als Zeichenknoepfe. */
-.stil-zeichen { display: flex; gap: 6px; }
-.stil-zeichen button {
+/* Der Drehpfeil daneben stellt wieder gerade – ausgegraut, solange
+   nichts zu stellen ist. */
+.stil-dreh-null {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 30px; cursor: pointer; padding: 0;
-  border: 1px solid var(--border); border-radius: 8px;
+  width: 32px; height: 32px; padding: 0; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 9px;
   background: var(--off); color: var(--muted);
 }
-.stil-zeichen button:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
-.stil-zeichen button.hier {
-  background: var(--gold, #12557F); border-color: var(--gold, #12557F); color: #fff;
-}
+.stil-dreh-null:hover:not(:disabled) { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+.stil-dreh-null:disabled { opacity: .4; cursor: default; }
+
