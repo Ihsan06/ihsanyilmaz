@@ -2972,35 +2972,29 @@ html.leiste-zu .admin-unter { display: none; }
 }
 .sm-quelle-weg:hover { color: var(--gold, #12557F); }
 
-/* Wo Text und Marke sitzen, entscheidet am Ende das Auge – nicht das Modell. */
-.sm-stellen {
-  display: flex; align-items: center; gap: 3px; flex-wrap: wrap; margin: 6px 0 2px;
+/* Wo Text und Marke sitzen, entscheidet am Ende das Auge – nicht das Modell.
+   Neun Felder in einem Quadrat: dieselbe Wahl wie vorher mit zwei Reihen
+   Pfeilen, aber auf einem Viertel der Breite. Und man sieht die Stelle,
+   statt sie aus zwei Richtungen zusammenzusetzen. */
+.sm-stellen-raster {
+  display: inline-grid; grid-template-columns: repeat(3, 1fr);
+  gap: 2px; padding: 3px; flex: none;
+  border: 1px solid var(--border); border-radius: 7px;
+  background: var(--white, #fff);
 }
-/* Feste Breite fuers Wort davor: sonst beginnen 'Angaben' und 'Logo' die
-   Knopfreihen an verschiedenen Stellen und nichts steht untereinander. */
-.sm-stellen > span:first-child {
-  flex: none; width: 52px; font-size: .72rem; color: var(--muted);
+.sm-stellen-raster button {
+  width: 15px; height: 15px; padding: 0; cursor: pointer;
+  border: 0; border-radius: 3px; background: transparent;
+  display: flex; align-items: center; justify-content: center;
 }
-.sm-stellen button {
-  font-family: inherit; font-size: .72rem; font-weight: 600; cursor: pointer;
-  padding: 4px 11px; border-radius: 999px;
-  border: 1px solid var(--border); background: var(--white, #fff); color: var(--muted);
+/* Der Punkt zeigt, wo im Bild etwas landet. */
+.sm-stellen-raster button i {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--border); transition: var(--transition, .15s ease);
 }
-.sm-stellen button:hover { color: var(--text); }
-.sm-stellen button.hier {
-  background: var(--carbon, #071A2B); border-color: var(--carbon, #071A2B); color: #fff;
-}
-/* Zwei Reihen Knoepfe statt eines Rasters: man liest, was man waehlt. Die
-   Reihen sind durch einen groesseren Abstand getrennt, damit die senkrechte
-   und die waagrechte Wahl nicht als eine Reihe von sechs gelesen werden. */
-.sm-stellen-reihe { display: inline-flex; gap: 3px; margin-right: 10px; }
-/* Das Mal-Zeichen trennt die senkrechte von der waagrechten Wahl: drei mal
-   drei, nicht sechs nebeneinander. */
-.sm-stellen-mal {
-  color: var(--border); font-weight: 400; line-height: 1;
-  margin: 0 5px; align-self: center;
-}
-.sm-stellen-reihe { margin-right: 0; }
+.sm-stellen-raster button:hover i { background: var(--muted); }
+.sm-stellen-raster button.hier { background: var(--carbon, #071A2B); }
+.sm-stellen-raster button.hier i { background: #fff; }
 
 /* Ueberschrift und Reiter auf einer Zeile: die Kachel begann mit zwei fast
    leeren Zeilen uebereinander, bevor ueberhaupt etwas zu sehen war. */
@@ -3023,8 +3017,7 @@ html.leiste-zu .admin-unter { display: none; }
   display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
   margin: 18px 0 0;
 }
-.sm-logo-zeile .sm-stellen { margin: 0; }
-.sm-logo-zeile .sm-stellen > span:first-child { display: none; }
+.sm-logo-zeile .sm-stellen-raster { margin: 0; }
 
 /* Nichts darf sich ueberlagern, auch wenn alle drei auf dieselbe Ecke zeigen.
    Die Marke steht am weitesten aussen, die Angaben weichen ihr waagrecht aus,
@@ -3204,7 +3197,7 @@ html.leiste-zu .admin-unter { display: none; }
 }
 /* Eine Zeile je Sache: Haekchen, Knopf, Platzierung. Die Beschriftung vor den
    Positionsknoepfen faellt dabei weg – das Haekchen links sagt es schon. */
-.sm-logo-zeile .sm-stellen > span:first-child { display: none; }
+
 .sm-logo-zeile .sm-label-an { flex: none; }
 
 /* Nur wo eine Themenzeile folgt, zieht die Leiste sich nach unten zusammen –
@@ -3323,7 +3316,7 @@ html.leiste-zu .admin-unter { display: none; }
 .sm-kopf-sticker + .sm-ton { margin-bottom: 14px; }
 /* Ohne Wort davor und linksbuendig: was gemeint ist, steht darueber. */
 .sm-zeile-wahl { justify-content: flex-start; margin: 6px 0 0; }
-.sm-zeile-wahl .sm-stellen { margin: 0; }
+.sm-zeile-wahl .sm-stellen-raster { margin: 0; }
 .igs-zeile[hidden] { display: none; }
 /* Die Zeile fuers Bild im selben Kasten wie die Angaben: Haekchen, Knopf und
    Platzierung oben, das Feld darunter. */
@@ -3375,7 +3368,6 @@ html.leiste-zu .admin-unter { display: none; }
 .sm-stellen button {
   width: 30px; padding: 5px 0; font-size: .86rem; line-height: 1;
 }
-.sm-stellen-mal { margin: 0 7px; }
 /* Der Kasten sitzt so dicht am Vorherigen wie die Logo-Zeile an seiner
    unteren Kante – gleicher Abstand oben wie unten. */
 .sm-label { margin-top: 10px; }

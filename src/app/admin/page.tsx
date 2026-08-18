@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Inbox, Camera, Briefcase, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { Inbox, Camera, FolderOpen, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import AdminShell, { api, euro } from "@/components/admin/AdminShell";
 
 type Stats = {
@@ -11,6 +11,7 @@ type Stats = {
   saldoCent: number;
   geplantePosts: number;
   offeneAufgaben: number;
+  dokumente: number;
 };
 
 export default function AdminUebersicht() {
@@ -53,11 +54,11 @@ export default function AdminUebersicht() {
           href="/admin/instagram"
         />
         <Kachel
-          icon={<Briefcase size={20} />}
-          label="Offene Aufgaben"
-          wert={stats ? String(stats.offeneAufgaben) : "—"}
-          zusatz="Selbständigkeit"
-          href="/admin/business"
+          icon={<FolderOpen size={20} />}
+          label="Dokumente"
+          wert={stats ? String(stats.dokumente) : "—"}
+          zusatz="Rechnungen & Belege"
+          href="/admin/dokumente"
         />
         <Kachel
           icon={<Wallet size={20} />}

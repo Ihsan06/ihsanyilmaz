@@ -97,7 +97,6 @@ export default function DokumenteSeite() {
   return (
     <AdminShell
       titel="Dokumente"
-      eyebrow="Selbständigkeit"
       lead="Rechnungen, Belege, Verträge und Behördenpost — sicher archiviert und jederzeit abrufbar."
     >
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}

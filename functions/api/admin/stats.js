@@ -9,7 +9,8 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
 
   const monatsStart = new Date().toISOString().slice(0, 7) + '-01';
 
-  const [neueAnfragen, anfragenGesamt, einnahmen, ausgaben, geplantePosts, offeneAufgaben] =
+  const [neueAnfragen, anfragenGesamt, einnahmen, ausgaben, geplantePosts, offeneAufgaben,
+         dokumente] =
     await Promise.all([
       eineZahl(`SELECT COUNT(*) AS wert FROM anfragen WHERE status = 'neu'`),
       eineZahl(`SELECT COUNT(*) AS wert FROM anfragen`),
@@ -21,6 +22,7 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
          WHERE art = 'ausgabe' AND datum >= ?`, monatsStart),
       eineZahl(`SELECT COUNT(*) AS wert FROM posts WHERE status IN ('geplant', 'entwurf')`),
       eineZahl(`SELECT COUNT(*) AS wert FROM notizen WHERE erledigt = 0`),
+      eineZahl(`SELECT COUNT(*) AS wert FROM dokumente`),
     ]);
 
   return json({
@@ -33,6 +35,7 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
       saldoCent: einnahmen - ausgaben,
       geplantePosts,
       offeneAufgaben,
+      dokumente,
     },
   });
 });

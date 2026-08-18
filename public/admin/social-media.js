@@ -1123,19 +1123,21 @@
     try { localStorage.setItem('sm-schalter', JSON.stringify(schalter)); } catch { /* egal */ }
   }
 
+  // Neun Felder in einem Quadrat statt zweier Knopfreihen: dieselbe Wahl auf
+  // einem Viertel der Breite, und man sieht die Stelle, statt sie aus zwei
+  // Pfeilen zusammenzusetzen. Auf dem Handy war die Reihe vorher zu breit.
   function stellenWahl(was, jetzt) {
     const [v0, h0] = zerlegen(gemerkt[was] || jetzt);
     gemerkt[was] = `${v0}-${h0}`;
-    const reihe = (achse, liste, gewaehlt) => liste.map(w =>
-      `<button type="button" data-achse="${achse}" data-wert="${w}" data-was="${was}"
-        class="${w === gewaehlt ? 'hier' : ''}" title="${NAME[w]}"
-        aria-label="${NAME[w]}">${WORT[w]}</button>`).join('');
-    return `<div class="sm-stellen">
-      <span>${({ logo: 'Logo', zeile: 'Text', angaben: 'Angaben' })[was] || 'Text'}</span>
-      <span class="sm-stellen-reihe">${reihe('v', SENKRECHT, v0)}</span>
-      <b class="sm-stellen-mal">×</b>
-      <span class="sm-stellen-reihe">${reihe('h', WAAGRECHT, h0)}</span>
-    </div>`;
+    const felder = SENKRECHT.map(v => WAAGRECHT.map(h => {
+      const stelle = `${v}-${h}`;
+      const wort = `${NAME[v]} ${NAME[h].toLowerCase()}`;
+      return `<button type="button" data-stelle="${stelle}" data-was="${was}"
+        class="${v === v0 && h === h0 ? 'hier' : ''}"
+        title="${wort}" aria-label="${wort}"><i></i></button>`;
+    }).join('')).join('');
+    return `<span class="sm-stellen-raster" role="group"
+      aria-label="Stelle im Bild">${felder}</span>`;
   }
 
   function zerlegen(wert) {
@@ -2176,6 +2178,10 @@
       const zeilen = f.textContent.split('\n').map(x => x.trim()).filter(Boolean);
       z.innerHTML = `<b>${schuetzen(zeilen[0] || '')}</b>`
         + (zeilen[1] ? `<i>${schuetzen(zeilen[1])}</i>` : '');
+      // Das <b> ist gerade neu entstanden – und genau darauf sass der Stil
+      // aus "Gestalten". Ohne dieses Nachziehen stand nach jedem Tastendruck
+      // wieder die Vorgabe da, und man musste den Stil erneut uebernehmen.
+      stilAnlegen(feld);
     };
     fuellen();
 
@@ -2490,26 +2496,23 @@
       return;
     }
 
-    const st = ev.target.closest('[data-achse]');
+    const st = ev.target.closest('[data-stelle]');
     if (!st) return;
     const block = st.closest('.sm-block') || document;
-    st.parentElement.querySelectorAll('[data-achse]').forEach(b =>
+    st.parentElement.querySelectorAll('[data-stelle]').forEach(b =>
       b.classList.toggle('hier', b === st));
 
     // Die Klasse an der Vorschau ist die einzige Quelle: von dort liest auch
-    // das Zuschneiden ab, deshalb kann beides nicht auseinanderlaufen. Es
-    // aendert sich nur die angeklickte Achse, die andere bleibt stehen.
-    const ziele = [block.querySelector({
+    // das Zuschneiden ab, deshalb kann beides nicht auseinanderlaufen.
+    const el = block.querySelector({
       logo: '.igv-marke', zeile: '.igs-zeile', angaben: '.igv-label'
-    }[st.dataset.was] || '.igv-label')];
-    ziele.filter(Boolean).forEach(el => {
-      const vorgabe = { logo: 'unten-rechts', zeile: 'oben-mitte', angaben: 'unten-mitte' };
-      const [v, h] = zerlegen(posVon(el, vorgabe[st.dataset.was] || 'unten-links'));
-      const neu = st.dataset.achse === 'v' ? `${st.dataset.wert}-${h}` : `${v}-${st.dataset.wert}`;
+    }[st.dataset.was] || '.igv-label');
+    if (el) {
+      const neu = st.dataset.stelle;
       [...el.classList].forEach(k => { if (k.startsWith('pos-')) el.classList.remove(k); });
       el.classList.add('pos-' + neu);
       gemerkt[st.dataset.was] = neu;
-    });
+    }
     stellenMerken();
   });
 
