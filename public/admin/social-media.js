@@ -2241,13 +2241,20 @@
     knopf.after(fuerAlle);
 
     let vorher = '';
+    // Getippte Umbrueche stehen im Kasten als <br> und <div>, nicht als
+    // Zeichen – textContent laesst sie einfach weg. Wer den Text nach dem
+    // Bearbeiten so las, klebte alle neuen Zeilen zusammen, und die
+    // Fuss-Zerlegung fuer "Fuer alle speichern" fand ihre Marken nicht mehr.
+    // innerText liest sie als \n; NBSP aus dem Editor wird wieder zum
+    // normalen Leerzeichen.
+    const textVon = () => kasten.innerText.replace(/\u00a0/g, ' ');
     const schliessen = () => {
       kasten.setAttribute('contenteditable', 'false');
       kasten.classList.remove('sm-text-offen');
       knopf.textContent = 'Bearbeiten';
       fuerAlle.hidden = true;
       abbrechen.hidden = true;
-      kasten.textContent = kasten.textContent;   // Faerbung wieder heraus
+      kasten.textContent = textVon().replace(/\s+$/, '');   // Faerbung heraus, Umbrueche behalten
     };
 
     abbrechen.addEventListener('click', () => {
@@ -2258,7 +2265,7 @@
 
     knopf.addEventListener('click', () => {
       if (kasten.getAttribute('contenteditable') === 'true') { schliessen(); return; }
-      vorher = kasten.textContent;
+      vorher = textVon();
       kasten.setAttribute('contenteditable', 'true');
       kasten.classList.add('sm-text-offen');
       knopf.textContent = 'Speichern';
@@ -2269,7 +2276,7 @@
     });
 
     fuerAlle.addEventListener('click', async () => {
-      const fuss = fussAus(kasten.textContent);
+      const fuss = fussAus(textVon());
       fuerAlle.disabled = true;
       const wort = fuerAlle.textContent;
       fuerAlle.textContent = 'Wird gespeichert …';
@@ -2290,6 +2297,9 @@
           fuerAlle.textContent = wort;
           fuerAlle.disabled = false;
           schliessen();
+          // Neu zeichnen: der gespeicherte Schluss soll ab sofort auch in
+          // den anderen Varianten stehen, nicht erst nach einem Neuladen.
+          if (document.getElementById('wk-block')) werkstattZeigen();
         }, 1200);
       } catch (err) {
         fuerAlle.textContent = 'Ging nicht';
@@ -2297,7 +2307,21 @@
       }
     });
 
-    kasten.addEventListener('input', () => vorschauText(feld, kasten.textContent));
+    kasten.addEventListener('input', () => vorschauText(feld, textVon()));
+
+    // Die Suppe gar nicht erst entstehen lassen: Enter fuegt ein echtes
+    // Zeilenzeichen ein (kein <br>), und Eingefuegtes kommt als blanker Text
+    // ohne mitgebrachte Formatierung in den Kasten.
+    kasten.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      document.execCommand('insertText', false, '\n');
+    });
+    kasten.addEventListener('paste', e => {
+      e.preventDefault();
+      const t = (e.clipboardData || window.clipboardData).getData('text/plain');
+      if (t) document.execCommand('insertText', false, t);
+    });
   }
 
   // Der Schluss eines Beitrags: die letzte Zeile vor den Hashtags ist die
@@ -2311,7 +2335,7 @@
   // Quelltext nicht sieht. Hier wird nur gezaehlt – das kann nicht danebengehen.
   function fussFaerben(kasten) {
     if (!kasten) return;
-    const alles = kasten.textContent;
+    const alles = kasten.innerText.replace(/\u00a0/g, ' ');
     const zeilen = alles.split('\n');
 
     // Von hinten: die Hashtags ueberspringen, dann die naechsten beiden
@@ -2364,7 +2388,11 @@
     return { text: zeilen.join('\n'), hashtags: eigenerFuss.hashtags || hashtags };
   }
 
-  (async () => {
+  // Frueher lief dieser Abruf als loser Selbstlaeufer neben dem Zeichnen her.
+  // Wer schneller war, entschied, was im Kasten stand: meist das Zeichnen –
+  // und dann stand der Baukastenschluss da, obwohl ein eigener gespeichert
+  // war. Deshalb wartet der Start jetzt darauf.
+  async function fussHolen() {
     try {
       const a = await fetch('/api/studio/fuss', { credentials: 'same-origin' });
       const d = await a.json();
@@ -2372,7 +2400,7 @@
         eigenerFuss = { nummer: d.nummer, hashtags: d.hashtags };
       }
     } catch { /* dann eben der Baukasten */ }
-  })();
+  }
 
   // Trennt Text und Hashtags am letzten Absatz, der mit # beginnt, und
   // schreibt beides in die Vorschau – samt der Kuerzung nach 125 Zeichen.
@@ -2528,6 +2556,9 @@
     if (window.beitragStil) {
       try { await window.beitragStil.holen(); } catch { /* dann die Vorgabe */ }
     }
+    // Ebenso der gemeinsame Schluss: sonst zeichnet der Baukasten mit dem
+    // Text ab Werk, und der eigene erschiene erst nach einem Themenwechsel.
+    await fussHolen();
 
     if (bearbeitungId) {
       try {

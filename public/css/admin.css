@@ -2796,9 +2796,13 @@ html.vp-offen { overflow: hidden; }
 /* ─── Unterpunkte in der Leiste ───────────────────────────────────────
    Nur beim offenen Bereich sichtbar: zehn Einträge untereinander wären
    keine Navigation, sondern ein Inhaltsverzeichnis. */
+/* Senkrechte Linie wie in der React-Leiste: sie bindet die Unterpunkte an
+   ihren Bereich, statt sie als eigene Liste erscheinen zu lassen. Beide
+   Leisten sahen hier verschieden aus, je nachdem auf welcher Seite man war. */
 .admin-unter {
   display: flex; flex-direction: column; gap: 1px;
-  margin: 2px 0 6px 0; padding-left: 30px;
+  margin: 2px 0 6px 30px; padding-left: 14px;
+  border-left: 1px solid rgba(255,255,255,.14);
 }
 .admin-unter a {
   color: rgba(255,255,255,.55); text-decoration: none;
@@ -2817,6 +2821,9 @@ html.leiste-zu .admin-unter { display: none; }
   .admin-unter {
     flex-direction: row; align-items: center; gap: 4px;
     margin: 0; padding: 0 0 0 4px; flex: none;
+    /* Quer traegt ::before den Strich – der senkrechte Rand von oben waere
+       hier ein zweiter. */
+    border-left: 0;
   }
   .admin-unter::before {
     content: ''; width: 1px; height: 18px; flex: none;
