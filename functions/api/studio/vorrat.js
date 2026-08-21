@@ -26,7 +26,10 @@ const KOPF = {
   'Cache-Control': 'no-store, private'
 };
 
-const MOTIVE = ['unsortiert', 'werkstatt', 'team', 'uebergabe', 'detail', 'hof', 'fahrzeug'];
+// Welche Motive es gibt, steht in der Datenbank und nicht hier: legt jemand
+// in der Galerie ein Thema an, muss es sich auch von Hand zuweisen lassen.
+// Eine feste Liste im Code haette das neue Thema still verworfen.
+const motive = async db => ['unsortiert', ...(await alleKategorien(db)).map(k => k.id)];
 const PERSONEN = ['unbekannt', 'keine', 'unkenntlich', 'erkennbar'];
 
 export async function onRequestGet({ env }) {
@@ -46,7 +49,7 @@ export async function onRequestGet({ env }) {
   const papierkorb = alle.filter(b => b.geloescht_am);
   return antwort({
     ok: true,
-    motive: MOTIVE,
+    motive: await motive(db),
     personen: PERSONEN,
     gesamt: bilder.length,
     frei: bilder.filter(b => b.freigabe).length,
@@ -75,7 +78,8 @@ export async function onRequestPost({ env, request, waitUntil }) {
   const setzen = [];
   const werte = [];
 
-  if (d.motiv && MOTIVE.includes(d.motiv)) { setzen.push('motiv = ?'); werte.push(d.motiv); }
+  const erlaubt = await motive(db);
+  if (d.motiv && erlaubt.includes(d.motiv)) { setzen.push('motiv = ?'); werte.push(d.motiv); }
   if (d.personen && PERSONEN.includes(d.personen)) {
     setzen.push('personen = ?'); werte.push(d.personen);
     // Die Freigabe folgt aus der Einstufung: Wo niemand erkennbar ist, gibt
@@ -115,7 +119,7 @@ async function hochladen({ env, request }) {
     const formular = await request.formData();
     dateien = formular.getAll('datei').filter(f => f && typeof f !== 'string');
     const m = formular.get('motiv');
-    if (m && MOTIVE.includes(String(m))) motiv = String(m);
+    if (m && env.DB && (await motive(env.DB)).includes(String(m))) motiv = String(m);
   } catch {
     return antwort({ ok: false, fehler: 'Dateien konnten nicht gelesen werden.' }, 400);
   }

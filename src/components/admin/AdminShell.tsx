@@ -46,7 +46,13 @@ export async function api(pfad: string, options: RequestInit = {}) {
     ...options,
   });
   const daten = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(daten?.error || "Es ist ein Fehler aufgetreten.");
+  // Die Studio-Endpunkte melden auf Deutsch ("fehler"), die aelteren auf
+  // Englisch ("error"). Wer nur einen der beiden liest, zeigt dem Nutzer
+  // statt "Kein Zugang zum Modell hinterlegt." nur "Es ist ein Fehler
+  // aufgetreten." – und der Grund geht verloren.
+  if (!res.ok || daten?.ok === false) {
+    throw new Error(daten?.fehler || daten?.error || "Es ist ein Fehler aufgetreten.");
+  }
   return daten;
 }
 

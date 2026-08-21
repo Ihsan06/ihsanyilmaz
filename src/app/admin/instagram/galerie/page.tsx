@@ -1,14 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Upload, Trash2, ImageOff } from "lucide-react";
+import { Upload, Trash2, ImageOff, Plus, Sparkles, FolderTree, X } from "lucide-react";
 import AdminShell, { api, datum } from "@/components/admin/AdminShell";
 
 type Bild = {
   schluessel: string;
   quelle: string | null;
   motiv: string | null;
+  beschreibung: string | null;
   angelegt: string;
 };
+
+type Kategorie = { id: string; titel: string; hinweis: string | null; fest: number };
 
 function mb(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -39,7 +42,13 @@ async function zuJpeg(datei: File): Promise<File> {
 
 export default function GalerieSeite() {
   const [bilder, setBilder] = useState<Bild[]>([]);
-  const [kategorien, setKategorien] = useState<{ id: string; titel: string }[]>([]);
+  const [kategorien, setKategorien] = useState<Kategorie[]>([]);
+  const [filter, setFilter] = useState("");
+  const [neuOffen, setNeuOffen] = useState(false);
+  const [neuTitel, setNeuTitel] = useState("");
+  const [neuHinweis, setNeuHinweis] = useState("");
+  const [laeuft, setLaeuft] = useState("");
+  const [meldung, setMeldung] = useState("");
   const [laedtHoch, setLaedtHoch] = useState(false);
   const [fehler, setFehler] = useState("");
   const [laedt, setLaedt] = useState(true);
@@ -82,6 +91,85 @@ export default function GalerieSeite() {
     }
   };
 
+  // ─── Themen ───
+  //
+  // Ein Thema wirkt an drei Stellen: das Modell bekommt es beim Ansehen neuer
+  // Bilder mit in die Auswahl, hier wird es zum Filter, und unter "Content
+  // erstellen" steht es als Baukasten-Thema.
+  const themaAnlegen = async () => {
+    if (!neuTitel.trim()) { setFehler("Das Thema braucht einen Namen."); return; }
+    setFehler("");
+    try {
+      const d = await api("/api/studio/kategorien", {
+        method: "POST",
+        body: JSON.stringify({ titel: neuTitel, hinweis: neuHinweis }),
+      });
+      setKategorien(d.kategorien || []);
+      setNeuOffen(false); setNeuTitel(""); setNeuHinweis("");
+      setMeldung(`„${neuTitel.trim()}" angelegt. Ab dem nächsten Ansehen sortiert das Modell danach ein.`);
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : "Ging nicht.");
+    }
+  };
+
+  const themaLoeschen = async (id: string, titel: string) => {
+    if (!confirm(`Thema „${titel}" entfernen? Die Bilder bleiben, sie sind dann unsortiert.`)) return;
+    try {
+      const d = await api("/api/studio/kategorien?id=" + encodeURIComponent(id), { method: "DELETE" });
+      setKategorien(d.kategorien || []);
+      if (filter === id) setFilter("");
+      laden();
+      setMeldung(`„${titel}" entfernt. Die Bilder sind jetzt unsortiert.`);
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : "Ging nicht.");
+    }
+  };
+
+  // ─── Das Modell ───
+  //
+  // In Schüben, weil ein Worker nicht ewig laufen darf: der Knopf hängt die
+  // Runden aneinander und zeigt, wie weit er ist.
+  const ansehenLassen = async () => {
+    setLaeuft("ansehen"); setFehler("");
+    try {
+      for (let runde = 1; ; runde++) {
+        setMeldung(`Runde ${runde} – das Modell sieht sich die nächsten Bilder an …`);
+        const d = await api("/api/studio/beschreiben", {
+          method: "POST", body: JSON.stringify({ offene: 25 }),
+        });
+        const geschafft = d.fertig || 0;
+        setMeldung(`${geschafft} angesehen · noch ${d.offen} offen`);
+        if (!d.offen) { setMeldung("Alle Bilder sind angesehen."); break; }
+        // Nichts geschafft und trotzdem offen: Weitermachen bringt nichts.
+        if (!geschafft) throw new Error(d.schief?.[0]?.fehler || "Es ging nicht weiter.");
+      }
+      await laden();
+    } catch (e) {
+      // Ohne das Leeren bliebe "Runde 1 …" unter der Fehlermeldung stehen und
+      // sähe aus, als liefe noch etwas.
+      setMeldung("");
+      setFehler(e instanceof Error ? e.message : "Ging nicht.");
+    } finally {
+      setLaeuft("");
+    }
+  };
+
+  const einsortieren = async () => {
+    setLaeuft("sortieren"); setFehler("");
+    try {
+      const d = await api("/api/studio/zuordnen", {
+        method: "POST", body: JSON.stringify({ wieviele: 60 }),
+      });
+      setMeldung(`${d.zugeordnet ?? 0} Bilder einsortiert.`);
+      await laden();
+    } catch (e) {
+      setMeldung("");
+      setFehler(e instanceof Error ? e.message : "Ging nicht.");
+    } finally {
+      setLaeuft("");
+    }
+  };
+
   const loeschen = async (schluessel: string) => {
     if (!confirm("Dieses Bild in den Papierkorb legen?")) return;
     setBilder(b => b.filter(x => x.schluessel !== schluessel));
@@ -90,6 +178,18 @@ export default function GalerieSeite() {
       .then(laden)
       .catch(e => setFehler(e.message));
   };
+
+  // Was das Modell noch nicht gesehen hat, und was es gesehen hat, aber
+  // keinem der angelegten Themen zugeordnet ist.
+  const ohneBeschreibung = bilder.filter(b => !b.beschreibung).length;
+  const ids = new Set(kategorien.map(k => k.id));
+  const ohneThema = bilder.filter(b => b.beschreibung && !ids.has(b.motiv || "")).length;
+  const unsortiert = bilder.filter(b => !b.motiv || b.motiv === "unsortiert").length;
+  const gezeigt = filter
+    ? bilder.filter(b => filter === "unsortiert"
+        ? (!b.motiv || b.motiv === "unsortiert")
+        : b.motiv === filter)
+    : bilder;
 
   return (
     <AdminShell
@@ -100,7 +200,11 @@ export default function GalerieSeite() {
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
 
-      <div className="flex flex-wrap items-center gap-4 mb-6">
+      {meldung && (
+        <p className="mb-5 text-sm" style={{ color: "var(--accent)" }}>{meldung}</p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3 mb-5">
         <button
           onClick={() => dateiFeld.current?.click()}
           disabled={laedtHoch}
@@ -112,26 +216,105 @@ export default function GalerieSeite() {
           ref={dateiFeld} type="file" accept="image/*,.heic,.heif"
           multiple hidden onChange={e => hochladen(e.target.files)}
         />
-        <span className="text-[var(--fg-subtle)] text-sm">
+
+        <button onClick={() => setNeuOffen(o => !o)} className="chip px-3 py-2 text-sm">
+          <Plus size={14} /> Thema hinzufügen
+        </button>
+
+        {/* Ohne Beschreibung taucht ein Bild in keinem Vorschlag auf –
+            deshalb steht die Zahl hier oben und nicht in einer Ecke. */}
+        {ohneBeschreibung > 0 && (
+          <button onClick={ansehenLassen} disabled={!!laeuft}
+            className="chip px-3 py-2 text-sm disabled:opacity-60">
+            <Sparkles size={14} />
+            {laeuft === "ansehen" ? "Läuft…" : `${ohneBeschreibung} ansehen lassen`}
+          </button>
+        )}
+        {ohneThema > 0 && (
+          <button onClick={einsortieren} disabled={!!laeuft}
+            className="chip px-3 py-2 text-sm disabled:opacity-60">
+            <FolderTree size={14} />
+            {laeuft === "sortieren" ? "Läuft…" : `${ohneThema} einsortieren`}
+          </button>
+        )}
+
+        <span className="text-[var(--fg-subtle)] text-sm ml-auto">
           {bilder.length} {bilder.length === 1 ? "Bild" : "Bilder"} im Vorrat
         </span>
       </div>
 
+      {neuOffen && (
+        <div className="card p-4 mb-5 flex flex-wrap items-center gap-3">
+          <input
+            type="text" value={neuTitel} onChange={e => setNeuTitel(e.target.value)}
+            maxLength={40} placeholder="Name, z. B. Kundenstimmen" autoFocus
+            className="field px-3 py-2 text-sm" style={{ width: "14rem" }}
+          />
+          <input
+            type="text" value={neuHinweis} onChange={e => setNeuHinweis(e.target.value)}
+            maxLength={200}
+            placeholder="Was gehört hinein? Ein Satz – daran erkennt es das Modell."
+            className="field px-3 py-2 text-sm flex-1" style={{ minWidth: "18rem" }}
+          />
+          <button onClick={themaAnlegen} className="btn-primary px-4 py-2 text-sm">Anlegen</button>
+          <button onClick={() => setNeuOffen(false)} className="chip px-3 py-2 text-sm">Abbrechen</button>
+        </div>
+      )}
+
+      {/* Filterzeile: nebenbei sieht man, wovon zu wenig da ist. */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <button onClick={() => setFilter("")}
+          className={`chip px-3 py-1.5 text-sm ${filter ? "" : "chip-aktiv"}`}
+          style={filter ? undefined : { background: "var(--accent)", color: "#fff", borderColor: "transparent" }}>
+          Alle <span className="opacity-70 ml-1">{bilder.length}</span>
+        </button>
+        {kategorien.map(k => {
+          const n = bilder.filter(b => b.motiv === k.id).length;
+          const an = filter === k.id;
+          return (
+            <span key={k.id} className="inline-flex items-center">
+              <button onClick={() => setFilter(an ? "" : k.id)}
+                className="chip px-3 py-1.5 text-sm"
+                style={an ? { background: "var(--accent)", color: "#fff", borderColor: "transparent" } : undefined}>
+                {k.titel} <span className="opacity-70 ml-1">{n}</span>
+              </button>
+              {!k.fest && (
+                <button onClick={() => themaLoeschen(k.id, k.titel)}
+                  aria-label={`Thema ${k.titel} entfernen`} title="Thema entfernen"
+                  className="ml-1 opacity-50 hover:opacity-100">
+                  <X size={13} />
+                </button>
+              )}
+            </span>
+          );
+        })}
+        {unsortiert > 0 && (
+          <button onClick={() => setFilter(filter === "unsortiert" ? "" : "unsortiert")}
+            className="chip px-3 py-1.5 text-sm"
+            style={filter === "unsortiert"
+              ? { background: "var(--accent)", color: "#fff", borderColor: "transparent" } : undefined}>
+            unsortiert <span className="opacity-70 ml-1">{unsortiert}</span>
+          </button>
+        )}
+      </div>
+
       {laedt ? (
         <p className="text-[var(--fg-subtle)] text-sm">Wird geladen…</p>
-      ) : bilder.length === 0 ? (
+      ) : gezeigt.length === 0 ? (
         <div className="card p-10 text-center">
           <div className="inline-flex items-center justify-center mb-3" style={{ color: "var(--fg-subtle)" }}>
             <ImageOff size={28} />
           </div>
-          <p className="text-[var(--fg-muted)]">Noch keine Bilder in der Galerie.</p>
+          <p className="text-[var(--fg-muted)]">
+            {filter ? "Für dieses Thema liegt kein Bild vor." : "Noch keine Bilder in der Galerie."}
+          </p>
           <p className="text-[var(--fg-subtle)] text-sm mt-1">
             JPG, PNG, WebP oder AVIF — bis 8 MB pro Bild.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {bilder.map(b => (
+          {gezeigt.map(b => (
             <figure key={b.schluessel} className="card overflow-hidden flex flex-col">
               <div className="relative" style={{ aspectRatio: "1 / 1", background: "var(--surface-2)" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}

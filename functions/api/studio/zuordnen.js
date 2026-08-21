@@ -83,9 +83,9 @@ const zaehlen = async (db, gueltig) => (await db.prepare(
 ).first())?.n || 0;
 
 async function fragen(schluessel, bilder, themen) {
-  const auftrag = `Du ordnest Fotos aus dem Alltag eines Autohauses mit eigener
-Werkstatt jeweils EINEM Thema zu. Die Themen sind die, unter denen später
-Instagram-Beiträge entstehen.
+  const auftrag = `Du ordnest Bilder aus der Galerie von AIY | Ihsan Yilmaz
+(Webentwicklung und IT aus Würzburg) jeweils EINEM Thema zu. Die Themen sind
+die, unter denen später Instagram-Beiträge entstehen.
 
 THEMEN:
 ${themen.map(t => `  ${t.id} – ${t.titel}${t.hinweis ? ': ' + t.hinweis : ''}`).join('\n')}
@@ -96,12 +96,12 @@ ${bilder.map((b, i) => `${i + 1}. ${b.satz}`).join('\n')}
 Antworte NUR mit dem JSON, ohne ein Wort davor oder danach. Für jede Nummer
 genau ein Thema, in einer einzigen Zeile:
 
-{"1":"service","2":"team",…}
+{"1":"technik","2":"wuerzburg",…}
 
-Nimm das Thema, unter dem das Foto am ehesten in einem Beitrag stünde – nicht
-das, was zufällig auch zu sehen ist. Ein Mechaniker an der Bremse gehört zu
-service, auch wenn ein Kollege danebensteht. Ein Gruppenbild gehört zu team,
-auch wenn es in der Werkstatt aufgenommen wurde. Im Zweifel das
+Nimm das Thema, unter dem das Bild am ehesten in einem Beitrag stünde – nicht
+das, was zufällig auch zu sehen ist. Ein Bildschirm mit Code gehört zu
+Entwicklung, auch wenn eine Kaffeetasse danebensteht. Ein Foto von Ihsan
+gehört zu Ihsan, auch wenn er vor einem Rechner sitzt. Im Zweifel das
 naheliegendste, nicht das seltenste.`;
 
   const a = await fetch('https://api.anthropic.com/v1/messages', {

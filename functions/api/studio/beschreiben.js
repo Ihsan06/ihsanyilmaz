@@ -28,17 +28,19 @@ const AUF_EINMAL = 25;      // Obergrenze je Aufruf – sonst laeuft der Worker 
 // Die Kategorien stehen in der Datenbank, nicht hier: legt jemand in der
 // Galerie eine neue an, sortiert das Modell ab dem naechsten Bild danach ein,
 // ohne dass jemand Code anfassen muss.
-const THEMEN = 'service, tuev, winter, sommer, urlaub, team, nachwuchs, ankauf, finanzierung';
+const THEMEN = 'websites, sichtbarkeit, zeitsparen, mobil, projekt-autohaus, ablauf, wuerzburg, einblick';
 
 function anweisung(kategorien) {
-  const auswahl = kategorien.map(k => k.id).join(', ') || 'werkstatt, team, detail';
+  const auswahl = kategorien.map(k => k.id).join(', ') || 'technik, ihsan, wuerzburg';
   const erklaert = kategorien.filter(k => k.hinweis)
     .map(k => `  ${k.id} – ${k.hinweis}`).join('\n');
 
-  return `Du beschreibst ein Foto aus dem Alltag eines Autohauses mit
-eigener Werkstatt (Autohaus Diezmann, Weidhausen bei Coburg). Die Beschreibung
-wird später benutzt, um passende Bilder für Instagram-Beiträge auszuwählen –
-sie muss also sagen, was zu sehen ist und wofür sich das Bild eignet.
+  return `Du beschreibst ein Bild aus der Galerie von AIY | Ihsan Yilmaz
+(Webentwicklung und IT aus Würzburg – Websites für Betriebe, Sichtbarkeit bei
+Google, Automatisierung). Die Beschreibung wird später benutzt, um passende
+Bilder für Instagram-Beiträge auszuwählen – sie muss also sagen, was zu sehen
+ist und wofür sich das Bild eignet. Es sind meist Symbol- und Stimmungsbilder,
+seltener Fotos von Personen.
 
 Diese Kategorien gibt es:
 ${erklaert || '  (ohne nähere Beschreibung)'}
@@ -51,7 +53,7 @@ Antworte NUR mit JSON:
   "taugt_fuer": ["<wozu das Bild sonst noch taugt – Kategorien von oben und/oder Themen: ${THEMEN}>"],
   "staerke": <1 bis 5, wie stark das Bild als Titelbild wirkt>,
   "personen": "<keine | unkenntlich | erkennbar>",
-  "hinweis": "<nur falls etwas dagegen spricht: lesbares Kennzeichen, unscharf, unaufgeräumt – sonst leerer String>"
+  "hinweis": "<nur falls etwas dagegen spricht: unscharf, zu klein, fremdes Logo – sonst leerer String>"
 }`;
 }
 

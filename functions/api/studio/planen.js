@@ -75,9 +75,9 @@ async function sammeln(d, request) {
 // ─── Das Modell ───
 
 function anweisung(auftrag, angaben) {
-  const gemeinsam = `Du planst einen Instagram-Beitrag für ein Autohaus in Weidhausen bei
-Coburg (Autohaus Diezmann). Du bekommst nummerierte Fotos. Du veränderst KEINE
-Bilder – du wählst aus und ordnest an.
+  const gemeinsam = `Du planst einen Instagram-Beitrag für AIY | Ihsan Yilmaz,
+Webentwicklung und IT aus Würzburg. Du bekommst nummerierte Bilder. Du
+veränderst KEINE Bilder – du wählst aus und ordnest an.
 
 Antworte NUR mit JSON, ohne Fließtext davor oder danach.`;
 
