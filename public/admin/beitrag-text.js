@@ -491,7 +491,7 @@ window.beitragText = (function () {
   const WERKSTATT = [
     {
       id: 'websites', titel: 'Websites für Betriebe', monate: null,
-      motive: ['unsortiert'],
+      motive: ['websites', 'software', 'projekt'],
       tags: ['webdesign', 'website', 'homepage', 'kleinunternehmen', 'handwerk'],
       texte: [
         'Ihre Website ist älter als Ihr Smartphone?\n\nDann sehen Kunden dort etwas anderes als das, was Ihr Betrieb heute ist. Eine neue Seite muss weder Monate dauern noch ein Vermögen kosten.\n\nSchreiben Sie mir:',
@@ -512,7 +512,7 @@ window.beitragText = (function () {
     },
     {
       id: 'sichtbarkeit', titel: 'Bei Google gefunden', monate: null,
-      motive: ['unsortiert'],
+      motive: ['sichtbarkeit', 'wuerzburg', 'netzwerk'],
       tags: ['google', 'localseo', 'sichtbarkeit', 'googlemaps', 'regional'],
       texte: [
         'Googeln Sie sich mal selbst.\n\nWenn Sie mit Ihrem eigenen Firmennamen nicht auf Platz eins stehen, findet Sie auch sonst niemand.\n\nSchreiben Sie mir:',
@@ -531,7 +531,7 @@ window.beitragText = (function () {
     },
     {
       id: 'zeitsparen', titel: 'Zeit sparen', monate: null,
-      motive: ['unsortiert'],
+      motive: ['zeitsparen', 'software', 'ki'],
       tags: ['digitalisierung', 'automatisierung', 'buero', 'zeitsparen', 'prozesse'],
       texte: [
         'Wie oft beantworten Sie dieselbe Frage?\n\nÖffnungszeiten, Preise, Anfahrt. Das kann die Website übernehmen – dann bleibt das Telefon für das Wichtige frei.\n\nSchreiben Sie mir:',
@@ -550,7 +550,7 @@ window.beitragText = (function () {
     },
     {
       id: 'mobil', titel: 'Am Handy', monate: null,
-      motive: ['unsortiert'],
+      motive: ['mobil', 'projekt', 'websites'],
       tags: ['mobil', 'smartphone', 'responsive', 'ladezeit', 'usability'],
       texte: [
         'Drei von vier Besuchern kommen vom Handy.\n\nWenn man dort zoomen muss, um die Telefonnummer zu lesen, ist der Anruf meist schon verloren.\n\nSchreiben Sie mir:',
@@ -566,8 +566,8 @@ window.beitragText = (function () {
       ]
     },
     {
-      id: 'projekt-autohaus', titel: 'Projekt: Autohaus', monate: null,
-      motive: ['unsortiert'],
+      id: 'projekt', titel: 'Projekt: Autohaus', monate: null,
+      motive: ['projekt'],
       tags: ['referenz', 'projekt', 'autohaus', 'webdesign', 'praxisbeispiel'],
       texte: [
         'Ein Autohaus komplett neu im Netz.\n\nFahrzeugsuche mit Filtern, Probefahrt-Anfrage, Finanzierungsrechner, Mietwagen – alles auf einer Seite, alles vom Handy aus bedienbar.\n\nSo etwas auch für Ihren Betrieb?\n\nSchreiben Sie mir:',
@@ -584,7 +584,7 @@ window.beitragText = (function () {
     },
     {
       id: 'ablauf', titel: 'So läuft es ab', monate: null,
-      motive: ['unsortiert'],
+      motive: ['ablauf', 'software', 'ihsan'],
       tags: ['ablauf', 'zusammenarbeit', 'beratung', 'transparenz', 'festpreis'],
       texte: [
         'Erst reden, dann rechnen.\n\nIm ersten Gespräch geht es darum, was Sie brauchen – nicht darum, was ich anbieten kann.\n\nSchreiben Sie mir:',
@@ -601,7 +601,7 @@ window.beitragText = (function () {
     },
     {
       id: 'wuerzburg', titel: 'Aus Würzburg', monate: null,
-      motive: ['unsortiert'],
+      motive: ['wuerzburg', 'freiheit'],
       tags: ['wuerzburg', 'mainfranken', 'lokal', 'mittelstand', 'handwerk'],
       texte: [
         'Betriebe aus der Region, Websites aus der Region.\n\nKurze Wege sind kein Marketingspruch – sie sind der Grund, warum Rückfragen am selben Tag geklärt sind.\n\nSchreiben Sie mir:',
@@ -614,7 +614,7 @@ window.beitragText = (function () {
     },
     {
       id: 'einblick', titel: 'Einblick', monate: null,
-      motive: ['unsortiert'],
+      motive: ['einblick', 'ihsan', 'devops'],
       tags: ['selbststaendig', 'nebenberuflich', 'einblick', 'arbeitsalltag', 'freelancer'],
       texte: [
         'Nebenberuflich selbstständig heißt: Abende und Wochenenden.\n\nDafür kann ich mir aussuchen, woran ich arbeite – und das merkt man den Projekten an.\n\nSchreiben Sie mir:',
@@ -623,6 +623,128 @@ window.beitragText = (function () {
         'Das Beste am Selbermachen: nichts ist Standard.\n\nJeder Betrieb funktioniert anders, und genau das darf man sehen.\n\nSprechen wir darüber:',
         'Ich baue lieber weniger, das dafür richtig.\n\nEine Seite mit drei Funktionen, die laufen, ist mehr wert als zehn, die halb fertig sind.\n\nSchreiben Sie mir:',
         'Am liebsten arbeite ich mit Leuten, die ihr Handwerk können.\n\nDie wissen genau, was ihre Kunden fragen – und das ist der halbe Text der Website.\n\nMelden Sie sich:'
+      ]
+    },
+    // Die folgenden sieben kamen aus der Galerie. Vorher gab es sie nur dort
+    // als Bildschublade – ein Thema, unter dem Bilder liegen, aber zu dem sich
+    // kein Beitrag bauen laesst, ist eine halbe Sache.
+    {
+      id: 'software', titel: 'Betrieb & Software', monate: null,
+      motive: ['software', 'zeitsparen', 'ablauf'],
+      tags: ['software', 'betrieb', 'digitalisierung', 'buero', 'kleinunternehmen'],
+      texte: [
+        'Drei Programme, die nicht miteinander reden.\n\nDas ist in kleinen Betrieben eher die Regel als die Ausnahme – und der Grund, warum Zahlen doppelt eingetippt werden.\n\nSchreiben Sie mir:',
+        'Software muss nicht teuer sein.\n\nSie muss zu dem passen, was Sie ohnehin schon tun. Alles andere wird nach vier Wochen nicht mehr benutzt.\n\nMelden Sie sich:',
+        'Excel ist keine Schande.\n\nFür vieles reicht es. Eng wird es erst, wenn zwei Leute gleichzeitig dieselbe Datei brauchen.\n\nFragen Sie mich:',
+        'Die teuerste Lösung ist die, die niemand bedient.\n\nDeshalb frage ich zuerst, wer damit arbeiten soll – und dann, was das Programm können muss.\n\nSprechen wir darüber:',
+        'Ein Betrieb, ein Ablauf, eine Stelle zum Nachschauen.\n\nWo etwas an drei Orten gepflegt wird, stimmt spätestens nach einem Monat keiner davon.\n\nSchreiben Sie mir:',
+        'Brauchen Sie wirklich ein neues System?\n\nOft reicht es, das vorhandene richtig einzustellen. Das sage ich Ihnen lieber vorher als hinterher.\n\nMelden Sie sich:',
+        'Daten, die nur auf einem Rechner liegen, sind keine Daten.\n\nSie sind ein Risiko mit Ablaufdatum.\n\nFragen Sie einfach:',
+        'Jede Schnittstelle spart Tipparbeit.\n\nUnd jede, die niemand wartet, wird irgendwann zur Fehlerquelle. Beides gehört zur Planung.\n\nSchreiben Sie mir:',
+        'Software ist selten das Problem.\n\nMeistens ist es der Ablauf drumherum – und der lässt sich ohne Lizenzkosten ändern.\n\nSprechen wir darüber:',
+        'Was passiert, wenn der eine Mitarbeiter ausfällt, der das System kennt?\n\nWenn die Antwort unangenehm ist, lohnt ein Blick darauf.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'devops', titel: 'Entwicklung', monate: null,
+      motive: ['devops', 'einblick', 'netzwerk'],
+      tags: ['entwicklung', 'code', 'webentwicklung', 'technik', 'handwerk'],
+      texte: [
+        'Eine Seite ist nie fertig, wenn sie online geht.\n\nSie ist fertig, wenn sie auch in einem halben Jahr noch ohne Angst geändert werden kann.\n\nSchreiben Sie mir:',
+        'Ich baue ohne Baukasten.\n\nDas dauert am Anfang länger und zahlt sich aus, sobald etwas gefordert ist, was der Baukasten nicht vorgesehen hat.\n\nMelden Sie sich:',
+        'Jede Änderung wird vorher getestet, nicht live.\n\nKlingt selbstverständlich. Ist es bei vielen Seiten nicht.\n\nFragen Sie mich:',
+        'Warum Ihre Seite schnell sein sollte.\n\nNicht wegen Google. Wegen dem Kunden, der auf dem Parkplatz steht und Ihre Nummer sucht.\n\nSprechen wir darüber:',
+        'Der beste Code ist der, den man in einem Jahr noch versteht.\n\nAuch wenn ihn dann jemand anderes liest.\n\nSchreiben Sie mir:',
+        'Kein Projekt ohne Sicherung.\n\nJeder Stand lässt sich zurückholen – das kostet nichts und erspart schlaflose Nächte.\n\nMelden Sie sich:',
+        'Neue Funktion oder erst aufräumen?\n\nMeistens aufräumen. Auf einem sauberen Unterbau geht das Neue danach doppelt so schnell.\n\nFragen Sie einfach:',
+        'Fehler meldet mir die Seite selbst.\n\nSo erfahre ich davon, bevor ein Kunde anruft – das ist der ganze Unterschied.\n\nSchreiben Sie mir:',
+        'Technik altert.\n\nDeshalb baue ich mit Sachen, die es in fünf Jahren noch gibt, statt mit dem, was gerade neu ist.\n\nSprechen wir darüber:',
+        'Was hinter einer Seite steckt, sieht man ihr nicht an.\n\nMerken tut man es trotzdem – an dem Tag, an dem etwas geändert werden soll.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'netzwerk', titel: 'IT & Netzwerk', monate: null,
+      motive: ['netzwerk', 'devops', 'software'],
+      tags: ['it', 'netzwerk', 'edv', 'sicherheit', 'betrieb'],
+      texte: [
+        'Das WLAN reicht nicht bis in die Werkstatt.\n\nDas ist kein Schicksal, sondern meistens eine Frage von zwei Geräten an der richtigen Stelle.\n\nSchreiben Sie mir:',
+        'Wann haben Sie zuletzt geprüft, ob Ihre Sicherung wirklich läuft?\n\nEine Sicherung, die niemand zurückgespielt hat, ist eine Vermutung.\n\nMelden Sie sich:',
+        'Ein Passwort für alles ist ein Schlüssel für alle.\n\nDas lässt sich in einer Stunde ändern und erspart im Ernstfall sehr viel.\n\nFragen Sie mich:',
+        'Alte Geräte sind nicht das Problem.\n\nAlte Geräte ohne Sicherheitsaktualisierung schon – die stehen offen im Netz.\n\nSprechen wir darüber:',
+        'Wer kommt eigentlich an Ihre Daten?\n\nIn kleinen Betrieben lautet die Antwort oft: alle. Das lässt sich sauber trennen.\n\nSchreiben Sie mir:',
+        'Kabel schlägt Funk.\n\nÜberall dort, wo es auf Verlässlichkeit ankommt – Kasse, Server, Arbeitsplatz.\n\nMelden Sie sich:',
+        'Der Drucker ist im Netz. Und sonst?\n\nGenau diese Geräte werden bei der Sicherheit als Erstes vergessen.\n\nFragen Sie einfach:',
+        'Zwei Minuten Ausfall am Tag sind zehn Stunden im Jahr.\n\nSo gerechnet lohnt sich die Ursachensuche schnell.\n\nSchreiben Sie mir:',
+        'Ihre Daten gehören Ihnen.\n\nAuch dann, wenn sie bei einem Anbieter liegen – das gehört in den Vertrag und nicht ins Vertrauen.\n\nSprechen wir darüber:',
+        'Ordnung im Netz sieht man nicht.\n\nMan merkt sie nur an dem, was nicht passiert.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'ki', titel: 'KI & Technik', monate: null,
+      motive: ['ki', 'zeitsparen', 'devops'],
+      tags: ['ki', 'automatisierung', 'technik', 'zukunft', 'mittelstand'],
+      texte: [
+        'KI ersetzt Ihr Handwerk nicht.\n\nSie kann Ihnen aber den Papierkram abnehmen, der abends liegen bleibt.\n\nSchreiben Sie mir:',
+        'Der ehrlichste Einsatz von KI: Texte vorbereiten, nicht verschicken.\n\nDas Letzte liest immer noch ein Mensch.\n\nMelden Sie sich:',
+        'Was KI im Betrieb wirklich bringt.\n\nMeist nicht das Große, sondern zwanzig kleine Handgriffe am Tag, die niemand vermisst.\n\nFragen Sie mich:',
+        'Vorsicht bei allem, was mit Kundendaten arbeitet.\n\nWo die Daten landen, gehört geklärt, bevor das erste Programm läuft.\n\nSprechen wir darüber:',
+        'KI ist kein Knopf, den man drückt.\n\nSie ist ein Werkzeug, das eingerichtet werden will – und danach still im Hintergrund arbeitet.\n\nSchreiben Sie mir:',
+        'Muss ich da jetzt mitmachen?\n\nNein. Sinnvoll wird es erst, wenn es eine konkrete Aufgabe gibt, die zu oft von Hand erledigt wird.\n\nMelden Sie sich:',
+        'Automatisch heißt nicht unbeaufsichtigt.\n\nJeder Ablauf, den ich baue, meldet sich, wenn er stolpert.\n\nFragen Sie einfach:',
+        'Anfragen sortieren, Termine vorschlagen, Texte entwerfen.\n\nDrei Dinge, die keine Erfahrung brauchen – und deshalb gut abgeben werden können.\n\nSchreiben Sie mir:',
+        'Der Fehler ist, mit der Technik anzufangen.\n\nFangen Sie mit der Frage an, was Sie am meisten Zeit kostet.\n\nSprechen wir darüber:',
+        'Was heute noch beeindruckt, ist in zwei Jahren Alltag.\n\nDeshalb baue ich lieber so, dass sich das Werkzeug austauschen lässt.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'marke', titel: 'Logo & Marke', monate: null,
+      motive: ['marke', 'websites', 'projekt'],
+      tags: ['logo', 'marke', 'design', 'wiedererkennung', 'kleinunternehmen'],
+      texte: [
+        'Ein Logo muss auf einem Transporter und auf einer Visitenkarte funktionieren.\n\nAlles, was nur in Großaufnahme gut aussieht, ist keins.\n\nSchreiben Sie mir:',
+        'Wiedererkennung entsteht durch Wiederholung.\n\nDieselbe Farbe, dieselbe Schrift, überall – das wirkt mehr als jedes neue Motiv.\n\nMelden Sie sich:',
+        'Ihr Firmenname steht in vier Schreibweisen im Netz?\n\nDann sucht Google vier Firmen und findet keine richtig.\n\nFragen Sie mich:',
+        'Zwei Farben reichen.\n\nDrei sind meistens schon eine zu viel, und ab vier sieht es nach Baukasten aus.\n\nSprechen wir darüber:',
+        'Ein Logo ist kein Bild, sondern eine Datei in mehreren Größen.\n\nWer nur ein JPG hat, merkt das beim ersten Schild.\n\nSchreiben Sie mir:',
+        'Marke klingt groß.\n\nGemeint ist: dass Leute Sie erkennen, bevor sie den Namen gelesen haben.\n\nMelden Sie sich:',
+        'Die Schrift entscheidet mehr als das Zeichen.\n\nSie steht auf jeder Seite, jedem Angebot, jeder Rechnung.\n\nFragen Sie einfach:',
+        'Neues Logo, alte Website?\n\nDann fällt der Bruch stärker auf als vorher das alte Logo.\n\nSchreiben Sie mir:',
+        'Ihr Auftritt ist so alt wie sein ältester Teil.\n\nMeistens ist das der Briefbogen.\n\nSprechen wir darüber:',
+        'Ein gutes Zeichen funktioniert auch in Schwarzweiß.\n\nDas ist der einfachste Test, den Sie selbst machen können.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'ihsan', titel: 'Ihsan', monate: null,
+      motive: ['ihsan', 'einblick', 'wuerzburg'],
+      tags: ['ihsanyilmaz', 'wuerzburg', 'webentwickler', 'ansprechpartner', 'regional'],
+      texte: [
+        'Sie reden bei mir mit der Person, die auch baut.\n\nKein Vertrieb dazwischen, keine Weitergabe an ein Team, das Sie nie sehen.\n\nSchreiben Sie mir:',
+        'Wirtschaftsinformatik, dann Websites und IT.\n\nDeshalb interessiert mich zuerst Ihr Ablauf und erst danach die Technik.\n\nMelden Sie sich:',
+        'Ich arbeite aus Würzburg.\n\nFür ein erstes Gespräch reicht das Telefon – danach komme ich in der Region auch vorbei.\n\nFragen Sie mich:',
+        'Warum nebenberuflich?\n\nWeil ich mir dadurch aussuchen kann, welche Projekte ich annehme. Das kommt am Ende dem Projekt zugute.\n\nSprechen wir darüber:',
+        'Was ich nicht mache, sage ich Ihnen auch.\n\nDas spart uns beiden die Runde über ein Angebot, das nicht passt.\n\nSchreiben Sie mir:',
+        'Erreichbar heißt bei mir: Sie bekommen eine Antwort.\n\nNicht immer sofort, aber immer.\n\nMelden Sie sich:',
+        'Ich erkläre, was ich tue.\n\nSie sollen hinterher verstehen, wofür Sie bezahlt haben – auch ohne Fachbegriffe.\n\nFragen Sie einfach:',
+        'Kleine Betriebe sind mir am liebsten.\n\nDa entscheidet der, mit dem ich rede – und das merkt man am Tempo.\n\nSchreiben Sie mir:',
+        'Ein fester Preis vorher.\n\nStundenzettel hinterher mögen weder Sie noch ich.\n\nSprechen wir darüber:',
+        'Nach der Übergabe bin ich nicht weg.\n\nDas ist der Teil, den man erst später zu schätzen weiß.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'freiheit', titel: 'Freiheit & Weite', monate: null,
+      motive: ['freiheit', 'wuerzburg', 'einblick'],
+      tags: ['selbststaendigkeit', 'unternehmertum', 'mittelstand', 'freiheit', 'mainfranken'],
+      texte: [
+        'Selbstständig heißt nicht, alles selbst zu machen.\n\nEs heißt, entscheiden zu dürfen, was man abgibt.\n\nSchreiben Sie mir:',
+        'Der schönste Satz eines Kunden: „Darum muss ich mich jetzt nicht mehr kümmern."\n\nGenau dafür baut man Sachen.\n\nMelden Sie sich:',
+        'Jeder Betrieb hat eine Stelle, an der es hakt.\n\nMeistens weiß der Inhaber genau, welche – nur nicht, wie man sie löst.\n\nFragen Sie mich:',
+        'Unabhängig von einem Anbieter zu sein, ist mehr wert als jeder Rabatt.\n\nDeshalb gehören Zugänge und Daten immer Ihnen.\n\nSprechen wir darüber:',
+        'Wachsen muss nicht größer heißen.\n\nEs kann auch heißen: gleich viel Umsatz, halb so viel Verwaltung.\n\nSchreiben Sie mir:',
+        'Der Feierabend ist ein Betriebsziel.\n\nWer das ernst nimmt, richtet seine Abläufe anders ein.\n\nMelden Sie sich:',
+        'Man kann nicht alles gleichzeitig verbessern.\n\nAber fast immer das eine, das am meisten nervt.\n\nFragen Sie einfach:',
+        'Ein Betrieb, der ohne den Chef läuft, ist frei.\n\nDazu gehört, dass Wissen nicht nur in einem Kopf liegt.\n\nSchreiben Sie mir:',
+        'Die Region ist kein Nachteil.\n\nWer hier gut arbeitet, wird weiterempfohlen – das ersetzt viel Werbung.\n\nSprechen wir darüber:',
+        'Anfangen ist einfacher als es aussieht.\n\nMeistens reicht ein Gespräch, um zu wissen, ob es sich lohnt.\n\nMelden Sie sich:'
       ]
     }
   ];

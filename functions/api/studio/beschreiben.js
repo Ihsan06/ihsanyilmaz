@@ -23,12 +23,20 @@ const KOPF = {
 };
 
 const MODELL = 'claude-sonnet-5';
-const AUF_EINMAL = 25;      // Obergrenze je Aufruf – sonst laeuft der Worker in die Zeit
+// Obergrenze je Aufruf. Frueher 25 – das ging, solange die Bilder klein
+// waren. Screenshots mit 2880x3600 sind ein Vielfaches davon, und 25 Stueck
+// in einem Aufruf laufen in Speicher und Zeit. Der Knopf haengt ohnehin
+// Runden aneinander, also kostet ein kleiner Stapel nur etwas mehr Runden.
+const AUF_EINMAL = 6;
 
 // Die Kategorien stehen in der Datenbank, nicht hier: legt jemand in der
 // Galerie eine neue an, sortiert das Modell ab dem naechsten Bild danach ein,
 // ohne dass jemand Code anfassen muss.
-const THEMEN = 'websites, sichtbarkeit, zeitsparen, mobil, projekt-autohaus, ablauf, wuerzburg, einblick';
+//
+// Frueher stand hier zusaetzlich eine feste Themenliste fuer "taugt_fuer".
+// Sie ist weg, weil Galerie-Kategorien und Beitrags-Themen jetzt dieselbe
+// Liste sind – eine zweite Aufzaehlung im Code waere nur die naechste, die
+// auseinanderlaeuft.
 
 function anweisung(kategorien) {
   const auswahl = kategorien.map(k => k.id).join(', ') || 'technik, ihsan, wuerzburg';
@@ -50,7 +58,7 @@ Antworte NUR mit JSON:
 {
   "beschreibung": "<2 bis 3 Sätze: was ist zu sehen, wie viele Personen, was tun sie, wo, welches Licht, welche Stimmung>",
   "motiv": "<die EINE Kategorie, die am besten passt: ${auswahl}>",
-  "taugt_fuer": ["<wozu das Bild sonst noch taugt – Kategorien von oben und/oder Themen: ${THEMEN}>"],
+  "taugt_fuer": ["<welche weiteren Kategorien von oben ebenfalls passen, keine anderen Wörter>"],
   "staerke": <1 bis 5, wie stark das Bild als Titelbild wirkt>,
   "personen": "<keine | unkenntlich | erkennbar>",
   "hinweis": "<nur falls etwas dagegen spricht: unscharf, zu klein, fremdes Logo – sonst leerer String>"
@@ -111,7 +119,7 @@ export async function beschreibeBilder(env, basis, schluessel) {
 
   for (const s of schluessel) {
     try {
-      const bild = await alsDaten(`${basis}/bilder/${s}`);
+      const bild = await alsDaten(env, s, basis);
       const plan = await fragen(env.ANTHROPIC_API_KEY, bild, auftrag);
       // Erfindet das Modell eine Kategorie, bleibt das Bild lieber unsortiert
       // als in einer Schublade, die es nicht gibt.
@@ -130,15 +138,30 @@ export async function beschreibeBilder(env, basis, schluessel) {
 
 // ─── Kleinkram ───
 
-async function alsDaten(u) {
-  const a = await fetch(u, { headers: { Accept: 'image/*' } });
-  if (!a.ok) throw new Error(`Bild nicht abrufbar (${a.status}).`);
-  const puffer = new Uint8Array(await a.arrayBuffer());
+// Das Bild kommt aus R2, nicht per fetch von der eigenen Domain. Zwei Gruende:
+// ein Worker, der sich selbst ueber HTTP aufruft, landet nicht zuverlaessig
+// bei der Function – und jeder dieser Aufrufe zaehlt als Unteranfrage, von
+// denen es je Anfrage nur eine begrenzte Zahl gibt. Ueber das Binding gilt
+// beides nicht.
+async function alsDaten(env, schluessel, basis) {
+  let puffer, typ;
+
+  if (env.BILDER) {
+    const o = await env.BILDER.get(schluessel);
+    if (!o) throw new Error('Bild liegt nicht im Speicher.');
+    puffer = new Uint8Array(await o.arrayBuffer());
+    typ = o.httpMetadata?.contentType || 'image/jpeg';
+  } else {
+    const a = await fetch(`${basis}/bilder/${schluessel}`, { headers: { Accept: 'image/*' } });
+    if (!a.ok) throw new Error(`Bild nicht abrufbar (${a.status}).`);
+    puffer = new Uint8Array(await a.arrayBuffer());
+    typ = (a.headers.get('content-type') || 'image/jpeg').split(';')[0];
+  }
+
   let roh = '';
   for (let i = 0; i < puffer.length; i += 8192) {
     roh += String.fromCharCode(...puffer.subarray(i, i + 8192));
   }
-  const typ = (a.headers.get('content-type') || 'image/jpeg').split(';')[0];
   return { type: 'base64', media_type: /^image\//.test(typ) ? typ : 'image/jpeg', data: btoa(roh) };
 }
 

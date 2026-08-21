@@ -135,7 +135,7 @@ export default function GalerieSeite() {
       for (let runde = 1; ; runde++) {
         setMeldung(`Runde ${runde} – das Modell sieht sich die nächsten Bilder an …`);
         const d = await api("/api/studio/beschreiben", {
-          method: "POST", body: JSON.stringify({ offene: 25 }),
+          method: "POST", body: JSON.stringify({ offene: 6 }),
         });
         const geschafft = d.fertig || 0;
         setMeldung(`${geschafft} angesehen · noch ${d.offen} offen`);
