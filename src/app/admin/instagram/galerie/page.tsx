@@ -49,6 +49,8 @@ export default function GalerieSeite() {
   const [neuHinweis, setNeuHinweis] = useState("");
   const [laeuft, setLaeuft] = useState("");
   const [meldung, setMeldung] = useState("");
+  // Welches Bild gross zu sehen ist. null = keins.
+  const [gross, setGross] = useState<Bild | null>(null);
   const [laedtHoch, setLaedtHoch] = useState(false);
   const [fehler, setFehler] = useState("");
   const [laedt, setLaedt] = useState(true);
@@ -67,6 +69,15 @@ export default function GalerieSeite() {
       .finally(() => setLaedt(false));
 
   useEffect(() => { laden(); }, []);
+
+  // Esc schliesst die Grossansicht. Ohne das bleibt nur der Klick daneben,
+  // und wer die Tastatur benutzt, sitzt fest.
+  useEffect(() => {
+    if (!gross) return;
+    const zu = (e: KeyboardEvent) => { if (e.key === "Escape") setGross(null); };
+    window.addEventListener("keydown", zu);
+    return () => window.removeEventListener("keydown", zu);
+  }, [gross]);
 
   const hochladen = async (dateien: FileList | null) => {
     if (!dateien?.length) return;
@@ -322,7 +333,8 @@ export default function GalerieSeite() {
                   src={`/bilder/${b.schluessel}`}
                   alt={b.quelle || "Galeriebild"}
                   loading="lazy"
-                  className="w-full h-full object-cover block"
+                  onClick={() => setGross(b)}
+                  className="w-full h-full object-cover block cursor-zoom-in"
                 />
                 <button
                   onClick={() => loeschen(b.schluessel)}
@@ -343,6 +355,49 @@ export default function GalerieSeite() {
               </figcaption>
             </figure>
           ))}
+        </div>
+      )}
+
+      {/* Grossansicht. Die Kachel schneidet quadratisch zu – erst hier sieht
+          man, was tatsaechlich auf dem Bild ist. Klick daneben oder Esc
+          schliesst; das erwartet jeder, und ein Knopf allein reicht nicht. */}
+      {gross && (
+        <div
+          onClick={() => setGross(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={gross.quelle || "Bild"}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-8"
+          style={{ background: "rgba(7,26,43,0.88)" }}
+        >
+          <button
+            onClick={() => setGross(null)}
+            aria-label="Schließen"
+            className="absolute top-4 right-4 p-2 rounded-[8px]"
+            style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
+          >
+            <X size={18} />
+          </button>
+
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/bilder/${gross.schluessel}`}
+            alt={gross.quelle || "Bild"}
+            onClick={e => e.stopPropagation()}
+            className="max-w-full rounded-[10px]"
+            style={{ maxHeight: "calc(100vh - 9rem)", objectFit: "contain", cursor: "default" }}
+          />
+
+          <div
+            onClick={e => e.stopPropagation()}
+            className="mt-3 text-center text-sm max-w-full px-2"
+            style={{ color: "rgba(255,255,255,0.82)" }}
+          >
+            <div className="truncate">{gross.quelle || "Bild"}</div>
+            <div className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+              {kategorien.find(k => k.id === gross.motiv)?.titel || "unsortiert"} · {datum(gross.angelegt)}
+            </div>
+          </div>
         </div>
       )}
     </AdminShell>

@@ -31,8 +31,11 @@ window.beitragText = (function () {
   // Der gemeinsame Schluss, ueberall gleich – Einladung, Nummer, Seite. Die
   // Hashtags kommen in der Anzeige dahinter. Weil er fest ist, laesst er sich
   // einmal aendern und gilt dann fuer alle Beitraege.
-  const EINLADUNG = 'Anfragen einfach per Mail:';
-  const FUSS = [EINLADUNG, TELEFON, 'Mehr auf ihsan-yilmaz.de'].join('\n');
+  // Wortlaut und Zeichen wie im gespeicherten Schluss (studio_einstellungen,
+  // Schluessel "fuss"). Der hier greift nur, wenn keiner gespeichert ist –
+  // dann soll er trotzdem gleich aussehen und nicht wie ein zweiter Absender.
+  const EINLADUNG = 'Anfragen per Mail:';
+  const FUSS = [EINLADUNG, '\u{1F4E7}  ' + TELEFON, '\u{1F449}  Mehr auf ihsan-yilmaz.de'].join('\n');
 
   // Was niemanden hinter dem Ofen hervorholt. ABS und Servolenkung hat seit
   // dreissig Jahren jedes Auto – in einem Beitrag klingt das nach Fuellmaterial
@@ -526,7 +529,9 @@ window.beitragText = (function () {
         'Sie stehen bei Google, aber niemand ruft an?\n\nDann liegt es selten an der Position und meistens daran, was dort zu sehen ist.\n\nMelden Sie sich:',
         'Regional schlägt allgemein.\n\nGegen die großen Portale gewinnt man nicht bei „Website erstellen" – aber sehr wohl bei „Website Würzburg".\n\nSprechen wir darüber:',
         'Karteneintrag, Website, Telefonnummer.\n\nÜberall dieselbe Schreibweise. Klingt nach Kleinkram, ist aber genau das, worauf Google achtet.\n\nFragen Sie mich:',
-        'Wer zuerst gefunden wird, wird zuerst angerufen.\n\nDas ist unfair gegenüber dem besseren Betrieb – aber es ist die Lage.\n\nMelden Sie sich:'
+        'Wer zuerst gefunden wird, wird zuerst angerufen.\n\nDas ist unfair gegenüber dem besseren Betrieb – aber es ist die Lage.\n\nMelden Sie sich:',
+        'Ein Eintrag ohne Fotos wird seltener geklickt.\n\nZehn ehrliche Bilder vom Betrieb reichen – Handy genügt.\n\nSchreiben Sie mir:',
+        'Öffnungszeiten an Feiertagen pflegen.\n\nWer vor verschlossener Tür steht, schreibt das in die Bewertung.\n\nMelden Sie sich:'
       ]
     },
     {
@@ -545,7 +550,9 @@ window.beitragText = (function () {
         'Angebote schreiben dauert immer länger als gedacht.\n\nMeistens, weil man die Daten aus drei Quellen zusammensucht.\n\nSprechen wir darüber:',
         'Kunden erwarten heute eine Antwort am selben Tag.\n\nDas muss keine ausführliche sein – aber es muss eine sein.\n\nMelden Sie sich:',
         'Digitalisierung klingt nach großem Projekt.\n\nIst es selten. Meist sind es zwei, drei Handgriffe, die den Tag spürbar leichter machen.\n\nFragen Sie mich:',
-        'Was sich jede Woche wiederholt, lohnt sich anzuschauen.\n\nAlles andere kann ruhig von Hand bleiben.\n\nSchreiben Sie mir:'
+        'Was sich jede Woche wiederholt, lohnt sich anzuschauen.\n\nAlles andere kann ruhig von Hand bleiben.\n\nSchreiben Sie mir:',
+        'Was machen Sie dreimal am Tag von Hand?\n\nDas ist meistens die Stelle, an der sich Automatisieren zuerst lohnt.\n\nSchreiben Sie mir:',
+        'Automatisieren heißt nicht abschaffen.\n\nEs heißt, dass der Handgriff bleibt, aber nicht mehr bei Ihnen liegt.\n\nMelden Sie sich:'
       ]
     },
     {
@@ -562,7 +569,11 @@ window.beitragText = (function () {
         'Formulare am Handy sind Geduldsproben.\n\nSie müssen es nicht sein: weniger Felder, richtige Tastatur, kein Neuanfang bei einem Tippfehler.\n\nFragen Sie einfach:',
         'Google bewertet die Handy-Ansicht zuerst.\n\nNicht die am Rechner. Das überrascht immer noch viele.\n\nSchreiben Sie mir:',
         'Karte, Route, Anruf – drei Antipper.\n\nMehr braucht niemand, der Sie gerade sucht.\n\nMelden Sie sich:',
-        'Jede Sekunde Ladezeit kostet Besucher.\n\nDas ist keine Theorie, das sieht man in den Zahlen jeder Seite.\n\nSprechen wir darüber:'
+        'Jede Sekunde Ladezeit kostet Besucher.\n\nDas ist keine Theorie, das sieht man in den Zahlen jeder Seite.\n\nSprechen wir darüber:',
+        'Zwei Drittel Ihrer Besucher kommen vom Handy.\n\nWenn Sie Ihre Seite nur am Rechner geprüft haben, kennen Sie sie nicht.\n\nSchreiben Sie mir:',
+        'Die Telefonnummer sollte anrufbar sein.\n\nEin Fingertipp statt Abtippen – das klingt klein und entscheidet oft.\n\nMelden Sie sich:',
+        'Querformat testen lohnt sich.\n\nViele halten das Handy quer, und genau da bricht die Hälfte der Seiten.\n\nFragen Sie mich:',
+        'Große Bilder sind am Handy teuer.\n\nSie kosten Ladezeit und beim Kunden echtes Datenvolumen.\n\nSprechen wir darüber:'
       ]
     },
     {
@@ -579,7 +590,11 @@ window.beitragText = (function () {
         'Dahinter läuft ein eigener Verwaltungsbereich.\n\nAnfragen, Belegungen, Zahlen – alles an einer Stelle, ohne dass jemand eine Software lernen muss.\n\nFragen Sie einfach:',
         'Solche Funktionen sind kein Konzern-Privileg.\n\nWas hier für ein Autohaus gebaut ist, passt genauso zu Werkstatt, Praxis oder Handwerksbetrieb.\n\nSchreiben Sie mir:',
         'Vom ersten Gespräch bis online: wenige Wochen.\n\nNicht, weil es gehetzt wird – sondern weil klar war, was gebraucht wird.\n\nMelden Sie sich:',
-        'Die Seite lädt auch mit schlechtem Netz.\n\nWichtig, wenn Kunden auf dem Hof stehen und schnell etwas nachschauen wollen.\n\nSprechen wir darüber:'
+        'Die Seite lädt auch mit schlechtem Netz.\n\nWichtig, wenn Kunden auf dem Hof stehen und schnell etwas nachschauen wollen.\n\nSprechen wir darüber:',
+        'Aus einer Autohaus-Website wurde ein Werkzeug.\n\nFahrzeuge, Mietwagen, Anfragen – alles an einer Stelle statt in drei Programmen.\n\nSchreiben Sie mir:',
+        'Der Bestand pflegt sich selbst.\n\nWas auf mobile.de steht, steht auch auf der eigenen Seite – ohne zweimal tippen.\n\nMelden Sie sich:',
+        'Eine Verwaltung, die der Inhaber selbst bedient.\n\nDas war die eigentliche Anforderung, nicht das Design.\n\nFragen Sie mich:',
+        'Vom ersten Entwurf bis online: wenige Wochen.\n\nWeil vorher klar war, was die Seite können muss.\n\nSprechen wir darüber:'
       ]
     },
     {
@@ -596,7 +611,11 @@ window.beitragText = (function () {
         'Die Seite gehört Ihnen.\n\nZugänge, Domain, Inhalte. Auch wenn wir irgendwann nicht mehr zusammenarbeiten.\n\nFragen Sie einfach:',
         'Kein Abo, das Sie nicht brauchen.\n\nWas laufend Geld kostet, sage ich vorher – und meistens ist es weniger, als Sie denken.\n\nSchreiben Sie mir:',
         'Ich arbeite neben dem Hauptberuf.\n\nDas heißt: kleine Zahl an Projekten, dafür jedes mit Zeit. Wer sofort alles braucht, ist bei mir falsch.\n\nMelden Sie sich:',
-        'Ein Gespräch kostet nichts.\n\nAuch wenn danach klar ist, dass Sie gerade keine neue Seite brauchen.\n\nSprechen wir darüber:'
+        'Ein Gespräch kostet nichts.\n\nAuch wenn danach klar ist, dass Sie gerade keine neue Seite brauchen.\n\nSprechen wir darüber:',
+        'Erst reden, dann bauen.\n\nEin Gespräch von einer Stunde spart später drei Runden Korrektur.\n\nSchreiben Sie mir:',
+        'Sie sehen Zwischenstände.\n\nNicht am Ende eine Überraschung, sondern zwischendurch etwas zum Anschauen.\n\nMelden Sie sich:',
+        'Texte schreibe ich vor, Sie korrigieren.\n\nDas geht schneller, als vor einem leeren Blatt zu sitzen.\n\nFragen Sie mich:',
+        'Was ich von Ihnen brauche, sage ich am Anfang.\n\nMeist sind es Fotos, Zeiten und eine Handvoll Sätze über den Betrieb.\n\nSprechen wir darüber:'
       ]
     },
     {
@@ -609,7 +628,15 @@ window.beitragText = (function () {
         'Würzburg und Umgebung.\n\nWer weiter weg sitzt, ist trotzdem willkommen – nur das Treffen wird dann ein Videocall.\n\nFragen Sie mich:',
         'Lokale Betriebe haben einen Vorteil.\n\nSie sind bereits bekannt. Das muss die Website nur noch abbilden statt neu zu erfinden.\n\nSprechen wir darüber:',
         'Die Konkurrenz im Netz ist selten der Nachbar.\n\nEs sind Portale, die zwischen Ihnen und dem Kunden stehen wollen. Eine eigene Seite holt den direkten Weg zurück.\n\nSchreiben Sie mir:',
-        'Kunden aus der Nähe suchen anders.\n\nSie wissen ungefähr, wo Sie sind – sie prüfen nur noch, ob es passt.\n\nMelden Sie sich:'
+        'Kunden aus der Nähe suchen anders.\n\nSie wissen ungefähr, wo Sie sind – sie prüfen nur noch, ob es passt.\n\nMelden Sie sich:',
+        'Ich arbeite aus Würzburg.\n\nFür Betriebe in Mainfranken heißt das: ein Ansprechpartner, der die Gegend kennt.\n\nSchreiben Sie mir:',
+        'Regional gefunden werden ist anders als überregional.\n\nDafür zählen Ort, Bewertungen und Erreichbarkeit mehr als jede Werbeanzeige.\n\nMelden Sie sich:',
+        'Kunden aus der Umgebung googeln mit Ortsnamen.\n\nWer den nirgends stehen hat, taucht bei genau dieser Suche nicht auf.\n\nFragen Sie mich:',
+        'Ein Termin vor Ort ist manchmal einfacher als drei Mails.\n\nIn und um Würzburg komme ich gern vorbei.\n\nSprechen wir darüber:',
+        'Unterfranken ist keine Großstadt.\n\nDas ist ein Vorteil: Empfehlung wirkt hier stärker als anderswo.\n\nSchreiben Sie mir:',
+        'Viele gute Betriebe hier haben keine Website.\n\nSolange die Kundschaft über Empfehlung kommt, geht das gut.\n\nMelden Sie sich:',
+        'Ich kenne die Wege hier.\n\nDas klingt nebensächlich und macht bei Terminen den Unterschied.\n\nFragen Sie einfach:',
+        'Nähe heißt: Sie erreichen jemanden.\n\nNicht ein Postfach in einer anderen Zeitzone.\n\nSprechen wir darüber:'
       ]
     },
     {
@@ -622,7 +649,15 @@ window.beitragText = (function () {
         'Warum ich wenige Projekte gleichzeitig mache.\n\nWeil ich sonst nur noch verwalten würde statt zu bauen.\n\nFragen Sie mich:',
         'Das Beste am Selbermachen: nichts ist Standard.\n\nJeder Betrieb funktioniert anders, und genau das darf man sehen.\n\nSprechen wir darüber:',
         'Ich baue lieber weniger, das dafür richtig.\n\nEine Seite mit drei Funktionen, die laufen, ist mehr wert als zehn, die halb fertig sind.\n\nSchreiben Sie mir:',
-        'Am liebsten arbeite ich mit Leuten, die ihr Handwerk können.\n\nDie wissen genau, was ihre Kunden fragen – und das ist der halbe Text der Website.\n\nMelden Sie sich:'
+        'Am liebsten arbeite ich mit Leuten, die ihr Handwerk können.\n\nDie wissen genau, was ihre Kunden fragen – und das ist der halbe Text der Website.\n\nMelden Sie sich:',
+        'Mein Werkzeug ist überschaubar.\n\nEditor, Terminal, Browser. Alles andere lenkt ab.\n\nSchreiben Sie mir:',
+        'Die meisten Projekte fangen mit einer Skizze an.\n\nPapier ist immer noch das schnellste Werkzeug.\n\nMelden Sie sich:',
+        'Ich baue lieber weniger, das dafür richtig.\n\nDrei Funktionen, die laufen, schlagen zehn halbfertige.\n\nFragen Sie mich:',
+        'Was mich an dieser Arbeit hält.\n\nDass am Ende etwas dasteht, das jemand benutzt.\n\nSprechen wir darüber:',
+        'Fehler gehören dazu.\n\nWichtig ist nur, dass sie einem selbst auffallen und nicht dem Kunden.\n\nSchreiben Sie mir:',
+        'Ich teste auf echten Geräten.\n\nEin Vorschaufenster im Browser ist kein Handy in der Sonne.\n\nMelden Sie sich:',
+        'Abends und am Wochenende.\n\nDafür arbeite ich an Projekten, die ich mir aussuchen konnte.\n\nFragen Sie einfach:',
+        'Am liebsten arbeite ich mit Leuten, die ihr Handwerk können.\n\nDie wissen genau, was ihre Kunden fragen – das ist der halbe Text der Website.\n\nSprechen wir darüber:'
       ]
     },
     // Die folgenden sieben kamen aus der Galerie. Vorher gab es sie nur dort
@@ -642,7 +677,11 @@ window.beitragText = (function () {
         'Daten, die nur auf einem Rechner liegen, sind keine Daten.\n\nSie sind ein Risiko mit Ablaufdatum.\n\nFragen Sie einfach:',
         'Jede Schnittstelle spart Tipparbeit.\n\nUnd jede, die niemand wartet, wird irgendwann zur Fehlerquelle. Beides gehört zur Planung.\n\nSchreiben Sie mir:',
         'Software ist selten das Problem.\n\nMeistens ist es der Ablauf drumherum – und der lässt sich ohne Lizenzkosten ändern.\n\nSprechen wir darüber:',
-        'Was passiert, wenn der eine Mitarbeiter ausfällt, der das System kennt?\n\nWenn die Antwort unangenehm ist, lohnt ein Blick darauf.\n\nMelden Sie sich:'
+        'Was passiert, wenn der eine Mitarbeiter ausfällt, der das System kennt?\n\nWenn die Antwort unangenehm ist, lohnt ein Blick darauf.\n\nMelden Sie sich:',
+        'Ein Programm mehr ist selten die Lösung.\n\nMeistens ist es eine Schnittstelle zwischen zweien, die schon da sind.\n\nSchreiben Sie mir:',
+        'Schulung gehört dazu.\n\nEine halbe Stunde am Anfang spart Monate an Rückfragen.\n\nMelden Sie sich:',
+        'Papier ist nicht das Problem.\n\nDas Problem ist, wenn dasselbe auf Papier und im Rechner steht.\n\nFragen Sie mich:',
+        'Was passiert, wenn der Anbieter aufhört?\n\nDiese Frage gehört vor die Unterschrift, nicht danach.\n\nSprechen wir darüber:'
       ]
     },
     {
@@ -659,7 +698,11 @@ window.beitragText = (function () {
         'Neue Funktion oder erst aufräumen?\n\nMeistens aufräumen. Auf einem sauberen Unterbau geht das Neue danach doppelt so schnell.\n\nFragen Sie einfach:',
         'Fehler meldet mir die Seite selbst.\n\nSo erfahre ich davon, bevor ein Kunde anruft – das ist der ganze Unterschied.\n\nSchreiben Sie mir:',
         'Technik altert.\n\nDeshalb baue ich mit Sachen, die es in fünf Jahren noch gibt, statt mit dem, was gerade neu ist.\n\nSprechen wir darüber:',
-        'Was hinter einer Seite steckt, sieht man ihr nicht an.\n\nMerken tut man es trotzdem – an dem Tag, an dem etwas geändert werden soll.\n\nMelden Sie sich:'
+        'Was hinter einer Seite steckt, sieht man ihr nicht an.\n\nMerken tut man es trotzdem – an dem Tag, an dem etwas geändert werden soll.\n\nMelden Sie sich:',
+        'Eine Änderung, die Angst macht, ist ein Warnzeichen.\n\nDann stimmt etwas mit dem Unterbau nicht.\n\nSchreiben Sie mir:',
+        'Ich arbeite mit Versionsverwaltung.\n\nJeder Stand ist nachvollziehbar, jeder Schritt umkehrbar.\n\nMelden Sie sich:',
+        'Weniger Abhängigkeiten, weniger Ärger.\n\nJedes zusätzliche Paket ist etwas, das jemand pflegen muss.\n\nFragen Sie mich:',
+        'Was schnell gebaut ist, ist selten schnell.\n\nDie Zeit kommt später zurück, mit Zinsen.\n\nSprechen wir darüber:'
       ]
     },
     {
@@ -676,7 +719,11 @@ window.beitragText = (function () {
         'Der Drucker ist im Netz. Und sonst?\n\nGenau diese Geräte werden bei der Sicherheit als Erstes vergessen.\n\nFragen Sie einfach:',
         'Zwei Minuten Ausfall am Tag sind zehn Stunden im Jahr.\n\nSo gerechnet lohnt sich die Ursachensuche schnell.\n\nSchreiben Sie mir:',
         'Ihre Daten gehören Ihnen.\n\nAuch dann, wenn sie bei einem Anbieter liegen – das gehört in den Vertrag und nicht ins Vertrauen.\n\nSprechen wir darüber:',
-        'Ordnung im Netz sieht man nicht.\n\nMan merkt sie nur an dem, was nicht passiert.\n\nMelden Sie sich:'
+        'Ordnung im Netz sieht man nicht.\n\nMan merkt sie nur an dem, was nicht passiert.\n\nMelden Sie sich:',
+        'Ein Netzplan auf einem Blatt.\n\nKlingt altmodisch und rettet im Störfall den Abend.\n\nSchreiben Sie mir:',
+        'Gäste-WLAN gehört getrennt.\n\nSonst hängt der Besuch im selben Netz wie Ihre Buchhaltung.\n\nMelden Sie sich:',
+        'Router vom Anbieter sind selten die beste Wahl.\n\nFür ein paar Geräte reicht er, darüber wird es eng.\n\nFragen Sie mich:',
+        'Strom weg, Daten weg?\n\nEine kleine Absicherung am Server kostet wenig und verhindert viel.\n\nSprechen wir darüber:'
       ]
     },
     {
@@ -693,7 +740,11 @@ window.beitragText = (function () {
         'Automatisch heißt nicht unbeaufsichtigt.\n\nJeder Ablauf, den ich baue, meldet sich, wenn er stolpert.\n\nFragen Sie einfach:',
         'Anfragen sortieren, Termine vorschlagen, Texte entwerfen.\n\nDrei Dinge, die keine Erfahrung brauchen – und deshalb gut abgeben werden können.\n\nSchreiben Sie mir:',
         'Der Fehler ist, mit der Technik anzufangen.\n\nFangen Sie mit der Frage an, was Sie am meisten Zeit kostet.\n\nSprechen wir darüber:',
-        'Was heute noch beeindruckt, ist in zwei Jahren Alltag.\n\nDeshalb baue ich lieber so, dass sich das Werkzeug austauschen lässt.\n\nMelden Sie sich:'
+        'Was heute noch beeindruckt, ist in zwei Jahren Alltag.\n\nDeshalb baue ich lieber so, dass sich das Werkzeug austauschen lässt.\n\nMelden Sie sich:',
+        'Lassen Sie sich Entwürfe schreiben, keine Antworten.\n\nDer Unterschied entscheidet, ob es peinlich wird.\n\nSchreiben Sie mir:',
+        'Ein Modell weiß nicht, was in Ihrem Betrieb gilt.\n\nDeshalb gehört Ihr Wissen dazu, sonst klingt es nach jedem.\n\nMelden Sie sich:',
+        'Der Nutzen liegt im Wiederkehrenden.\n\nEinmalige Aufgaben lohnen sich nicht zu automatisieren.\n\nFragen Sie mich:',
+        'Prüfen Sie stichprobenartig weiter.\n\nAuch ein Ablauf, der monatelang läuft, kann leise falsch werden.\n\nSprechen wir darüber:'
       ]
     },
     {
@@ -710,7 +761,11 @@ window.beitragText = (function () {
         'Die Schrift entscheidet mehr als das Zeichen.\n\nSie steht auf jeder Seite, jedem Angebot, jeder Rechnung.\n\nFragen Sie einfach:',
         'Neues Logo, alte Website?\n\nDann fällt der Bruch stärker auf als vorher das alte Logo.\n\nSchreiben Sie mir:',
         'Ihr Auftritt ist so alt wie sein ältester Teil.\n\nMeistens ist das der Briefbogen.\n\nSprechen wir darüber:',
-        'Ein gutes Zeichen funktioniert auch in Schwarzweiß.\n\nDas ist der einfachste Test, den Sie selbst machen können.\n\nMelden Sie sich:'
+        'Ein gutes Zeichen funktioniert auch in Schwarzweiß.\n\nDas ist der einfachste Test, den Sie selbst machen können.\n\nMelden Sie sich:',
+        'Ihr Logo braucht einen weißen Rand.\n\nSonst klebt es auf jedem Hintergrund am Rand fest.\n\nSchreiben Sie mir:',
+        'Eine Farbe, die auf dem Bildschirm gut aussieht, kann im Druck kippen.\n\nDeshalb gehören beide Werte festgehalten.\n\nMelden Sie sich:',
+        'Wer das Logo hat, sollte auch die offene Datei haben.\n\nOhne sie fängt jede Änderung von vorn an.\n\nFragen Sie mich:',
+        'Ein Zeichen muss aus zehn Metern erkennbar sein.\n\nDas ist der Test für jedes Firmenschild.\n\nSprechen wir darüber:'
       ]
     },
     {
@@ -727,7 +782,11 @@ window.beitragText = (function () {
         'Ich erkläre, was ich tue.\n\nSie sollen hinterher verstehen, wofür Sie bezahlt haben – auch ohne Fachbegriffe.\n\nFragen Sie einfach:',
         'Kleine Betriebe sind mir am liebsten.\n\nDa entscheidet der, mit dem ich rede – und das merkt man am Tempo.\n\nSchreiben Sie mir:',
         'Ein fester Preis vorher.\n\nStundenzettel hinterher mögen weder Sie noch ich.\n\nSprechen wir darüber:',
-        'Nach der Übergabe bin ich nicht weg.\n\nDas ist der Teil, den man erst später zu schätzen weiß.\n\nMelden Sie sich:'
+        'Nach der Übergabe bin ich nicht weg.\n\nDas ist der Teil, den man erst später zu schätzen weiß.\n\nMelden Sie sich:',
+        'Ich komme aus der Wirtschaftsinformatik.\n\nDeshalb frage ich zuerst nach dem Ablauf und erst dann nach dem Design.\n\nSchreiben Sie mir:',
+        'Mir ist lieber, Sie verstehen, was ich gebaut habe.\n\nDeshalb erkläre ich es ohne Fachbegriffe.\n\nMelden Sie sich:',
+        'Ich nehme wenige Projekte gleichzeitig.\n\nSonst würde ich nur noch verwalten statt zu bauen.\n\nFragen Sie mich:',
+        'Ein erstes Gespräch kostet nichts.\n\nDanach wissen wir beide, ob es passt.\n\nSprechen wir darüber:'
       ]
     },
     {
@@ -744,7 +803,137 @@ window.beitragText = (function () {
         'Man kann nicht alles gleichzeitig verbessern.\n\nAber fast immer das eine, das am meisten nervt.\n\nFragen Sie einfach:',
         'Ein Betrieb, der ohne den Chef läuft, ist frei.\n\nDazu gehört, dass Wissen nicht nur in einem Kopf liegt.\n\nSchreiben Sie mir:',
         'Die Region ist kein Nachteil.\n\nWer hier gut arbeitet, wird weiterempfohlen – das ersetzt viel Werbung.\n\nSprechen wir darüber:',
-        'Anfangen ist einfacher als es aussieht.\n\nMeistens reicht ein Gespräch, um zu wissen, ob es sich lohnt.\n\nMelden Sie sich:'
+        'Anfangen ist einfacher als es aussieht.\n\nMeistens reicht ein Gespräch, um zu wissen, ob es sich lohnt.\n\nMelden Sie sich:',
+        'Das Ziel ist nicht mehr Arbeit.\n\nDas Ziel ist, dass die gleiche Arbeit weniger Zeit frisst.\n\nSchreiben Sie mir:',
+        'Ein Betrieb ohne Notizzettel-Wissen ist belastbarer.\n\nAuch wenn jemand ausfällt.\n\nMelden Sie sich:',
+        'Abhängigkeit von einem Anbieter ist teurer als jede Lizenz.\n\nDeshalb gehören Zugänge und Daten immer Ihnen.\n\nFragen Sie mich:',
+        'Der erste Schritt ist meistens klein.\n\nEine Sache, die nervt, weniger nervig machen – das reicht für den Anfang.\n\nSprechen wir darüber:'
+      ]
+    },
+    {
+      id: 'preise', titel: 'Was es kostet', monate: null,
+      motive: ['preise', 'ablauf', 'websites'],
+      tags: ['preise', 'festpreis', 'angebot', 'transparenz', 'kleinunternehmen'],
+      texte: [
+        'Was kostet eine Website?\n\nSie bekommen von mir vorher eine Zahl. Keine Spanne, kein Stundensatz – eine Zahl.\n\nSchreiben Sie mir:',
+        'Warum ich keine Stundenzettel schreibe.\n\nWeil dann Sie das Risiko tragen, wenn ich langsam bin. Das gehört auf meine Seite.\n\nMelden Sie sich:',
+        'Ein Angebot, das auf eine Seite passt.\n\nWas drin ist, was nicht, was es kostet, wie lange es dauert. Mehr braucht es nicht.\n\nFragen Sie mich:',
+        'Günstig ist die Seite, die man nicht zweimal bauen muss.\n\nDas ist der ganze Unterschied zwischen billig und günstig.\n\nSprechen wir darüber:',
+        'Laufende Kosten gehören ins Angebot.\n\nDomain, Postfach, Betrieb – wer das erst hinterher aufzählt, hat vorher zu wenig gesagt.\n\nSchreiben Sie mir:',
+        'Was passiert bei Änderungswünschen?\n\nKleine mache ich mit. Große bekommen vorher wieder eine Zahl. So bleibt es fair.\n\nMelden Sie sich:',
+        'Es gibt Projekte, die lehne ich ab.\n\nWenn mein Preis nicht zum Nutzen passt, sage ich das lieber vorher.\n\nFragen Sie einfach:',
+        'Ratenzahlung ist möglich.\n\nGerade bei Betrieben, die gerade erst anfangen, ergibt das mehr Sinn als eine Rechnung auf einmal.\n\nSprechen wir darüber:',
+        'Ein Vergleichsangebot ist kein Misstrauen.\n\nHolen Sie sich ruhig zwei. Danach reden wir über den Unterschied.\n\nSchreiben Sie mir:',
+        'Der Preis hängt an drei Dingen.\n\nWie viele Seiten, wie viel Funktion, wie viel Text von mir. Alles andere ist Beiwerk.\n\nMelden Sie sich:',
+        'Kleinunternehmer nach §19 UStG.\n\nHeißt für Sie: keine Mehrwertsteuer auf der Rechnung.\n\nFragen Sie mich:',
+        'Am teuersten ist der Stillstand.\n\nEine Seite, die seit fünf Jahren niemanden erreicht, kostet jeden Monat etwas – nur steht es auf keiner Rechnung.\n\nSprechen wir darüber:',
+        'Ein Preis ohne Leistung dahinter sagt nichts.\n\nDeshalb steht bei mir daneben, was Sie dafür bekommen.\n\nSchreiben Sie mir:',
+        'Nachträgliche Rechnungen mag niemand.\n\nWenn etwas dazukommt, sprechen wir vorher darüber.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'sicherheit', titel: 'Sicherheit & Datenschutz', monate: null,
+      motive: ['sicherheit', 'netzwerk', 'software'],
+      tags: ['datenschutz', 'dsgvo', 'sicherheit', 'impressum', 'rechtssicher'],
+      texte: [
+        'Ihre Website sammelt Daten, ob Sie wollen oder nicht.\n\nSchon ein eingebundenes Schriftpaket reicht. Das lässt sich sauber lösen.\n\nSchreiben Sie mir:',
+        'Impressum und Datenschutz sind Pflicht.\n\nUnd zwar auffindbar, nicht versteckt auf der dritten Unterseite.\n\nMelden Sie sich:',
+        'Ein Cookie-Banner ist kein Freifahrtschein.\n\nWer trotzdem vorher lädt, was er nicht darf, hat nur einen Banner mehr.\n\nFragen Sie mich:',
+        'Kontaktformular ohne Verschlüsselung?\n\nDann steht die Anfrage Ihres Kunden offen im Netz. Das ist heute keine Kleinigkeit mehr.\n\nSprechen wir darüber:',
+        'Ich binde keine Dienste ein, die ich nicht erklären kann.\n\nWo Daten hinfließen, gehört ins Gespräch, bevor die Seite steht.\n\nSchreiben Sie mir:',
+        'Abmahnungen treffen selten die Großen.\n\nSie treffen die Seite, bei der es am einfachsten war.\n\nMelden Sie sich:',
+        'Karten, Videos, Schriften.\n\nDrei Dinge, die auf fast jeder Seite stecken – und drei, die fast immer nachgebessert werden müssen.\n\nFragen Sie einfach:',
+        'Datenschutz ist kein Text, den man kopiert.\n\nEr muss zu dem passen, was die Seite tatsächlich tut.\n\nSprechen wir darüber:',
+        'Wer hat Zugang zu Ihrer Website?\n\nWenn die Antwort einen früheren Dienstleister enthält, gehört das geändert.\n\nSchreiben Sie mir:',
+        'Sicherheitsaktualisierungen macht keiner gern.\n\nDeshalb baue ich so, dass es möglichst wenige gibt.\n\nMelden Sie sich:',
+        'Ihre Domain sollte auf Ihren Namen laufen.\n\nNicht auf den der Agentur. Das merkt man erst, wenn man wechseln will.\n\nFragen Sie mich:',
+        'Sicherheit sieht man nicht.\n\nMan merkt sie nur an dem Anruf, der nie kommt.\n\nSprechen wir darüber:',
+        'Zwei-Faktor überall, wo es geht.\n\nDas ist die günstigste Sicherheitsmaßnahme, die es gibt.\n\nSchreiben Sie mir:',
+        'Alte Zugänge gehören gelöscht.\n\nJeder, der einmal Zugriff hatte, hat ihn sonst immer noch.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'pflege', titel: 'Betreuung danach', monate: null,
+      motive: ['pflege', 'ablauf', 'software'],
+      tags: ['betreuung', 'wartung', 'support', 'erreichbar', 'langfristig'],
+      texte: [
+        'Nach der Übergabe fängt es erst an.\n\nÖffnungszeiten, Preise, neue Fotos – das ändert sich, und dann muss jemand erreichbar sein.\n\nSchreiben Sie mir:',
+        'Sie sollen Texte selbst ändern können.\n\nDeshalb liegt das, was sich oft ändert, an einer Stelle und nicht verteilt im Code.\n\nMelden Sie sich:',
+        'Was ich nicht mache: Sie an einen Vertrag binden.\n\nBetreuung ja, Knebel nein.\n\nFragen Sie mich:',
+        'Eine Seite, die niemand anfasst, altert schnell.\n\nNicht technisch – inhaltlich. Und das sieht der Kunde zuerst.\n\nSprechen wir darüber:',
+        'Wenn etwas nicht geht, melden Sie sich einfach.\n\nSie müssen kein Ticketsystem bedienen und keine Nummer ziehen.\n\nSchreiben Sie mir:',
+        'Ich sichere jeden Stand.\n\nFalls eine Änderung schiefgeht, ist die Seite in Minuten wieder da, wo sie war.\n\nMelden Sie sich:',
+        'Einmal im Jahr durchsehen lohnt sich.\n\nMeist findet man drei Kleinigkeiten, die längst nicht mehr stimmen.\n\nFragen Sie einfach:',
+        'Ihre Seite meldet sich bei mir, wenn sie ein Problem hat.\n\nSo weiß ich es meistens vor Ihnen.\n\nSprechen wir darüber:',
+        'Was, wenn Sie mit mir nicht mehr arbeiten wollen?\n\nDann bekommen Sie alles: Zugänge, Dateien, Domain. Ohne Diskussion.\n\nSchreiben Sie mir:',
+        'Kleine Änderungen kosten nichts.\n\nEine neue Telefonnummer ist kein Auftrag, sondern eine Minute.\n\nMelden Sie sich:',
+        'Betreuung heißt nicht, dass ich alles mache.\n\nOft zeige ich es Ihnen einmal, und danach machen Sie es selbst.\n\nFragen Sie mich:',
+        'Der Unterschied zeigt sich im dritten Jahr.\n\nDann steht entweder eine gepflegte Seite da oder eine, die niemand mehr anfassen will.\n\nSprechen wir darüber:',
+        'Erreichbarkeit ist Teil der Leistung.\n\nEine Seite ohne Ansprechpartner ist eine halbe Seite.\n\nSchreiben Sie mir:',
+        'Ich melde mich, wenn etwas ansteht.\n\nSie müssen nicht daran denken, wann was fällig ist.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'barrierefrei', titel: 'Für alle bedienbar', monate: null,
+      motive: ['barrierefrei', 'mobil', 'websites'],
+      tags: ['barrierefreiheit', 'bfsg', 'bedienbarkeit', 'lesbarkeit', 'website'],
+      texte: [
+        'Grauer Text auf hellgrauem Grund sieht ruhig aus.\n\nLesen kann ihn ab vierzig kaum noch jemand.\n\nSchreiben Sie mir:',
+        'Barrierefrei heißt nicht hässlich.\n\nEs heißt: genug Kontrast, große genug Schrift, Knöpfe, die man trifft.\n\nMelden Sie sich:',
+        'Seit dem Barrierefreiheitsstärkungsgesetz gelten für viele Anbieter feste Anforderungen.\n\nOb Sie dazugehören, klären wir in fünf Minuten.\n\nFragen Sie mich:',
+        'Jedes Bild braucht eine Beschreibung.\n\nNicht nur für Vorleseprogramme – Google liest sie auch.\n\nSprechen wir darüber:',
+        'Können Sie Ihre Seite mit der Tastatur bedienen?\n\nProbieren Sie es mit der Tabulatortaste. Das Ergebnis überrascht die meisten.\n\nSchreiben Sie mir:',
+        'Schrift unter 16 Pixel ist auf dem Handy zu klein.\n\nDas ist kein Geschmack, das ist messbar.\n\nMelden Sie sich:',
+        'Ein Knopf muss aussehen wie ein Knopf.\n\nWo man raten muss, wird nicht geklickt, sondern weggegangen.\n\nFragen Sie einfach:',
+        'Videos ohne Untertitel laufen bei den meisten stumm.\n\nWeil sie im Wartezimmer oder im Bus geschaut werden.\n\nSprechen wir darüber:',
+        'Formulare sind die häufigste Hürde.\n\nFehlende Beschriftungen, unklare Fehler, kein Hinweis, was falsch war.\n\nSchreiben Sie mir:',
+        'Barrierefreiheit hilft allen.\n\nAuch dem, der bei Sonne auf dem Parkplatz Ihre Nummer sucht.\n\nMelden Sie sich:',
+        'Man muss nicht alles auf einmal richten.\n\nKontrast und Schriftgröße bringen schon den größten Teil.\n\nFragen Sie mich:',
+        'Eine Seite, die jeder bedienen kann, verliert niemanden.\n\nDas ist der ganze Punkt.\n\nSprechen wir darüber:',
+        'Bewegte Elemente sollten sich abschalten lassen.\n\nFür manche sind sie nicht nur störend, sondern unangenehm.\n\nSchreiben Sie mir:',
+        'Überschriften sind kein Gestaltungsmittel.\n\nSie geben der Seite die Struktur, an der sich alle entlanghangeln.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'bewertungen', titel: 'Bewertungen', monate: null,
+      motive: ['bewertungen', 'sichtbarkeit', 'wuerzburg'],
+      tags: ['bewertungen', 'google', 'empfehlung', 'vertrauen', 'regional'],
+      texte: [
+        'Die meisten lesen Bewertungen, bevor sie anrufen.\n\nAuch bei Betrieben, die sie schon kennen.\n\nSchreiben Sie mir:',
+        'Vier Bewertungen sind wenig.\n\nVier gute mit Antwort sind mehr wert als vierzig ohne.\n\nMelden Sie sich:',
+        'Antworten Sie auf jede Bewertung.\n\nAuch auf die guten. Das liest der Nächste, der überlegt.\n\nFragen Sie mich:',
+        'Eine schlechte Bewertung ist kein Drama.\n\nEine unbeantwortete schon.\n\nSprechen wir darüber:',
+        'Fragen Sie zufriedene Kunden einfach.\n\nDie meisten schreiben gern etwas, kommen nur von selbst nicht drauf.\n\nSchreiben Sie mir:',
+        'Bewertungen kaufen bringt nichts.\n\nMan sieht es, und Google sieht es auch.\n\nMelden Sie sich:',
+        'Der beste Moment zum Fragen ist direkt nach der Übergabe.\n\nNicht drei Wochen später per Serienbrief.\n\nFragen Sie einfach:',
+        'Bewertungen gehören auch auf Ihre Website.\n\nAber die echten, mit Datum – nicht drei anonyme Sätze im Kasten.\n\nSprechen wir darüber:',
+        'Ein QR-Code auf der Rechnung wirkt Wunder.\n\nZwei Sekunden statt Suchen im Handy.\n\nSchreiben Sie mir:',
+        'Wer nie eine schlechte Bewertung hat, wirkt unecht.\n\nEine mit einer ruhigen Antwort schadet nicht, sie hilft.\n\nMelden Sie sich:',
+        'Bewertungen wirken auf die Suche.\n\nZahl, Note und wie frisch sie sind – alle drei zählen.\n\nFragen Sie mich:',
+        'Empfehlung ist die beste Werbung.\n\nOnline ist die Bewertung genau das, nur an Fremde.\n\nSprechen wir darüber:',
+        'Bitten Sie nie um „fünf Sterne\".\n\nBitten Sie um eine ehrliche Rückmeldung. Das kommt besser an und wirkt echter.\n\nSchreiben Sie mir:',
+        'Eine Antwort in zwei Sätzen reicht.\n\nDanke, kurzer Bezug, Einladung zum Wiederkommen.\n\nMelden Sie sich:'
+      ]
+    },
+    {
+      id: 'formulare', titel: 'Anfragen & Formulare', monate: null,
+      motive: ['formulare', 'zeitsparen', 'websites'],
+      tags: ['formular', 'anfragen', 'kontakt', 'erreichbarkeit', 'automatisierung'],
+      texte: [
+        'Ein Kontaktformular mit zwölf Feldern füllt niemand aus.\n\nName, Nachricht, Erreichbarkeit. Der Rest klärt sich im Gespräch.\n\nSchreiben Sie mir:',
+        'Wo landen Ihre Anfragen?\n\nWenn die Antwort „im Spam-Ordner, manchmal" lautet, ist das ein teurer Fehler.\n\nMelden Sie sich:',
+        'Jede Anfrage sollte eine Bestätigung auslösen.\n\nSonst schreibt der Kunde zur Sicherheit noch dem Nächsten.\n\nFragen Sie mich:',
+        'Ein Formular kann vorsortieren.\n\nTermin, Angebot oder Reklamation – das spart den ersten Rückruf.\n\nSprechen wir darüber:',
+        'Pflichtfelder sparsam einsetzen.\n\nJedes Sternchen kostet Anfragen.\n\nSchreiben Sie mir:',
+        'Telefonnummer abfragen oder nicht?\n\nWenn Sie zurückrufen wollen: ja. Wenn nicht: weglassen.\n\nMelden Sie sich:',
+        'Anfragen gehören nicht nur ins Postfach.\n\nEine Kopie, die bleibt, hilft, wenn das Postfach aufgeräumt wird.\n\nFragen Sie einfach:',
+        'Fehlermeldungen müssen sagen, was fehlt.\n\n„Ungültige Eingabe" hilft niemandem weiter.\n\nSprechen wir darüber:',
+        'Ein Formular ersetzt kein Telefon.\n\nBeides gehört sichtbar auf die Seite, und zwar oben.\n\nSchreiben Sie mir:',
+        'Automatische Antwort heißt nicht unpersönlich.\n\nZwei Sätze mit einer realistischen Frist reichen völlig.\n\nMelden Sie sich:',
+        'Spam lässt sich stoppen, ohne den Kunden zu quälen.\n\nBilderrätsel sind dafür der schlechteste Weg.\n\nFragen Sie mich:',
+        'Termine direkt buchbar zu machen, spart beiden Seiten das Hin und Her.\n\nOb das zu Ihrem Betrieb passt, klären wir vorher.\n\nSprechen wir darüber:',
+        'Datenschutzhinweis gehört ans Formular.\n\nEin Satz mit Verweis, nicht ein Absatz zum Wegklicken.\n\nSchreiben Sie mir:',
+        'Dateianhänge ermöglichen spart Rückfragen.\n\nEin Foto vom Problem sagt mehr als drei Mails.\n\nMelden Sie sich:'
       ]
     }
   ];
