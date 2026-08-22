@@ -26,28 +26,66 @@ const MODELL = 'claude-sonnet-5';
 
 // Feste Angaben gehoeren nicht ins Modell: eine erfundene Telefonnummer faellt
 // keinem auf, bis jemand sie waehlt. Der Worker haengt sie selbst an.
-const TELEFON = '09562 / 579844';
-const ORT = ['teamdiezmann', 'autohausdiezmann', 'weidhausen', 'coburg', 'oberfranken'];
+// Notfallwerte. Der wirkliche Schluss steht in studio_einstellungen unter
+// "fuss" und wird zur Laufzeit geholt – hier stand vorher die Nummer und die
+// Ortsmarken des Autohauses, aus dem dieser Baukasten stammt.
+const SCHLUSS = 'Anfragen per Mail:\n\u{1F4E7}  kontakt@ihsan-yilmaz.de\n\u{1F449}  Mehr auf ihsan-yilmaz.de';
+const ORT = ['aiyweb', 'wuerzburg', 'würzburg', 'unterfranken', 'mainfranken'];
 
-const TON = `So klingt das Haus – zwei echte Beispiele:
+// Holt den gespeicherten Schluss. Dass die Symbole darin stehen, ist kein
+// Zufall: der Text, den das Modell schreibt, endet sonst nackt, und der
+// Beitrag saehe anders aus als jeder von Hand gebaute.
+// Was das Modell schreibt, bleibt liegen. Bisher war ein Vorschlag weg,
+// sobald man die Seite verlassen hat – und ein guter Satz laesst sich zwei
+// Monate spaeter noch einmal verwenden.
+//
+// Still im Hintergrund: scheitert das Merken, ist der Beitrag trotzdem
+// fertig. Ein Vorschlag, der an einer vollen Tabelle stirbt, waere die
+// schlechtere Seite des Handels.
+async function satzMerken(db, thema, text, marken) {
+  if (!db || !text || text.trim().length < 20) return;
+  try {
+    await db.prepare(
+      `INSERT OR IGNORE INTO studio_saetze (thema, text, hashtags, herkunft)
+       VALUES (?, ?, ?, 'ki')`
+    ).bind(String(thema || '').slice(0, 80), text.trim(), String(marken || '').slice(0, 400)).run();
+  } catch (err) {
+    console.error('Satz merken:', err);
+  }
+}
 
-"Ein Geräusch, das vorher nicht da war?
+async function schlussHolen(db) {
+  try {
+    const r = await db.prepare(
+      "SELECT wert FROM studio_einstellungen WHERE schluessel = 'fuss'").first();
+    if (!r || !r.wert) return { nummer: SCHLUSS, hashtags: '' };
+    const d = JSON.parse(r.wert);
+    return { nummer: d.nummer || SCHLUSS, hashtags: d.hashtags || '' };
+  } catch {
+    return { nummer: SCHLUSS, hashtags: '' };
+  }
+}
 
-Dann lieber einmal zu früh vorbeikommen als einmal zu spät. Wir schauen es uns
-an und sagen Ihnen ehrlich, was zu tun ist – und was warten kann.
+const TON = `So klingt der Kanal – zwei echte Beispiele:
 
-Termin unter:"
+"Ihre Website ist älter als Ihr Smartphone?
 
-"Freie Werkstatt heißt nicht zweite Wahl.
+Dann sehen Kunden dort etwas anderes als das, was Ihr Betrieb heute ist. Eine
+neue Seite muss weder Monate dauern noch ein Vermögen kosten.
 
-Wir arbeiten nach Herstellervorgabe, mit den passenden Teilen und mit Stempel
-ins Scheckheft. Nur eben nicht zum Vertragspreis.
+Schreiben Sie mir:"
+
+"Kein Betrieb braucht zwanzig Unterseiten.
+
+Er braucht eine, auf der steht, was er macht, für wen, und wie man ihn
+erreicht. Alles andere ist Beiwerk.
 
 Melden Sie sich:"
 
 Merkmale: Sie-Form, kurze Sätze, eine Frage oder Feststellung als Einstieg,
-dann zwei bis drei Sätze Inhalt, dann die Aufforderung anzurufen. Nüchtern,
-fränkisch-sachlich. Keine Werbesprache, keine Ausrufezeichen, keine Emojis,
+dann zwei bis drei Sätze Inhalt, dann die Aufforderung, sich zu melden.
+Nüchtern und sachlich, aus der Sicht eines Einzelnen ("ich"), nicht eines
+Teams ("wir"). Keine Werbesprache, keine Ausrufezeichen, keine Emojis,
 kein "Ihr Partner für", kein "Wir freuen uns auf Sie".`;
 
 export async function onRequestPost({ env, request }) {
@@ -100,13 +138,26 @@ export async function onRequestPost({ env, request }) {
 
     if (!bilder.length) throw new Error('Das Modell hat keine Bilder benannt.');
 
+    // Der gespeicherte Schluss samt Symbolen – derselbe, den ein von Hand
+    // gebauter Beitrag traegt. Vorher hing hier nur eine Telefonnummer.
+    const schluss = await schlussHolen(db);
+    // Der lesbare Titel der Kategorie, nicht die Kennung: aus "Bei Google
+    // gefunden" wird ein brauchbares Schlagwort, aus "sichtbarkeit" nicht.
+    const gewaehltesThema = String((k && k.titel) || plan.thema || thema || '').slice(0, 80);
+    const marken = hashtags(plan.hashtags, gewaehltesThema);
+    // Nur ganze Beitragstexte merken. Eine Story ist eine Zeile im Bild und
+    // taugt nicht als Spruch fuer spaeter.
+    if (machart !== 'story') {
+      await satzMerken(db, gewaehltesThema, saeubern(plan.text), marken);
+    }
+
     return antwort({
       ok: true,
       beitrag: {
-        thema: String(plan.thema || thema || '').slice(0, 80),
+        thema: gewaehltesThema,
         bilder: bilder.map(b => b.schluessel),
         text: machart === 'story' ? String(plan.zeile || plan.text || '').slice(0, 90)
-          : saeubern(plan.text) + '\n' + TELEFON,
+          : saeubern(plan.text) + '\n\n' + schluss.nummer,
         zeile: String(plan.zeile || '').slice(0, 90),
       unterzeile: String(plan.unterzeile || '').slice(0, 90),
       stelle: ['oben', 'mitte', 'unten'].includes(plan.stelle) ? plan.stelle : 'unten',
@@ -118,8 +169,9 @@ export async function onRequestPost({ env, request }) {
       } : null,
         szenen: Array.isArray(plan.szenen) ? plan.szenen.slice(0, 8) : null,
         musik: String(plan.musik || '').slice(0, 160),
-        hashtags: hashtags(plan.hashtags)
+        hashtags: marken
       },
+      gemerkt: machart !== 'story',
       gelesen: vorrat.length,
       cent: verbrauch
     });
@@ -213,8 +265,8 @@ function anweisung(vorlage, thema, machart) {
     `${i + 1}. [${b.motiv}${b.staerke >= 4 ? ', stark' : ''}${b.hinweis ? ', Achtung: ' + b.hinweis : ''}] ${b.satz}`
   ).join('\n');
 
-  return `Du stellst einen Instagram-Beitrag für das Autohaus Diezmann in
-Weidhausen bei Coburg zusammen – freie Werkstatt und Meisterbetrieb, alle
+  return `Du stellst einen Instagram-Beitrag für AIY | Ihsan Yilmaz zusammen –
+Webentwicklung und IT aus Würzburg, ein Einzelner, keine Agentur, alle
 Marken, dazu Gebrauchtwagen und Mietwagen. Der Kanal ist klein und lokal; es
 lesen Leute aus der Gegend mit, keine Autofans aus dem Internet.
 
@@ -306,6 +358,9 @@ async function fuerFahrzeug(env, v, bilder, machart) {
   inhalt.push({ type: 'text', text: fahrzeugAuftrag(v, machart, wege.length) });
 
   const { plan, verbrauch } = await fragen(env.ANTHROPIC_API_KEY, inhalt);
+  // Auch hier der gespeicherte Schluss – vorher stand an dieser Stelle eine
+  // fest eingetragene Telefonnummer.
+  const schluss = env.DB ? await schlussHolen(env.DB) : { nummer: SCHLUSS };
 
   // Doppelte Nummern herauswerfen: nennt das Modell dieselbe zweimal, stuende
   // dasselbe Foto zweimal im Beitrag. Der Vorratsweg macht das weiter oben
@@ -318,7 +373,7 @@ async function fuerFahrzeug(env, v, bilder, machart) {
       thema: String(plan.thema || '').slice(0, 80),
       bilder: reihe.length ? reihe : bilder.slice(0, 5),
       text: machart === 'story' ? String(plan.zeile || '').slice(0, 90)
-        : saeubern(plan.text) + '\n' + TELEFON,
+        : saeubern(plan.text) + '\n\n' + schluss.nummer,
       zeile: String(plan.zeile || '').slice(0, 90),
       unterzeile: String(plan.unterzeile || '').slice(0, 90),
       stelle: ['oben', 'mitte', 'unten'].includes(plan.stelle) ? plan.stelle : 'unten',
@@ -330,7 +385,7 @@ async function fuerFahrzeug(env, v, bilder, machart) {
       } : null,
       szenen: Array.isArray(plan.szenen) ? plan.szenen.slice(0, 8) : null,
       musik: String(plan.musik || '').slice(0, 160),
-      hashtags: hashtags(plan.hashtags)
+      hashtags: hashtags(plan.hashtags, plan.thema)
     },
     gelesen: wege.length,
     cent: verbrauch
@@ -363,8 +418,8 @@ function fahrzeugDaten(v) {
 }
 
 function fahrzeugAuftrag(v, machart, anzahl) {
-  const kopf = `Du baust Inhalt für den Instagram-Kanal des Autohauses Diezmann in
-Weidhausen bei Coburg. Es geht um ein Fahrzeug aus dem eigenen Bestand. Du
+  const kopf = `Du baust Inhalt für den Instagram-Kanal von AIY | Ihsan Yilmaz
+aus Würzburg. Es geht um ein Fahrzeug aus einem Kundenbestand. Du
 bekommst ${anzahl} nummerierte Fotos davon und die Angaben aus dem Inserat.
 
 ANGABEN:
@@ -536,11 +591,39 @@ function saeubern(t) {
     .trim();
 }
 
-function hashtags(roh) {
+// Die Ortsmarken stehen unter jedem Beitrag gleich – ohne einen Teil, der
+// zum Thema gehoert, sind alle Beitraege unter denselben Schlagwoertern
+// unterwegs und keiner findet den einen, um den es geht. Deshalb wandert das
+// Thema fest mit hinein, direkt hinter den Ort und vor dem, was das Modell
+// vorgeschlagen hat.
+function themaWort(titel) {
+  return String(titel || '').toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 28);
+}
+
+function hashtags(roh, thema) {
+  const saeubern = w => String(w).toLowerCase().replace(/[^a-z0-9äöüß]/g, '');
   const eigene = (Array.isArray(roh) ? roh : String(roh || '').split(/[\s,#]+/))
-    .map(w => String(w).toLowerCase().replace(/[^a-z0-9äöüß]/g, ''))
+    .map(saeubern)
     .filter(w => w.length > 2);
-  return [...ORT, ...eigene]
+
+  // Aus "Bei Google gefunden" wird "beigooglegefunden" – ein Wort, das nur
+  // zu diesem Thema gehoert. Dazu die einzelnen Woerter daraus, denn danach
+  // sucht eher jemand.
+  const ausThema = [];
+  if (thema) {
+    const ganz = themaWort(thema);
+    if (ganz.length > 2) ausThema.push(ganz);
+    String(thema).toLowerCase().split(/[^a-zäöüß0-9]+/)
+      .map(saeubern)
+      .filter(w => w.length > 3 && !['fuer','fur','eine','einen','sich','beim','nach','aus','das','der','die','und','mit'].includes(w))
+      .forEach(w => ausThema.push(w));
+  }
+
+  return [...ORT, ...ausThema, ...eigene]
+    .filter(w => w && w.length > 2)
     .filter((w, i, a) => a.indexOf(w) === i)
     .slice(0, 14)
     .map(w => '#' + w).join(' ');

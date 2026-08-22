@@ -2392,6 +2392,17 @@
   // Wer schneller war, entschied, was im Kasten stand: meist das Zeichnen –
   // und dann stand der Baukastenschluss da, obwohl ein eigener gespeichert
   // war. Deshalb wartet der Start jetzt darauf.
+  // Die gemerkten Sprueche aus studio_saetze. Scheitert der Abruf, bleibt es
+  // bei den eingebauten Texten – der Baukasten muss auch ohne sie laufen.
+  async function saetzeHolen() {
+    if (!window.beitragText || !window.beitragText.saetzeSetzen) return;
+    try {
+      const a = await fetch('/api/studio/saetze', { credentials: 'same-origin' });
+      const d = await a.json();
+      if (d && d.ok) window.beitragText.saetzeSetzen(d.nachThema || {});
+    } catch { /* dann eben nur der Baukasten */ }
+  }
+
   async function fussHolen() {
     try {
       const a = await fetch('/api/studio/fuss', { credentials: 'same-origin' });
@@ -2559,6 +2570,10 @@
     // Ebenso der gemeinsame Schluss: sonst zeichnet der Baukasten mit dem
     // Text ab Werk, und der eigene erschiene erst nach einem Themenwechsel.
     await fussHolen();
+    // Und die gemerkten Sprueche – sie haengen hinten an den eingebauten
+    // Varianten. Gewartet wird darauf, weil sonst der erste gezeichnete Text
+    // aus dem kleineren Vorrat kaeme und beim naechsten Klick springt.
+    await saetzeHolen();
 
     if (bearbeitungId) {
       try {

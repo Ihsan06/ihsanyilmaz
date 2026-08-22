@@ -951,6 +951,23 @@ window.beitragText = (function () {
     // stand sie im Weg.
   }
 
+  // Was das Modell frueher geschrieben hat, liegt in studio_saetze. Der
+  // Baukasten holt es beim Start und haengt es hier hinten an die fest
+  // eingebauten Varianten – ein guter Vorschlag bleibt so nicht einmalig.
+  // Der Schluessel ist der Titel des Themas, nicht die Kennung: so steht es
+  // in der Tabelle.
+  let GEMERKT = {};
+  function saetzeSetzen(nachThema) {
+    GEMERKT = nachThema && typeof nachThema === 'object' ? nachThema : {};
+  }
+
+  function textePlus(t) {
+    const dazu = (GEMERKT[t.titel] || [])
+      .map(x => String(x && x.text || '').trim())
+      .filter(x => x.length > 20 && !t.texte.includes(x));
+    return dazu.length ? [...t.texte, ...dazu] : t.texte;
+  }
+
   function werkstatt(id, variante) {
     // Eine in der Galerie angelegte Kategorie hat keine Baukastentexte. Frueher
     // fiel sie hier auf das erste Thema zurueck und zeigte einen Text ueber
@@ -958,8 +975,9 @@ window.beitragText = (function () {
     // dafuer gibt es den Knopf, der einen Text schreiben laesst.
     const t = WERKSTATT.find(x => x.id === id);
     if (!t) return { titel: id, text: '', hashtags: ORT.map(w => '#' + w).join(' '), varianten: 0 };
+    const alle = textePlus(t);
     const n = Number.isFinite(variante) ? variante : 0;
-    const roh = t.texte[platz(n, t.texte.length)].split('\n');
+    const roh = alle[platz(n, alle.length)].split('\n');
     // Die letzte Zeile ist die eigene Aufforderung des Bausteins – sie weicht
     // der gemeinsamen, sonst stuende zweimal dasselbe untereinander.
     while (roh.length && !roh[roh.length - 1].trim()) roh.pop();
@@ -967,12 +985,21 @@ window.beitragText = (function () {
         && roh[roh.length - 1].length < 60) roh.pop();
     while (roh.length && !roh[roh.length - 1].trim()) roh.pop();
     const text = roh.join('\n') + '\n\n' + FUSS;
-    const tags = [...ORT.slice(0, 4), ...t.tags].filter((w, i, a) => a.indexOf(w) === i);
+    // Das Thema gehoert in die Marken, nicht nur die Ortsmarken und die
+    // Stichwoerter. Sonst laufen alle Beitraege unter denselben Woertern und
+    // keiner findet den einen, um den es geht. Derselbe Gedanke wie in
+    // zusammenstellen.js – dort fuer die Texte, die das Modell schreibt.
+    const themenWort = t.titel.toLowerCase()
+      .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+      .replace(/[^a-z0-9]/g, '').slice(0, 28);
+    const tags = [...ORT.slice(0, 4), themenWort, ...t.tags]
+      .filter(w => w && w.length > 2)
+      .filter((w, i, a) => a.indexOf(w) === i);
     return {
       titel: t.titel,
       text,
       hashtags: tags.slice(0, 14).map(w => '#' + w).join(' '),
-      varianten: t.texte.length
+      varianten: alle.length
     };
   }
 
@@ -1049,5 +1076,5 @@ window.beitragText = (function () {
     };
   }
 
-  return { bauen, reel, story, werkstatt, werkstattThemen, merkmale, name };
+  return { bauen, reel, story, werkstatt, werkstattThemen, saetzeSetzen, merkmale, name };
 })();
