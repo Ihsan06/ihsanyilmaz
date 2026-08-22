@@ -2183,6 +2183,21 @@ a.admin-karte h2 { color: var(--text); }
 }
 .wk-gross-waehlen.an { background: var(--gold, #12557F); border-color: transparent; }
 .wk-gross-wort { color: rgba(255,255,255,.72); font-size: .8rem; }
+
+/* Herz und Papierkorb links vom Auswaehlen-Knopf. Als reine Symbole: sie
+   sind Nebenhandlungen, und drei beschriftete Knoepfe nebeneinander lesen
+   sich wie drei gleich wichtige. */
+.wk-gross-sym {
+  width: 38px; height: 38px; flex: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 9px; border: 1px solid rgba(255,255,255,.28);
+  background: transparent; color: rgba(255,255,255,.82);
+}
+.wk-gross-sym:hover { background: rgba(255,255,255,.12); color: #fff; }
+.wk-gross-sym.herz-an { color: #ff6b8a; border-color: rgba(255,107,138,.55); }
+.wk-gross-fehler {
+  margin: 10px 0 0; font-size: .8rem; color: #ff9aa8; text-align: center;
+}
 .wk-gross-herz { color: #ff6b8a; font-style: normal; }
 
 @media (max-width: 620px) {

@@ -3222,6 +3222,79 @@
     wkGrossMalen(feld);
   }
 
+  // Herz setzen und wieder abnehmen. Erst die Anzeige, dann der Server: ein
+  // Herz, das eine halbe Sekunde ueberlegt, fuehlt sich kaputt an. Geht es
+  // schief, springt es zurueck.
+  async function herzUmschalten(b, feld) {
+    const vorher = b.favorit ? 1 : 0;
+    b.favorit = vorher ? 0 : 1;
+    wkGrossMalen(feld);
+    seiteZeichnen(vorrat);
+    try {
+      const a = await fetch('/api/studio/vorrat', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schluessel: b.schluessel, favorit: b.favorit })
+      });
+      const d = await a.json();
+      if (!d || d.ok === false) throw new Error(d && d.fehler || 'Ging nicht.');
+    } catch (e) {
+      b.favorit = vorher;
+      wkGrossMalen(feld);
+      seiteZeichnen(vorrat);
+      grossMelden(String(e.message || e));
+    }
+  }
+
+  // In den Papierkorb – nicht endgueltig. Danach zum naechsten Bild
+  // weiterruecken statt zu schliessen: wer aussortiert, sortiert meist
+  // mehrere hintereinander aus.
+  async function bildWegwerfen(b, feld) {
+    if (!confirm('Dieses Bild in den Papierkorb legen?')) return;
+    const weg = '/bilder/' + b.schluessel;
+    const liste = wkListe(vorrat);
+    const stelle = liste.findIndex(x => x.schluessel === b.schluessel);
+    const nachfolger = liste[stelle + 1] || liste[stelle - 1] || null;
+
+    try {
+      const a = await fetch('/api/studio/vorrat?schluessel=' + encodeURIComponent(b.schluessel),
+        { method: 'DELETE', credentials: 'same-origin' });
+      const d = await a.json();
+      if (!d || d.ok === false) throw new Error(d && d.fehler || 'Ging nicht.');
+
+      // Aus dem Vorrat und aus der Auswahl nehmen – ein geloeschtes Bild in
+      // einem Beitrag waere spaeter eine leere Kachel.
+      vorrat.bilder = (vorrat.bilder || []).filter(x => x.schluessel !== b.schluessel);
+      if (vorrat.gesamt) vorrat.gesamt -= 1;
+      // Die Zahl in der Kopfzeile haengt nicht am Raster und wird von
+      // seiteZeichnen nicht mitgezogen – sonst stuende dort weiter der alte
+      // Stand, und man zweifelt, ob das Loeschen ueberhaupt ankam.
+      document.querySelectorAll('.wk-gesamt').forEach(z => { z.textContent = zahl(vorrat.gesamt); });
+      wkAuswahl.delete(weg);
+      if (gezeigt === weg) gezeigt = null;
+
+      seiteZeichnen(vorrat);
+      standZaehlen(feld); vorschauBild(feld); reiheZeichnen(feld);
+
+      if (nachfolger) { wkGross = nachfolger.schluessel; wkGrossMalen(feld); }
+      else wkGrossSchliessen();
+    } catch (e) {
+      grossMelden(String(e.message || e));
+    }
+  }
+
+  function grossMelden(wort) {
+    const kasten = document.querySelector('.wk-gross');
+    if (!kasten) return;
+    let z = kasten.querySelector('.wk-gross-fehler');
+    if (!z) {
+      z = document.createElement('p');
+      z.className = 'wk-gross-fehler';
+      kasten.appendChild(z);
+    }
+    z.textContent = wort;
+  }
+
   function wkGrossMalen(feld) {
     const kasten = document.querySelector('.wk-gross');
     if (!kasten || !wkGross) return;
@@ -3242,6 +3315,26 @@
               ${stelle >= liste.length - 1 ? 'disabled' : ''} aria-label="Nächstes Bild">›</button>
       <img src="${schuetzen(weg)}" alt="${schuetzen(b.quelle || '')}" />
       <div class="wk-gross-fuss">
+        <button type="button" class="wk-gross-sym${b.favorit ? ' herz-an' : ''}" data-herz
+                aria-pressed="${!!b.favorit}"
+                title="${b.favorit ? 'Herz entfernen' : 'Herz setzen'}"
+                aria-label="${b.favorit ? 'Herz entfernen' : 'Herz setzen'}">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="${b.favorit ? 'currentColor' : 'none'}"
+               stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+            <path d="M12 20.3 4.6 13a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9A4.6 4.6 0 0 1 19.4 13z"
+                  stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button type="button" class="wk-gross-sym" data-weg
+                title="In den Papierkorb legen" aria-label="In den Papierkorb legen">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none"
+               stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+            <path d="M4 7h16M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7"
+                  stroke-linecap="round"/>
+            <path d="M6.4 7 7.3 19a1.4 1.4 0 0 0 1.4 1.3h6.6a1.4 1.4 0 0 0 1.4-1.3L17.6 7"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <button type="button" class="wk-gross-waehlen${drin ? ' an' : ''}" data-waehlen>
           ${drin ? '✓ Ausgewählt' : 'Auswählen'}
         </button>
@@ -3258,6 +3351,8 @@
       auswahlUmschalten(weg, feld);
       wkGrossMalen(feld);
     });
+    kasten.querySelector('[data-herz]').addEventListener('click', () => herzUmschalten(b, feld));
+    kasten.querySelector('[data-weg]').addEventListener('click', () => bildWegwerfen(b, feld));
   }
 
   function standZaehlen(feld) {
