@@ -2094,14 +2094,99 @@ a.admin-karte h2 { color: var(--text); }
   font-size: .58rem; font-weight: 700; letter-spacing: .03em;
   color: #fff; background: rgba(0,0,0,.6); border-radius: 999px; padding: 2px 7px;
 }
-/* Das Herz aus der Galerie. Bewusst klein und ohne Kasten: es soll auffallen,
-   wenn man danach sucht, und sonst nicht stoeren – deshalb "ganz leicht zu
-   sehen" und nicht als weiteres Etikett neben dem Motiv. */
+/* Das Herz aus der Galerie. Frueher sass es unten rechts und verschwand
+   hinter dem Themen-Etikett, das dort breit hinlaeuft – man konnte seine
+   Lieblingsbilder nicht erkennen. Jetzt oben links mit eigenem Grund, wo
+   nichts anderes liegt. */
 .sm-herz {
-  position: absolute; right: 5px; bottom: 4px;
-  font-size: .72rem; line-height: 1; color: #f2617a;
-  text-shadow: 0 0 3px rgba(0,0,0,.55);
+  position: absolute; left: 5px; top: 5px;
+  width: 19px; height: 19px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.92); color: #e0355a;
+  font-size: .72rem; line-height: 1;
+  box-shadow: 0 1px 3px rgba(0,0,0,.28);
   pointer-events: none;
+}
+
+/* Der Haken waehlt jetzt selbst aus – die Kachel als Ganzes oeffnet die
+   Grossansicht. Deshalb ist er ein Knopf und muss auch so gross sein, dass
+   man ihn am Handy trifft. */
+.sm-foto .sm-haken {
+  border: 0; cursor: pointer; padding: 0;
+  width: 21px; height: 21px;
+}
+.sm-foto img[data-gross] { cursor: zoom-in; }
+
+/* ─── Leiste ueber dem Bildraster ─── */
+.wk-leiste {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 0 0 10px;
+}
+.wk-wahl {
+  font: inherit; font-size: .82rem; padding: 6px 10px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--karte, #fff); color: var(--text); cursor: pointer;
+}
+.wk-herz-knopf {
+  font: inherit; font-size: .82rem; padding: 6px 11px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--karte, #fff); color: #e0355a;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.wk-herz-knopf span { color: var(--muted); }
+.wk-herz-knopf.an { background: #e0355a; border-color: #e0355a; color: #fff; }
+.wk-herz-knopf.an span { color: rgba(255,255,255,.75); }
+.wk-zurueck {
+  font: inherit; font-size: .8rem; padding: 6px 10px; cursor: pointer;
+  border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: var(--muted); text-decoration: underline;
+}
+.wk-treffer { font-size: .78rem; color: var(--muted); margin-left: auto; }
+.wk-leer { grid-column: 1 / -1; color: var(--muted); font-size: .85rem; padding: 18px 2px; }
+
+/* ─── Grossansicht im Baukasten ─── */
+.wk-gross {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(10,16,24,.9);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px 64px;
+}
+.wk-gross img {
+  max-width: 100%; max-height: calc(100vh - 150px);
+  object-fit: contain; border-radius: 10px; background: #0a1018;
+}
+.wk-gross-zu {
+  position: absolute; top: 14px; right: 16px;
+  width: 36px; height: 36px; border-radius: 9px; cursor: pointer;
+  border: 0; background: rgba(255,255,255,.14); color: #fff; font-size: 1.4rem; line-height: 1;
+}
+.wk-gross-pfeil {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
+  border: 0; background: rgba(255,255,255,.14); color: #fff; font-size: 1.6rem; line-height: 1;
+}
+.wk-gross-pfeil.links { left: 12px; }
+.wk-gross-pfeil.rechts { right: 12px; }
+.wk-gross-pfeil:disabled { opacity: .22; cursor: default; }
+.wk-gross-fuss {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  justify-content: center; margin-top: 14px;
+}
+.wk-gross-waehlen {
+  font: inherit; font-size: .86rem; font-weight: 600; padding: 9px 20px; cursor: pointer;
+  border-radius: 9px; border: 1px solid rgba(255,255,255,.35);
+  background: transparent; color: #fff;
+}
+.wk-gross-waehlen.an { background: var(--gold, #12557F); border-color: transparent; }
+.wk-gross-wort { color: rgba(255,255,255,.72); font-size: .8rem; }
+.wk-gross-herz { color: #ff6b8a; font-style: normal; }
+
+@media (max-width: 620px) {
+  .wk-gross { padding: 16px 12px; }
+  .wk-gross-pfeil { width: 36px; height: 36px; }
+  .wk-gross-pfeil.links { left: 4px; }
+  .wk-gross-pfeil.rechts { right: 4px; }
+  .wk-treffer { margin-left: 0; }
 }
 
 /* Die Wahl haengt unter der Kachel – das Raster darf sie nicht abschneiden. */

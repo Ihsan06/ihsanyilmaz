@@ -38,7 +38,7 @@ export async function onRequestGet({ env }) {
 
   const { results } = await db.prepare(
     `SELECT schluessel, quelle, motiv, personen, freigabe, beschreibung, zuletzt_benutzt,
-            geloescht_am, favorit
+            geloescht_am, favorit, angelegt
        FROM studio_vorrat ORDER BY freigabe DESC, quelle`
   ).all();
 

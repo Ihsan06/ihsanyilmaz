@@ -2624,6 +2624,34 @@
   // Blaettern weg.
   const VORRAT_PRO_SEITE = 23;
   let wkSeite = 0;
+  // Bei 135 Bildern auf sechs Seiten ist Blaettern keine Suche. Filter und
+  // Sortierung stehen deshalb ueber dem Raster; beide veraendern nur, was
+  // gezeigt wird, nie die Auswahl.
+  let wkFilter = '';        // '' | 'favorit' | 'unsortiert' | <motiv>
+  let wkSortierung = 'neu'; // neu | alt | lange | herz | thema
+  let wkGross = null;       // Schluessel des gross gezeigten Bildes
+
+  // Der Vorrat, wie er gerade zu sehen sein soll. Alles – Raster, Blaettern,
+  // die Pfeile in der Grossansicht – arbeitet auf dieser Liste, damit die
+  // Reihenfolge ueberall dieselbe ist.
+  function wkListe(d) {
+    let liste = (d.bilder || []).slice();
+    if (wkFilter === 'favorit') liste = liste.filter(b => b.favorit);
+    else if (wkFilter === 'unsortiert') liste = liste.filter(b => !b.motiv || b.motiv === 'unsortiert');
+    else if (wkFilter) liste = liste.filter(b => b.motiv === wkFilter);
+
+    const zeit = w => (w ? Date.parse(w) || 0 : 0);
+    const nachName = (a, b) => String(a.quelle || '').localeCompare(String(b.quelle || ''), 'de');
+    if (wkSortierung === 'neu')   liste.sort((a, b) => zeit(b.angelegt) - zeit(a.angelegt) || nachName(a, b));
+    if (wkSortierung === 'alt')   liste.sort((a, b) => zeit(a.angelegt) - zeit(b.angelegt) || nachName(a, b));
+    // Lange nicht benutzt zuerst: nie benutzte ganz nach vorn, die sind der
+    // eigentliche Grund, warum man sortiert.
+    if (wkSortierung === 'lange') liste.sort((a, b) => zeit(a.zuletzt_benutzt) - zeit(b.zuletzt_benutzt) || nachName(a, b));
+    if (wkSortierung === 'herz')  liste.sort((a, b) => (b.favorit ? 1 : 0) - (a.favorit ? 1 : 0) || nachName(a, b));
+    if (wkSortierung === 'thema') liste.sort((a, b) =>
+      String(motivWort(a.motiv)).localeCompare(String(motivWort(b.motiv)), 'de') || nachName(a, b));
+    return liste;
+  }
   const wkAuswahl = new Set();
 
   async function werkstattZeigen() {
@@ -2751,6 +2779,7 @@
             <span class="wk-gesamt">${zahl(d.gesamt)}</span> im Vorrat</span>
         </div>
         <div class="sm-bilder">
+          <div class="wk-leiste"></div>
           <div class="sm-raster wk-raster"></div>
           <div class="wk-blatt"></div>
         </div>
@@ -2792,9 +2821,11 @@
     const raster = feld.querySelector('.wk-raster');
     const blatt = feld.querySelector('.wk-blatt');
 
-    const seiten = Math.max(1, Math.ceil(d.bilder.length / VORRAT_PRO_SEITE));
+    leisteZeichnen(d, feld);
+    const liste = wkListe(d);
+    const seiten = Math.max(1, Math.ceil(liste.length / VORRAT_PRO_SEITE));
     wkSeite = Math.max(0, Math.min(wkSeite, seiten - 1));
-    const teil = d.bilder.slice(wkSeite * VORRAT_PRO_SEITE, (wkSeite + 1) * VORRAT_PRO_SEITE);
+    const teil = liste.slice(wkSeite * VORRAT_PRO_SEITE, (wkSeite + 1) * VORRAT_PRO_SEITE);
 
     raster.innerHTML = `<label class="sm-foto sm-foto-neu" title="Fotos hinzufügen">
       <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden data-dazu />
@@ -2802,7 +2833,9 @@
         <path d="M12 6v12M6 12h12" stroke-linecap="round"/>
       </svg>
       <span>Fotos</span>
-    </label>` + teil.map(b => bildKachel(b)).join('');
+    </label>` + (teil.length
+      ? teil.map(b => bildKachel(b)).join('')
+      : '<p class="wk-leer">Zu dieser Auswahl liegt kein Bild im Vorrat.</p>');
     raster.querySelectorAll('.sm-foto:not(.sm-foto-neu)').forEach(k => kachelVerdrahten(k, feld));
     reiheZeichnen(feld);
 
@@ -2864,7 +2897,7 @@
     if (weg === zuletztGesprungen) return;
     zuletztGesprungen = weg;
     if (!weg || !feld.querySelector('.wk-raster') || !vorrat) return;
-    const stelle = (vorrat.bilder || []).findIndex(b => '/bilder/' + b.schluessel === weg);
+    const stelle = wkListe(vorrat).findIndex(b => '/bilder/' + b.schluessel === weg);
     if (stelle < 0) return;
     const seite = Math.floor(stelle / VORRAT_PRO_SEITE);
     if (seite === wkSeite) return;
@@ -3033,31 +3066,197 @@
   function bildKachel(b) {
     const weg = '/bilder/' + b.schluessel;
     const marke = motivWort(b.motiv);
-    return `<button type="button" class="sm-foto${wkAuswahl.has(weg) ? ' aktiv' : ''}"
+    const drin = wkAuswahl.has(weg);
+    return `<div class="sm-foto${drin ? ' aktiv' : ''}"
         data-u="${schuetzen(weg)}" data-schluessel="${schuetzen(b.schluessel)}"
-        data-motiv="${schuetzen(b.motiv || 'unsortiert')}"
-        aria-pressed="${wkAuswahl.has(weg)}">
-      <img src="${schuetzen(weg)}" alt="" loading="lazy" />
-      <span class="sm-haken">✓</span>
-      ${b.favorit ? '<span class="sm-herz" title="In der Galerie mit Herz markiert">\u2665</span>' : ''}
+        data-motiv="${schuetzen(b.motiv || 'unsortiert')}">
+      <img src="${schuetzen(weg)}" alt="${schuetzen(b.quelle || '')}" loading="lazy" data-gross />
+      <button type="button" class="sm-haken" data-waehlen
+              aria-pressed="${drin}"
+              aria-label="${drin ? 'Bild abwählen' : 'Bild auswählen'}">✓</button>
+      ${b.favorit ? '<span class="sm-herz" title="Mit Herz markiert">\u2665</span>' : ''}
       ${marke ? `<span class="sm-motiv">${schuetzen(marke)}${
         weitereThemen(b) ? `<i>+${weitereThemen(b)}</i>` : ''}</span>` : ''}
-    </button>`;
+    </div>`;
   }
 
   function kachelVerdrahten(k, feld) {
-    k.addEventListener('click', () => {
-      const drin = wkAuswahl.has(k.dataset.u);
-      if (drin) wkAuswahl.delete(k.dataset.u); else wkAuswahl.add(k.dataset.u);
+    const haken = k.querySelector('[data-waehlen]');
+    if (haken) haken.addEventListener('click', e => {
+      e.stopPropagation();
+      auswahlUmschalten(k.dataset.u, feld);
+    });
+    const bild = k.querySelector('[data-gross]');
+    if (bild) bild.addEventListener('click', () => wkGrossZeigen(k.dataset.schluessel, feld));
+  }
+
+  // Aus- und abwaehlen an einer Stelle, damit Kachel und Grossansicht sich
+  // nicht auseinanderentwickeln.
+  function auswahlUmschalten(weg, feld) {
+    const drin = wkAuswahl.has(weg);
+    if (drin) wkAuswahl.delete(weg); else wkAuswahl.add(weg);
+
+    const k = feld.querySelector(`.sm-foto[data-u="${(window.CSS && CSS.escape) ? CSS.escape(weg) : weg}"]`);
+    if (k) {
       k.classList.toggle('aktiv', !drin);
-      k.setAttribute('aria-pressed', String(!drin));
+      const h = k.querySelector('[data-waehlen]');
+      if (h) {
+        h.setAttribute('aria-pressed', String(!drin));
+        h.setAttribute('aria-label', drin ? 'Bild auswählen' : 'Bild abwählen');
+      }
+    }
 
-      // Wer ein Bild dazunimmt, will es sehen: die Vorschau springt darauf.
-      // Beim Abwaehlen dagegen wuerde sie ins Leere zeigen – dann faellt sie
-      // auf das Titelbild zurueck (gezeigt = null).
-      gezeigt = drin ? null : k.dataset.u;
+    // Wer ein Bild dazunimmt, will es sehen: die Vorschau springt darauf.
+    // Beim Abwaehlen dagegen wuerde sie ins Leere zeigen – dann faellt sie
+    // auf das Titelbild zurueck (gezeigt = null).
+    gezeigt = drin ? null : weg;
 
-      standZaehlen(feld); vorschauBild(feld); reiheZeichnen(feld);
+    standZaehlen(feld); vorschauBild(feld); reiheZeichnen(feld);
+    return !drin;
+  }
+
+
+  // ─── Leiste ueber dem Raster: Thema, Herz, Sortierung ───
+  //
+  // Als Auswahlfeld und nicht als Chips: bei 21 Themen waere eine Chipreihe
+  // drei Zeilen hoch und stuende laenger da als das Raster darunter.
+  function leisteZeichnen(d, feld) {
+    const leiste = feld.querySelector('.wk-leiste');
+    if (!leiste) return;
+
+    const alle = d.bilder || [];
+    const zaehlen = id => alle.filter(b => b.motiv === id).length;
+    const herzen = alle.filter(b => b.favorit).length;
+    const ohne = alle.filter(b => !b.motiv || b.motiv === 'unsortiert').length;
+    const kats = ((d.kategorien) || []).filter(k => zaehlen(k.id) > 0);
+    const treffer = wkListe(d).length;
+
+    leiste.innerHTML = `
+      <select class="wk-wahl" data-wk-thema aria-label="Thema">
+        <option value="">Alle Themen (${alle.length})</option>
+        ${kats.map(k => `<option value="${schuetzen(k.id)}"${wkFilter === k.id ? ' selected' : ''}
+          >${schuetzen(k.titel)} (${zaehlen(k.id)})</option>`).join('')}
+        ${ohne ? `<option value="unsortiert"${wkFilter === 'unsortiert' ? ' selected' : ''}
+          >unsortiert (${ohne})</option>` : ''}
+      </select>
+
+      ${herzen ? `<button type="button" class="wk-herz-knopf${wkFilter === 'favorit' ? ' an' : ''}"
+        data-wk-herz aria-pressed="${wkFilter === 'favorit'}"
+        title="Nur Bilder mit Herz">♥ <span>${herzen}</span></button>` : ''}
+
+      <select class="wk-wahl" data-wk-sort aria-label="Sortierung">
+        <option value="neu"${wkSortierung === 'neu' ? ' selected' : ''}>Neueste zuerst</option>
+        <option value="alt"${wkSortierung === 'alt' ? ' selected' : ''}>Älteste zuerst</option>
+        <option value="lange"${wkSortierung === 'lange' ? ' selected' : ''}>Lange nicht benutzt</option>
+        <option value="herz"${wkSortierung === 'herz' ? ' selected' : ''}>Herzen zuerst</option>
+        <option value="thema"${wkSortierung === 'thema' ? ' selected' : ''}>Nach Thema</option>
+      </select>
+
+      ${wkFilter ? `<button type="button" class="wk-zurueck" data-wk-alles>Filter aufheben</button>` : ''}
+      <span class="wk-treffer">${treffer === alle.length ? '' : treffer + ' von ' + alle.length}</span>`;
+
+    const thema = leiste.querySelector('[data-wk-thema]');
+    if (thema) thema.addEventListener('change', () => {
+      // Beim Filtern zurueck auf Seite eins – sonst steht man auf Seite 5
+      // eines Themas mit zwei Bildern und sieht nichts.
+      wkFilter = thema.value; wkSeite = 0; seiteZeichnen(d);
+    });
+    const herz = leiste.querySelector('[data-wk-herz]');
+    if (herz) herz.addEventListener('click', () => {
+      wkFilter = wkFilter === 'favorit' ? '' : 'favorit'; wkSeite = 0; seiteZeichnen(d);
+    });
+    const sort = leiste.querySelector('[data-wk-sort]');
+    if (sort) sort.addEventListener('change', () => {
+      wkSortierung = sort.value; wkSeite = 0; seiteZeichnen(d);
+    });
+    const alles = leiste.querySelector('[data-wk-alles]');
+    if (alles) alles.addEventListener('click', () => { wkFilter = ''; wkSeite = 0; seiteZeichnen(d); });
+  }
+
+  // ─── Grossansicht ───
+  //
+  // Blaettert durch dieselbe Liste, die das Raster zeigt – also mit Filter
+  // und Sortierung. Auswaehlen geht auch von hier, sonst muesste man das
+  // Fenster schliessen, um zu tun, wofuer man es geoeffnet hat.
+  function wkGrossZeigen(schluessel, feld) {
+    if (!vorrat) return;
+    wkGross = schluessel;
+    let kasten = document.querySelector('.wk-gross');
+    if (!kasten) {
+      kasten = document.createElement('div');
+      kasten.className = 'wk-gross';
+      kasten.setAttribute('role', 'dialog');
+      kasten.setAttribute('aria-modal', 'true');
+      document.body.appendChild(kasten);
+      kasten.addEventListener('click', e => { if (e.target === kasten) wkGrossSchliessen(); });
+      document.addEventListener('keydown', wkGrossTaste);
+    }
+    wkGrossMalen(feld);
+  }
+
+  function wkGrossSchliessen() {
+    wkGross = null;
+    const k = document.querySelector('.wk-gross');
+    if (k) k.remove();
+    document.removeEventListener('keydown', wkGrossTaste);
+  }
+
+  function wkGrossTaste(e) {
+    if (!wkGross) return;
+    const feld = document.getElementById('wk-block');
+    if (e.key === 'Escape') wkGrossSchliessen();
+    if (e.key === 'ArrowLeft') wkGrossBlaettern(-1, feld);
+    if (e.key === 'ArrowRight') wkGrossBlaettern(1, feld);
+  }
+
+  function wkGrossBlaettern(richtung, feld) {
+    const liste = wkListe(vorrat);
+    const jetzt = liste.findIndex(b => b.schluessel === wkGross);
+    const ziel = jetzt + richtung;
+    if (jetzt < 0 || ziel < 0 || ziel >= liste.length) return;
+    wkGross = liste[ziel].schluessel;
+    // Das Raster mitziehen, sonst steht man nach dem Schliessen woanders
+    // als das Bild, das man gerade angesehen hat.
+    const seite = Math.floor(ziel / VORRAT_PRO_SEITE);
+    if (seite !== wkSeite) { wkSeite = seite; seiteZeichnen(vorrat); }
+    wkGrossMalen(feld);
+  }
+
+  function wkGrossMalen(feld) {
+    const kasten = document.querySelector('.wk-gross');
+    if (!kasten || !wkGross) return;
+    const liste = wkListe(vorrat);
+    const stelle = liste.findIndex(b => b.schluessel === wkGross);
+    const b = liste[stelle];
+    if (!b) return wkGrossSchliessen();
+
+    const weg = '/bilder/' + b.schluessel;
+    const drin = wkAuswahl.has(weg);
+    const marke = motivWort(b.motiv);
+
+    kasten.innerHTML = `
+      <button type="button" class="wk-gross-zu" data-zu aria-label="Schließen">×</button>
+      <button type="button" class="wk-gross-pfeil links" data-zurueck
+              ${stelle <= 0 ? 'disabled' : ''} aria-label="Vorheriges Bild">‹</button>
+      <button type="button" class="wk-gross-pfeil rechts" data-weiter
+              ${stelle >= liste.length - 1 ? 'disabled' : ''} aria-label="Nächstes Bild">›</button>
+      <img src="${schuetzen(weg)}" alt="${schuetzen(b.quelle || '')}" />
+      <div class="wk-gross-fuss">
+        <button type="button" class="wk-gross-waehlen${drin ? ' an' : ''}" data-waehlen>
+          ${drin ? '✓ Ausgewählt' : 'Auswählen'}
+        </button>
+        <span class="wk-gross-wort">
+          ${b.favorit ? '<i class="wk-gross-herz">♥</i> ' : ''}
+          ${schuetzen(marke || 'unsortiert')} · ${stelle + 1} von ${liste.length}
+        </span>
+      </div>`;
+
+    kasten.querySelector('[data-zu]').addEventListener('click', wkGrossSchliessen);
+    kasten.querySelector('[data-zurueck]').addEventListener('click', () => wkGrossBlaettern(-1, feld));
+    kasten.querySelector('[data-weiter]').addEventListener('click', () => wkGrossBlaettern(1, feld));
+    kasten.querySelector('[data-waehlen]').addEventListener('click', () => {
+      auswahlUmschalten(weg, feld);
+      wkGrossMalen(feld);
     });
   }
 
@@ -3088,6 +3287,10 @@
 
     wkAuswahl.clear();
     gemischt.forEach(b => wkAuswahl.add('/bilder/' + b.schluessel));
+    // Der Vorschlag greift auf den ganzen Vorrat zu. Stuende dann noch ein
+    // Filter, waeren die vorgeschlagenen Bilder ausgeblendet – ausgewaehlt,
+    // aber nicht zu sehen. Also weg damit.
+    wkFilter = '';
 
     const ersteStelle = alle.findIndex(b => b.schluessel === gemischt[0].schluessel);
     wkSeite = Math.floor(Math.max(0, ersteStelle) / VORRAT_PRO_SEITE);
