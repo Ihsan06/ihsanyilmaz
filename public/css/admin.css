@@ -2142,6 +2142,10 @@ a.admin-karte h2 { color: var(--text); }
   background: transparent; color: var(--muted); text-decoration: underline;
 }
 .wk-treffer { font-size: .78rem; color: var(--muted); margin-left: auto; }
+/* Der Herz-Knopf steht als letztes ganz rechts – zwischen den beiden
+   Auswahlfeldern zerriss er die zusammengehoerende Reihe. */
+.wk-leiste .wk-herz-knopf { order: 9; }
+.wk-leiste .wk-treffer { order: 8; }
 .wk-leer { grid-column: 1 / -1; color: var(--muted); font-size: .85rem; padding: 18px 2px; }
 
 /* ─── Grossansicht im Baukasten ─── */
@@ -3292,6 +3296,11 @@ html.leiste-zu .admin-unter { display: none; }
 /* Der Knopf dehnt sich sonst ueber die ganze Spalte: der Baukasten stellt
    seine Kinder untereinander, und ein Knopf ohne eigene Breite fuellt aus. */
 .sm-schrift { align-self: flex-start; width: fit-content; flex: none; }
+/* In der Logo-Zeile nicht: dort steht daneben das Stellen-Raster, das dreimal
+   so hoch ist. Mit flex-start klebten AIY und "+ Schrift" an dessen Oberkante
+   statt auf einer Hoehe mit der Zeile. */
+.sm-logo-zeile .sm-schrift { align-self: center; }
+.sm-logo-zeile .sm-label-an { align-self: center; }
 /* Zwei Bloecke: erst was der Text macht, dann was die Marke macht. Ein feiner
    Strich dazwischen, weil beides sonst als eine lange Reglerwand liest. */
 .sm-logo-zeile.sm-trennt {

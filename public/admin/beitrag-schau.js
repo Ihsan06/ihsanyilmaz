@@ -94,6 +94,17 @@ window.beitragSchau = (function () {
         </span>
         </button>
 
+        <!-- Ausschnitt und Zoom. Die Mechanik dafuer stand laengst in
+             social-media.js (bildStand, grenze, zuschneiden) – nur der Knopf,
+             der sie einschaltet, fehlte beim Portieren. -->
+        <button type="button" class="igv-stift" data-bild-bearbeiten
+                title="Ausschnitt und Zoom anpassen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3z" stroke-linejoin="round"/>
+          </svg>
+          <span>Bearbeiten</span>
+        </button>
+
         <div class="igv-werkzeug" hidden>
           <span class="igv-kreuz">
             <button type="button" data-schub="0,1" aria-label="nach oben">▲</button>
