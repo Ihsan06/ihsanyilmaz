@@ -3039,6 +3039,7 @@
         aria-pressed="${wkAuswahl.has(weg)}">
       <img src="${schuetzen(weg)}" alt="" loading="lazy" />
       <span class="sm-haken">✓</span>
+      ${b.favorit ? '<span class="sm-herz" title="In der Galerie mit Herz markiert">\u2665</span>' : ''}
       ${marke ? `<span class="sm-motiv">${schuetzen(marke)}${
         weitereThemen(b) ? `<i>+${weitereThemen(b)}</i>` : ''}</span>` : ''}
     </button>`;

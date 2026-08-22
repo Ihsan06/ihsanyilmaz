@@ -2094,6 +2094,16 @@ a.admin-karte h2 { color: var(--text); }
   font-size: .58rem; font-weight: 700; letter-spacing: .03em;
   color: #fff; background: rgba(0,0,0,.6); border-radius: 999px; padding: 2px 7px;
 }
+/* Das Herz aus der Galerie. Bewusst klein und ohne Kasten: es soll auffallen,
+   wenn man danach sucht, und sonst nicht stoeren – deshalb "ganz leicht zu
+   sehen" und nicht als weiteres Etikett neben dem Motiv. */
+.sm-herz {
+  position: absolute; right: 5px; bottom: 4px;
+  font-size: .72rem; line-height: 1; color: #f2617a;
+  text-shadow: 0 0 3px rgba(0,0,0,.55);
+  pointer-events: none;
+}
+
 /* Die Wahl haengt unter der Kachel – das Raster darf sie nicht abschneiden. */
 /* Feste Seiten statt Scrollfeld – die Wahl haengt unter der Kachel und
    darf nicht abgeschnitten werden. */

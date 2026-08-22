@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Upload, Trash2, ImageOff, Plus, Sparkles, FolderTree, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Upload, Trash2, ImageOff, Plus, Sparkles, FolderTree, X, ChevronLeft, ChevronRight, Heart } from "lucide-react";
 import AdminShell, { api, datum } from "@/components/admin/AdminShell";
 
 type Bild = {
@@ -8,6 +8,7 @@ type Bild = {
   quelle: string | null;
   motiv: string | null;
   beschreibung: string | null;
+  favorit?: number;
   angelegt: string;
 };
 
@@ -185,6 +186,27 @@ export default function GalerieSeite() {
     }
   };
 
+  // Erst die Anzeige umstellen, dann speichern: ein Herz, das eine halbe
+  // Sekunde ueberlegt, fuehlt sich kaputt an. Geht es schief, springt es
+  // zurueck und sagt warum.
+  const herz = async (b: Bild) => {
+    const neu = b.favorit ? 0 : 1;
+    setBilder(liste => liste.map(x =>
+      x.schluessel === b.schluessel ? { ...x, favorit: neu } : x));
+    setGross(g => (g && g.schluessel === b.schluessel ? { ...g, favorit: neu } : g));
+    try {
+      await api("/api/studio/vorrat", {
+        method: "POST",
+        body: JSON.stringify({ schluessel: b.schluessel, favorit: neu }),
+      });
+    } catch (e) {
+      setBilder(liste => liste.map(x =>
+        x.schluessel === b.schluessel ? { ...x, favorit: b.favorit } : x));
+      setGross(g => (g && g.schluessel === b.schluessel ? { ...g, favorit: b.favorit } : g));
+      setFehler(e instanceof Error ? e.message : "Ging nicht.");
+    }
+  };
+
   const loeschen = async (schluessel: string) => {
     if (!confirm("Dieses Bild in den Papierkorb legen?")) return;
     setBilder(b => b.filter(x => x.schluessel !== schluessel));
@@ -200,9 +222,11 @@ export default function GalerieSeite() {
   const ids = new Set(kategorien.map(k => k.id));
   const ohneThema = bilder.filter(b => b.beschreibung && !ids.has(b.motiv || "")).length;
   const unsortiert = bilder.filter(b => !b.motiv || b.motiv === "unsortiert").length;
+  const favoriten = bilder.filter(b => b.favorit).length;
   const gezeigt = filter
-    ? bilder.filter(b => filter === "unsortiert"
-        ? (!b.motiv || b.motiv === "unsortiert")
+    ? bilder.filter(b =>
+        filter === "favorit" ? !!b.favorit
+        : filter === "unsortiert" ? (!b.motiv || b.motiv === "unsortiert")
         : b.motiv === filter)
     : bilder;
 
@@ -316,6 +340,15 @@ export default function GalerieSeite() {
             </span>
           );
         })}
+        {favoriten > 0 && (
+          <button onClick={() => setFilter(filter === "favorit" ? "" : "favorit")}
+            className="chip px-3 py-1.5 text-sm"
+            style={filter === "favorit"
+              ? { background: "#f2617a", color: "#fff", borderColor: "transparent" } : undefined}>
+            <Heart size={13} fill="currentColor" style={{ color: filter === "favorit" ? "#fff" : "#f2617a" }} />
+            <span className="opacity-70 ml-1">{favoriten}</span>
+          </button>
+        )}
         {unsortiert > 0 && (
           <button onClick={() => setFilter(filter === "unsortiert" ? "" : "unsortiert")}
             className="chip px-3 py-1.5 text-sm"
@@ -353,14 +386,25 @@ export default function GalerieSeite() {
                   onClick={() => setGross(b)}
                   className="w-full h-full object-cover block cursor-zoom-in"
                 />
-                <button
-                  onClick={() => loeschen(b.schluessel)}
-                  aria-label="Bild löschen"
-                  className="absolute top-2 right-2 p-2 rounded-[8px] transition-colors"
-                  style={{ background: "rgba(7,26,43,0.72)", color: "#fff" }}
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div className="absolute top-2 right-2 flex gap-1.5">
+                  <button
+                    onClick={() => herz(b)}
+                    aria-label={b.favorit ? "Herz entfernen" : "Herz setzen"}
+                    aria-pressed={!!b.favorit}
+                    className="p-2 rounded-[8px] transition-colors"
+                    style={{ background: "rgba(7,26,43,0.72)", color: b.favorit ? "#f2617a" : "#fff" }}
+                  >
+                    <Heart size={14} fill={b.favorit ? "#f2617a" : "none"} />
+                  </button>
+                  <button
+                    onClick={() => loeschen(b.schluessel)}
+                    aria-label="Bild löschen"
+                    className="p-2 rounded-[8px] transition-colors"
+                    style={{ background: "rgba(7,26,43,0.72)", color: "#fff" }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <figcaption className="p-3">
                 <div className="text-[var(--fg)] text-xs font-medium truncate" title={b.quelle || ""}>
@@ -387,14 +431,25 @@ export default function GalerieSeite() {
           className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-8"
           style={{ background: "rgba(7,26,43,0.88)" }}
         >
-          <button
-            onClick={() => setGross(null)}
-            aria-label="Schließen"
-            className="absolute top-4 right-4 p-2 rounded-[8px]"
-            style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
-          >
-            <X size={18} />
-          </button>
+          <div className="absolute top-4 right-4 flex gap-2">
+            <button
+              onClick={e => { e.stopPropagation(); herz(gross); }}
+              aria-label={gross.favorit ? "Herz entfernen" : "Herz setzen"}
+              aria-pressed={!!gross.favorit}
+              className="p-2 rounded-[8px]"
+              style={{ background: "rgba(255,255,255,0.12)", color: gross.favorit ? "#f2617a" : "#fff" }}
+            >
+              <Heart size={18} fill={gross.favorit ? "#f2617a" : "none"} />
+            </button>
+            <button
+              onClick={() => setGross(null)}
+              aria-label="Schließen"
+              className="p-2 rounded-[8px]"
+              style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
+            >
+              <X size={18} />
+            </button>
+          </div>
 
           <button
             onClick={e => { e.stopPropagation(); blaettern(-1); }}

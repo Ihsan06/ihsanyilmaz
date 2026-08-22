@@ -38,7 +38,7 @@ export async function onRequestGet({ env }) {
 
   const { results } = await db.prepare(
     `SELECT schluessel, quelle, motiv, personen, freigabe, beschreibung, zuletzt_benutzt,
-            geloescht_am
+            geloescht_am, favorit
        FROM studio_vorrat ORDER BY freigabe DESC, quelle`
   ).all();
 
@@ -55,6 +55,7 @@ export async function onRequestGet({ env }) {
     frei: bilder.filter(b => b.freigabe).length,
     offen: bilder.filter(b => b.personen === 'unbekannt').length,
     ohneBeschreibung: bilder.filter(b => !b.beschreibung).length,
+    favoriten: bilder.filter(b => b.favorit).length,
     kategorien: await alleKategorien(env.DB),
     bilder,
     papierkorb
@@ -92,6 +93,9 @@ export async function onRequestPost({ env, request, waitUntil }) {
     }
   }
   if (d.freigabe !== undefined) { setzen.push('freigabe = ?'); werte.push(d.freigabe ? 1 : 0); }
+  // Das Herz ist eine reine Merkhilfe fuer den Betreiber – es sortiert nichts
+  // aus und sperrt nichts, es faellt nur ins Auge.
+  if (d.favorit !== undefined) { setzen.push('favorit = ?'); werte.push(d.favorit ? 1 : 0); }
 
   if (!setzen.length) return antwort({ ok: false, fehler: 'Nichts zu ändern.' }, 400);
 
