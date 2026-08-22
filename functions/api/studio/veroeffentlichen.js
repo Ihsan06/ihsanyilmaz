@@ -22,8 +22,12 @@ const KOPF = {
 
 const BASIS = 'https://graph.instagram.com';
 const MAX_BILDER = 10;          // Metas Grenze fuer eine Galerie
-const WARTEN_MS = 1500;         // zwischen Container und Veroeffentlichen
-const VERSUCHE = 8;             // so oft wird der Container nachgefragt
+// Abstaende zwischen den Nachfragen, in Millisekunden. Frueher stand hier
+// achtmal pauschal 1500 ms. Meistens ist der Container nach einer knappen
+// Sekunde fertig – dann hat man trotzdem anderthalb gewartet. Kurz anfangen,
+// dann groesser werden: der haeufige Fall wird schnell, der seltene lange
+// bekommt insgesamt sogar mehr Zeit als vorher (14,2 s statt 12 s).
+const ABSTAENDE = [250, 400, 650, 900, 1300, 1800, 2400, 3000, 3500];
 
 export async function onRequestPost({ env, request }) {
   const db = env.DB;
@@ -106,10 +110,13 @@ async function anlegen(id, token, felder) {
 }
 
 async function galerie(id, token, bilder, text) {
-  const kinder = [];
-  for (const u of bilder) {
-    kinder.push(await anlegen(id, token, { image_url: u, is_carousel_item: 'true' }));
-  }
+  // Die Kinder entstehen nebeneinander. Vorher lief das nacheinander: bei
+  // fuenf Bildern waren das fuenf Wege nach Kalifornien hintereinander,
+  // obwohl keines vom anderen abhaengt. Promise.all haelt die Reihenfolge –
+  // und die ist wichtig, sie bestimmt, wie die Galerie durchgeblaettert wird.
+  const kinder = await Promise.all(
+    bilder.map(u => anlegen(id, token, { image_url: u, is_carousel_item: 'true' }))
+  );
   return anlegen(id, token, {
     media_type: 'CAROUSEL',
     children: kinder.join(','),
@@ -121,7 +128,7 @@ async function galerie(id, token, bilder, text) {
 // Wer sofort veroeffentlicht, bekommt "Media ID is not available". Also
 // nachfragen, bis der Container fertig ist – und aufhoeren, wenn er scheitert.
 async function fertig(container, token) {
-  for (let i = 0; i < VERSUCHE; i++) {
+  for (let i = 0; i <= ABSTAENDE.length; i++) {
     const d = await fragen(
       `${BASIS}/${container}?fields=status_code,status&access_token=${enc(token)}`
     );
@@ -129,7 +136,7 @@ async function fertig(container, token) {
     if (d.status_code === 'ERROR' || d.status_code === 'EXPIRED') {
       throw new Error(d.status || `Instagram konnte das Bild nicht verarbeiten (${d.status_code}).`);
     }
-    await new Promise(r => setTimeout(r, WARTEN_MS));
+    if (i < ABSTAENDE.length) await new Promise(r => setTimeout(r, ABSTAENDE[i]));
   }
   throw new Error('Instagram hat das Bild nicht rechtzeitig verarbeitet. Bitte noch einmal versuchen.');
 }

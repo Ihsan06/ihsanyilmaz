@@ -88,7 +88,7 @@ Nüchtern und sachlich, aus der Sicht eines Einzelnen ("ich"), nicht eines
 Teams ("wir"). Keine Werbesprache, keine Ausrufezeichen, keine Emojis,
 kein "Ihr Partner für", kein "Wir freuen uns auf Sie".`;
 
-export async function onRequestPost({ env, request }) {
+export async function onRequestPost({ env, request, waitUntil }) {
   const db = env.DB;
   if (!db) return antwort({ ok: false, fehler: 'Keine Datenbank verbunden.' }, 500);
   if (!env.ANTHROPIC_API_KEY) {
@@ -125,8 +125,13 @@ export async function onRequestPost({ env, request }) {
         + 'In der Galerie einmal „ansehen lassen“ starten.' }, 400);
     }
 
-    const { plan, verbrauch } = await fragen(env.ANTHROPIC_API_KEY,
-      anweisung(vorrat, (k && k.titel) || thema, machart));
+    // Der Schluss haengt nicht am Vorschlag – er kann geholt werden, waehrend
+    // das Modell schreibt. Vorher lief er hinterher und legte eine
+    // Datenbankrunde auf den Weg, auf den ohnehin schon gewartet wurde.
+    const [{ plan, verbrauch }, schluss] = await Promise.all([
+      fragen(env.ANTHROPIC_API_KEY, anweisung(vorrat, (k && k.titel) || thema, machart)),
+      schlussHolen(db)
+    ]);
 
     // Nummern zurueck auf Schluessel. Das Modell zaehlt ab 1 und erfindet
     // gelegentlich eine Nummer zu viel – was nicht passt, faellt raus.
@@ -138,17 +143,19 @@ export async function onRequestPost({ env, request }) {
 
     if (!bilder.length) throw new Error('Das Modell hat keine Bilder benannt.');
 
-    // Der gespeicherte Schluss samt Symbolen – derselbe, den ein von Hand
-    // gebauter Beitrag traegt. Vorher hing hier nur eine Telefonnummer.
-    const schluss = await schlussHolen(db);
     // Der lesbare Titel der Kategorie, nicht die Kennung: aus "Bei Google
     // gefunden" wird ein brauchbares Schlagwort, aus "sichtbarkeit" nicht.
     const gewaehltesThema = String((k && k.titel) || plan.thema || thema || '').slice(0, 80);
     const marken = hashtags(plan.hashtags, gewaehltesThema);
     // Nur ganze Beitragstexte merken. Eine Story ist eine Zeile im Bild und
     // taugt nicht als Spruch fuer spaeter.
+    //
+    // Und nicht darauf warten: der Vorschlag steht, das Merken ist eine
+    // Nebensache. Mit waitUntil laeuft der Schreibvorgang zu Ende, nachdem
+    // die Antwort schon draussen ist.
     if (machart !== 'story') {
-      await satzMerken(db, gewaehltesThema, saeubern(plan.text), marken);
+      const merken = satzMerken(db, gewaehltesThema, saeubern(plan.text), marken);
+      if (waitUntil) waitUntil(merken); else await merken;
     }
 
     return antwort({
@@ -266,13 +273,14 @@ function anweisung(vorlage, thema, machart) {
   ).join('\n');
 
   return `Du stellst einen Instagram-Beitrag für AIY | Ihsan Yilmaz zusammen –
-Webentwicklung und IT aus Würzburg, ein Einzelner, keine Agentur, alle
-Marken, dazu Gebrauchtwagen und Mietwagen. Der Kanal ist klein und lokal; es
-lesen Leute aus der Gegend mit, keine Autofans aus dem Internet.
+Webentwicklung und IT aus Würzburg: Websites für Betriebe, Sichtbarkeit bei
+Google, Automatisierung. Ein Einzelner, keine Agentur. Der Kanal ist klein
+und lokal; es lesen Handwerker und kleine Betriebe aus der Gegend mit, keine
+Entwickler aus dem Internet.
 
-Du bekommst Beschreibungen echter Fotos aus dem Betrieb. Du wählst daraus aus
-und schreibst den Text dazu. Du erfindest nichts, was nicht auf den Bildern
-ist, und keine Preise, Termine oder Namen.
+Du bekommst Beschreibungen echter Bilder aus der Galerie. Du wählst daraus
+aus und schreibst den Text dazu. Du erfindest nichts, was nicht auf den
+Bildern ist, und keine Preise, Termine oder Namen.
 
 ${thema ? `Richtung: ${thema}\n` : `Such dir selbst aus, worum es geht – nimm das, wozu die Bilder am meisten hergeben.\n`}
 FOTOS:

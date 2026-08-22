@@ -592,7 +592,16 @@
   // Veroeffentlichen und dem Einplanen. Liefert die abgelegten /bilder/-Pfade.
   async function zugeschnittenAblegen(feld, knopf, wege, story) {
     const hoch = !!feld.querySelector('.igv-hoch');
-    const abgelegt = [];
+
+    // Zuschneiden und Hochladen liefen frueher streng abwechselnd: rechnen,
+    // warten, rechnen, warten. Beides braucht einander aber nicht – waehrend
+    // Bild 2 gezeichnet wird, kann Bild 1 laengst unterwegs sein. Gezeichnet
+    // wird weiter der Reihe nach (das haelt die Anzeige ehrlich), der Upload
+    // laeuft daneben. Promise.all am Ende haelt die Reihenfolge, und die
+    // bestimmt, wie die Galerie spaeter durchgeblaettert wird.
+    const unterwegs = [];
+    let fertigeUploads = 0;
+
     for (let i = 0; i < wege.length; i++) {
       const quelle = wege[i].startsWith('/')
         ? wege[i]
@@ -603,17 +612,22 @@
       const b = await zuschneiden(quelle, standVon(wege[i]), hoch || story,
         labelFuer(feld, wege[i], i), logoFuer(feld, wege[i], i),
         zeilenFuer(feld, wege[i]), stelleVon(feld), schriftVon(feld), aiyVon(feld));
+
       const formular = new FormData();
       formular.append('datei', new File([b], `beitrag-${i + 1}.jpg`, { type: 'image/jpeg' }));
-      const a = await fetch('/api/studio/bild', {
-        method: 'POST', credentials: 'same-origin', body: formular
-      });
-      const d = await a.json();
-      if (!d || !d.ok) throw new Error((d && d.fehler) || 'Bild konnte nicht abgelegt werden.');
-      abgelegt.push(d.pfad);
-      knopfText(knopf, `Bild ${i + 1} von ${wege.length} abgelegt …`);
+      unterwegs.push(
+        fetch('/api/studio/bild', { method: 'POST', credentials: 'same-origin', body: formular })
+          .then(a => a.json())
+          .then(d => {
+            if (!d || !d.ok) throw new Error((d && d.fehler) || 'Bild konnte nicht abgelegt werden.');
+            fertigeUploads += 1;
+            knopfText(knopf, `Bild ${fertigeUploads} von ${wege.length} abgelegt …`);
+            return d.pfad;
+          })
+      );
     }
-    return abgelegt;
+
+    return Promise.all(unterwegs);
   }
 
   // Einplanen statt sofort posten: derselbe Zuschnitt, aber das Paket geht

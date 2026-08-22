@@ -13,8 +13,10 @@
 
 const BASIS = 'https://graph.instagram.com';
 const DOMAIN = 'https://ihsan-yilmaz.de';
-const WARTEN_MS = 1500;   // zwischen Container und Veroeffentlichen
-const VERSUCHE = 8;       // so oft wird der Container nachgefragt
+// Gleiche Abstufung wie in functions/api/studio/veroeffentlichen.js – die
+// beiden Dateien teilen sich diesen Ablauf, weil ein Worker keine
+// Pages-Function importieren kann.
+const ABSTAENDE = [250, 400, 650, 900, 1300, 1800, 2400, 3000, 3500];
 const JE_LAUF = 3;        // mehr als drei je Lauf waere kein Zeitplan, sondern ein Schwall
 
 export default {
@@ -104,10 +106,11 @@ async function anlegen(id, token, felder) {
 }
 
 async function galerie(id, token, bilder, text) {
-  const kinder = [];
-  for (const u of bilder) {
-    kinder.push(await anlegen(id, token, { image_url: u, is_carousel_item: 'true' }));
-  }
+  // Nebeneinander statt nacheinander; Promise.all haelt die Reihenfolge, und
+  // die bestimmt, wie die Galerie durchgeblaettert wird.
+  const kinder = await Promise.all(
+    bilder.map(u => anlegen(id, token, { image_url: u, is_carousel_item: 'true' }))
+  );
   return anlegen(id, token, {
     media_type: 'CAROUSEL',
     children: kinder.join(','),
@@ -116,7 +119,7 @@ async function galerie(id, token, bilder, text) {
 }
 
 async function fertig(container, token) {
-  for (let i = 0; i < VERSUCHE; i++) {
+  for (let i = 0; i <= ABSTAENDE.length; i++) {
     const d = await fragen(
       `${BASIS}/${container}?fields=status_code,status&access_token=${enc(token)}`
     );
@@ -124,7 +127,7 @@ async function fertig(container, token) {
     if (d.status_code === 'ERROR' || d.status_code === 'EXPIRED') {
       throw new Error(d.status || `Instagram konnte das Bild nicht verarbeiten (${d.status_code}).`);
     }
-    await new Promise(r => setTimeout(r, WARTEN_MS));
+    if (i < ABSTAENDE.length) await new Promise(r => setTimeout(r, ABSTAENDE[i]));
   }
   throw new Error('Instagram hat das Bild nicht rechtzeitig verarbeitet.');
 }
