@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Upload, Trash2, ImageOff, Plus, Sparkles, FolderTree, X } from "lucide-react";
+import { Upload, Trash2, ImageOff, Plus, Sparkles, FolderTree, X, ChevronLeft, ChevronRight } from "lucide-react";
 import AdminShell, { api, datum } from "@/components/admin/AdminShell";
 
 type Bild = {
@@ -74,10 +74,14 @@ export default function GalerieSeite() {
   // und wer die Tastatur benutzt, sitzt fest.
   useEffect(() => {
     if (!gross) return;
-    const zu = (e: KeyboardEvent) => { if (e.key === "Escape") setGross(null); };
-    window.addEventListener("keydown", zu);
-    return () => window.removeEventListener("keydown", zu);
-  }, [gross]);
+    const taste = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setGross(null);
+      if (e.key === "ArrowLeft") blaettern(-1);
+      if (e.key === "ArrowRight") blaettern(1);
+    };
+    window.addEventListener("keydown", taste);
+    return () => window.removeEventListener("keydown", taste);
+  });
 
   const hochladen = async (dateien: FileList | null) => {
     if (!dateien?.length) return;
@@ -201,6 +205,19 @@ export default function GalerieSeite() {
         ? (!b.motiv || b.motiv === "unsortiert")
         : b.motiv === filter)
     : bilder;
+
+  // Geblättert wird durch das, was gerade zu sehen ist – ist ein Thema
+  // gefiltert, bleibt man darin. Alles andere wäre eine Überraschung.
+  const stelle = gross ? gezeigt.findIndex(b => b.schluessel === gross.schluessel) : -1;
+
+  // Als Funktionsdeklaration, damit der Tasten-Effekt weiter oben sie schon
+  // kennt. Aufgerufen wird sie erst nach dem Rendern, dann steht "gezeigt".
+  function blaettern(richtung: number) {
+    if (stelle < 0) return;
+    const ziel = stelle + richtung;
+    if (ziel < 0 || ziel >= gezeigt.length) return;
+    setGross(gezeigt[ziel]);
+  }
 
   return (
     <AdminShell
@@ -379,12 +396,32 @@ export default function GalerieSeite() {
             <X size={18} />
           </button>
 
+          <button
+            onClick={e => { e.stopPropagation(); blaettern(-1); }}
+            disabled={stelle <= 0}
+            aria-label="Vorheriges Bild"
+            className="absolute left-2 sm:left-4 p-3 rounded-full disabled:opacity-25"
+            style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
+          >
+            <ChevronLeft size={22} />
+          </button>
+
+          <button
+            onClick={e => { e.stopPropagation(); blaettern(1); }}
+            disabled={stelle < 0 || stelle >= gezeigt.length - 1}
+            aria-label="Nächstes Bild"
+            className="absolute right-2 sm:right-4 p-3 rounded-full disabled:opacity-25"
+            style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}
+          >
+            <ChevronRight size={22} />
+          </button>
+
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/bilder/${gross.schluessel}`}
             alt={gross.quelle || "Bild"}
             onClick={e => e.stopPropagation()}
-            className="max-w-full rounded-[10px]"
+            className="max-w-[calc(100%-6rem)] rounded-[10px]"
             style={{ maxHeight: "calc(100vh - 9rem)", objectFit: "contain", cursor: "default" }}
           />
 
@@ -396,6 +433,7 @@ export default function GalerieSeite() {
             <div className="truncate">{gross.quelle || "Bild"}</div>
             <div className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
               {kategorien.find(k => k.id === gross.motiv)?.titel || "unsortiert"} · {datum(gross.angelegt)}
+              {stelle >= 0 && ` · ${stelle + 1} von ${gezeigt.length}`}
             </div>
           </div>
         </div>
