@@ -150,13 +150,13 @@ export async function onRequestPost({ env, request, waitUntil }) {
     // Nur ganze Beitragstexte merken. Eine Story ist eine Zeile im Bild und
     // taugt nicht als Spruch fuer spaeter.
     //
-    // Und nicht darauf warten: der Vorschlag steht, das Merken ist eine
-    // Nebensache. Mit waitUntil laeuft der Schreibvorgang zu Ende, nachdem
-    // die Antwort schon draussen ist.
-    if (machart !== 'story') {
-      const merken = satzMerken(db, gewaehltesThema, saeubern(plan.text), marken);
-      if (waitUntil) waitUntil(merken); else await merken;
-    }
+    // Bewusst abgewartet, obwohl es die Antwort um eine Datenbankrunde
+    // verzoegert: mit waitUntil lief der Schreibvorgang erst NACH der
+    // Antwort, und wer danach die Sprueche nachlud, bekam seinen eigenen
+    // Satz noch nicht zu sehen. Neben einem Modellaufruf von mehreren
+    // Sekunden faellt die Runde nicht ins Gewicht.
+    const spruch = machart !== 'story' ? saeubern(plan.text) : '';
+    if (spruch) await satzMerken(db, gewaehltesThema, spruch, marken);
 
     return antwort({
       ok: true,
@@ -178,7 +178,10 @@ export async function onRequestPost({ env, request, waitUntil }) {
         musik: String(plan.musik || '').slice(0, 160),
         hashtags: marken
       },
-      gemerkt: machart !== 'story',
+      // Ohne Schluss: der Baukasten haengt ihn selbst an. Wer den fertigen
+      // Text als Vorlage ablegt, haette ihn sonst doppelt darin.
+      spruch,
+      gemerkt: !!spruch,
       gelesen: vorrat.length,
       cent: verbrauch
     });

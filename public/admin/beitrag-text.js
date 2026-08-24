@@ -961,6 +961,18 @@ window.beitragText = (function () {
     GEMERKT = nachThema && typeof nachThema === 'object' ? nachThema : {};
   }
 
+  // Einen einzelnen Spruch dazulegen, ohne alles neu zu holen. Wer gerade
+  // generiert hat, soll seinen Text sofort unter den Varianten finden und
+  // nicht erst nach dem naechsten Laden der Seite.
+  function satzDazu(thema, text) {
+    const t = String(text || '').trim();
+    if (!thema || t.length < 20) return false;
+    const liste = GEMERKT[thema] = GEMERKT[thema] || [];
+    if (liste.some(x => x && x.text === t)) return false;
+    liste.unshift({ text: t });
+    return true;
+  }
+
   function textePlus(t) {
     const dazu = (GEMERKT[t.titel] || [])
       .map(x => String(x && x.text || '').trim())
@@ -1076,5 +1088,5 @@ window.beitragText = (function () {
     };
   }
 
-  return { bauen, reel, story, werkstatt, werkstattThemen, saetzeSetzen, merkmale, name };
+  return { bauen, reel, story, werkstatt, werkstattThemen, saetzeSetzen, satzDazu, merkmale, name };
 })();

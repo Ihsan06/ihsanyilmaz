@@ -3509,6 +3509,14 @@
         if (!e.ok) throw new Error(e.fehler || 'HTTP ' + a.status);
 
         wkEigen = { ...e.beitrag, gelesen: e.gelesen, cent: e.cent };
+
+        // Den frischen Spruch sofort unter die Varianten des Themas legen.
+        // Der Server hat ihn schon abgelegt; hier geht es nur darum, ihn
+        // ohne Neuladen der Seite sichtbar zu machen.
+        if (e.spruch && window.beitragText && window.beitragText.satzDazu) {
+          window.beitragText.satzDazu(e.beitrag.thema, e.spruch);
+        }
+
         bildTexte.clear();   // der neue Vorschlag gilt, nicht das Gemerkte
         wkAuswahl.clear();
         e.beitrag.bilder.forEach(s => wkAuswahl.add('/bilder/' + s));
