@@ -23,22 +23,57 @@ function mb(bytes: number) {
 // alles beim Hochladen um (und verkleinert nebenbei auf max. 2048 px).
 // Klappt das Dekodieren nicht (z. B. HEIC in älteren Browsern), geht das
 // Original durch — besser ein Bild im falschen Format als gar keins.
+// Der Server nimmt hoechstens 5 MB und nur JPG, PNG oder WebP. Ein Foto vom
+// Schreibtisch reisst beides schnell: Handybilder liegen ueber 5 MB, und was
+// vom iPhone kommt, ist HEIC.
+//
+// Frueher stand hier "ist es schon JPEG, dann durchreichen" – genau die
+// grossen Dateien liefen also ungeprueft in die Ablehnung. Jetzt wird jedes
+// Bild durch die Leinwand geschickt, das verkleinert und packt es neu.
+const OBERGRENZE = 5 * 1024 * 1024;
+// 3000 auf der langen Kante: ein 4:5-Ausschnitt daraus ist immer noch
+// 2400 x 3000 und damit deutlich ueber der Ausgabe von 1440 x 1800 – es muss
+// also nie hochskaliert werden.
+const LANGE_KANTE = 3000;
+
 async function zuJpeg(datei: File): Promise<File> {
-  if (!datei.type.startsWith("image/") || datei.type === "image/jpeg") return datei;
-  try {
-    const bmp = await createImageBitmap(datei);
-    const max = 2048;
-    const f = Math.min(1, max / Math.max(bmp.width, bmp.height));
-    const c = document.createElement("canvas");
-    c.width = Math.round(bmp.width * f);
-    c.height = Math.round(bmp.height * f);
-    c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
-    const blob = await new Promise<Blob | null>(r => c.toBlob(r, "image/jpeg", 0.9));
-    if (!blob) return datei;
-    return new File([blob], datei.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
-  } catch {
-    return datei;
+  if (!datei.type.startsWith("image/")) {
+    throw new Error(`„${datei.name}" ist kein Bild.`);
   }
+  // Klein genug und schon JPEG: nichts anfassen, das erhaelt die Schaerfe.
+  if (datei.type === "image/jpeg" && datei.size <= OBERGRENZE) return datei;
+
+  let bmp: ImageBitmap;
+  try {
+    bmp = await createImageBitmap(datei);
+  } catch {
+    // Chrome kann HEIC nicht oeffnen. Ohne diesen Hinweis stand nur
+    // "Upload fehlgeschlagen" da, und man sucht den Fehler bei sich.
+    throw new Error(/hei[cf]/i.test(datei.type + datei.name)
+      ? `„${datei.name}" ist ein HEIC-Bild. Bitte in der Fotos-App als JPEG sichern und das hochladen.`
+      : `„${datei.name}" konnte nicht gelesen werden.`);
+  }
+
+  const f = Math.min(1, LANGE_KANTE / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * f);
+  c.height = Math.round(bmp.height * f);
+  const g = c.getContext("2d")!;
+  // Weisser Grund: PNG mit Transparenz wuerde sonst schwarz.
+  g.fillStyle = "#ffffff";
+  g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close?.();
+
+  // Qualitaet stufenweise senken, bis es unter die Grenze passt. Ein Bild
+  // wegen 200 kB abzulehnen waere die schlechtere Loesung.
+  for (const guete of [0.92, 0.85, 0.78, 0.7]) {
+    const blob = await new Promise<Blob | null>(r => c.toBlob(r, "image/jpeg", guete));
+    if (blob && blob.size <= OBERGRENZE) {
+      return new File([blob], datei.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+    }
+  }
+  throw new Error(`„${datei.name}" ist auch verkleinert noch zu groß.`);
 }
 
 export default function GalerieSeite() {
@@ -89,6 +124,7 @@ export default function GalerieSeite() {
     setFehler("");
     setLaedtHoch(true);
     try {
+      const abgelehnt: string[] = [];
       for (const roh of Array.from(dateien)) {
         const datei = await zuJpeg(roh);
         const form = new FormData();
@@ -96,8 +132,17 @@ export default function GalerieSeite() {
         // Kein Content-Type setzen — der Browser ergänzt die multipart-Grenze selbst.
         const res = await fetch("/api/studio/vorrat", { method: "POST", body: form });
         const d = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(d?.error || "Upload fehlgeschlagen.");
+        // Die Endpunkte melden auf Deutsch. Wer nur "error" liest, zeigt
+        // statt des Grundes einen Platzhalter.
+        if (!res.ok || d?.ok === false) {
+          throw new Error(d?.fehler || d?.error || "Upload fehlgeschlagen.");
+        }
+        // Abgelehnte Dateien kommen mit HTTP 200 zurück, in einer Liste.
+        // Die wurde bisher weggeworfen – der Upload sah dann aus wie
+        // gelungen, und das Bild fehlte trotzdem.
+        if (Array.isArray(d?.abgelehnt) && d.abgelehnt.length) abgelehnt.push(...d.abgelehnt);
       }
+      if (abgelehnt.length) throw new Error(abgelehnt.join(" · "));
       laden();
     } catch (err) {
       setFehler(err instanceof Error ? err.message : "Upload fehlgeschlagen.");
