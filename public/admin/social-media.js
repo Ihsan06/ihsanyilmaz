@@ -2844,6 +2844,62 @@
     verdrahtenWerkstatt(d);
   }
 
+  // Die "Fotos"-Kachel wird von seiteZeichnen bei jedem Neuaufbau des Rasters
+  // mitgezeichnet – beim Blaettern, Filtern, Sortieren und nach dem Loeschen.
+  // Ihr Zuhoerer hing frueher in verdrahtenWerkstatt, das nur beim ersten
+  // Zeichnen laeuft. Ab dem ersten Blaettern war der Upload damit tot: das
+  // Dateifenster ging auf, die Datei wurde gewaehlt, und dann passierte
+  // nichts. Kein Fehler, keine Meldung.
+  function dazuVerdrahten(feld) {
+    const dazu = feld.querySelector('[data-dazu]');
+    if (!dazu || dazu.__verdrahtet) return;
+    dazu.__verdrahtet = true;
+    dazu.addEventListener('change', async () => {
+      const dateien = [...(dazu.files || [])];
+      if (!dateien.length) return;
+      const wort = feld.querySelector('.sm-foto-neu span');
+      const alt = wort ? wort.textContent : '';
+      if (wort) wort.textContent = 'Wird geladen …';
+      try {
+        const formular = new FormData();
+        for (const f of dateien) formular.append('datei', await bildVorbereiten(f));
+        const a = await fetch('/api/studio/vorrat', {
+          method: 'POST', credentials: 'same-origin', body: formular
+        });
+        const d = await a.json();
+        if (!d || !d.ok) throw new Error((d && d.fehler) || 'HTTP ' + a.status);
+        // Abgelehnte Dateien kommen mit HTTP 200 zurueck, in einer Liste.
+        // Die wurde bisher weggeworfen – der Upload sah aus wie gelungen,
+        // und das Bild fehlte trotzdem.
+        if (Array.isArray(d.abgelehnt) && d.abgelehnt.length) {
+          throw new Error(d.abgelehnt.join(' · '));
+        }
+
+        vorrat = d;
+        (d.angelegt || []).forEach(s => wkAuswahl.add('/bilder/' + s));
+        wkSeite = 0;
+        await werkstattZeigen();
+      } catch (err) {
+        if (wort) {
+          wort.textContent = 'Ging nicht';
+          setTimeout(() => { wort.textContent = alt; }, 4000);
+        }
+        // Der Grund gehoert dahin, wo man ihn liest. In der Kachel ist kein
+        // Platz dafuer – "Ging nicht" allein sagt einem nichts, und man sucht
+        // den Fehler bei sich.
+        const notiz = feld.querySelector('[data-plan-notiz]');
+        if (notiz) {
+          notiz.classList.add('plan-fehler');
+          notiz.innerHTML = `<span><b>Das Bild ging nicht.</b></span>
+            <span>${schuetzen(String(err.message || err))}</span>`;
+          notiz.hidden = false;
+          setTimeout(() => { notiz.hidden = true; }, 9000);
+        }
+        console.error('Fotos hinzufügen:', err);
+      }
+    });
+  }
+
   function seiteZeichnen(d) {
     const feld = document.getElementById('wk-block');
     if (!feld) return;
@@ -2879,6 +2935,7 @@
     if (z) z.addEventListener('click', () => { wkSeite -= 1; seiteZeichnen(d); });
     if (v) v.addEventListener('click', () => { wkSeite += 1; seiteZeichnen(d); });
 
+    dazuVerdrahten(feld);
     standZaehlen(feld);
     vorschauBild(feld);
   }
@@ -3090,6 +3147,56 @@
     reiheZeichnen(feld);
     vorschauBild(feld);
     markeAbgleichen(feld);
+  }
+
+
+  // ─── Bilder fuer den Upload vorbereiten ───
+  //
+  // Der Server nimmt hoechstens 5 MB und nur JPG, PNG oder WebP. Ein
+  // Screenshot vom Schreibtisch reisst beides schnell: ein Bildschirmfoto in
+  // voller Aufloesung liegt ueber 5 MB, und was vom iPhone kommt, ist HEIC.
+  //
+  // Dieselbe Rechnung wie in der Galerie: 3000 auf der langen Kante, dann
+  // stufenweise packen. Ein 4:5-Ausschnitt daraus ist immer noch groesser als
+  // die Ausgabe von 1440 x 1800, es muss also nie hochskaliert werden.
+  const UPLOAD_GRENZE = 5 * 1024 * 1024;
+  const UPLOAD_KANTE = 3000;
+
+  async function bildVorbereiten(datei) {
+    if (!datei.type || !datei.type.startsWith('image/')) {
+      throw new Error(`„${datei.name}“ ist kein Bild.`);
+    }
+    if (datei.type === 'image/jpeg' && datei.size <= UPLOAD_GRENZE) return datei;
+
+    let bmp;
+    try {
+      bmp = await createImageBitmap(datei);
+    } catch {
+      // Chrome kann HEIC nicht oeffnen. Ohne diesen Hinweis stand nur
+      // "Ging nicht" da, und man sucht den Fehler bei sich.
+      throw new Error(/hei[cf]/i.test(datei.type + datei.name)
+        ? `„${datei.name}“ ist ein HEIC-Bild. Bitte in der Fotos-App als JPEG sichern.`
+        : `„${datei.name}“ konnte nicht gelesen werden.`);
+    }
+
+    const f = Math.min(1, UPLOAD_KANTE / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * f);
+    c.height = Math.round(bmp.height * f);
+    const g = c.getContext('2d');
+    // Weisser Grund: ein PNG mit Transparenz wuerde sonst schwarz.
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(bmp, 0, 0, c.width, c.height);
+    if (bmp.close) bmp.close();
+
+    for (const guete of [0.92, 0.85, 0.78, 0.7]) {
+      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', guete));
+      if (blob && blob.size <= UPLOAD_GRENZE) {
+        return new File([blob], datei.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+      }
+    }
+    throw new Error(`„${datei.name}“ ist auch verkleinert noch zu groß.`);
   }
 
   function bildKachel(b) {
@@ -3443,34 +3550,6 @@
     // wie ueber die Galerie – samt Beschreibung im Hintergrund – und sind
     // gleich ausgewaehlt. Wer beim Bauen merkt, dass ein Bild fehlt, soll
     // nicht die Seite wechseln muessen.
-    const dazu = feld.querySelector('[data-dazu]');
-    if (dazu) dazu.addEventListener('change', async () => {
-      const dateien = [...(dazu.files || [])];
-      if (!dateien.length) return;
-      const wort = feld.querySelector('.sm-foto-neu span');
-      const alt = wort ? wort.textContent : '';
-      if (wort) wort.textContent = 'Wird geladen …';
-      try {
-        const formular = new FormData();
-        dateien.forEach(f => formular.append('datei', f));
-        const a = await fetch('/api/studio/vorrat', {
-          method: 'POST', credentials: 'same-origin', body: formular
-        });
-        const d = await a.json();
-        if (!d || !d.ok) throw new Error((d && d.fehler) || 'HTTP ' + a.status);
-
-        vorrat = d;
-        (d.angelegt || []).forEach(s => wkAuswahl.add('/bilder/' + s));
-        wkSeite = 0;
-        await werkstattZeigen();
-      } catch (err) {
-        if (wort) {
-          wort.textContent = 'Ging nicht';
-          setTimeout(() => { wort.textContent = alt; }, 4000);
-        }
-        console.error('Fotos hinzufügen:', err);
-      }
-    });
 
     bearbeitenVerdrahten(feld);
     mehrVerdrahten(feld);
