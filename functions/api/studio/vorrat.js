@@ -68,7 +68,12 @@ export async function onRequestPost({ env, request, waitUntil }) {
 
   // Kommt ein Formular statt JSON, sind es neue Bilder.
   if ((request.headers.get('content-type') || '').includes('multipart/form-data')) {
-    return hochladen({ env, request });
+    // waitUntil MUSS mit durch: hochladen() benutzt es, um das Beschreiben
+    // im Hintergrund anzustossen. Ohne die Weitergabe ist es dort eine freie
+    // Variable und wirft einen ReferenceError – aber erst, wenn ein
+    // ANTHROPIC_API_KEY gesetzt ist, denn davor bricht die Und-Kette ab.
+    // Genau deshalb lief der Upload lokal und scheiterte in Produktion.
+    return hochladen({ env, request, waitUntil });
   }
 
   let d;
@@ -114,7 +119,7 @@ function antwort(daten, status = 200) {
 // Mehrere auf einmal: wer Fotos nachliefert, hat selten genau eines. Was
 // durchgeht, wird gemeldet; was nicht, mit Grund – ein stiller Teilerfolg
 // waere schlimmer als eine Fehlermeldung.
-async function hochladen({ env, request }) {
+async function hochladen({ env, request, waitUntil }) {
   if (!env.BILDER) return antwort({ ok: false, fehler: 'Bildspeicher nicht verbunden.' }, 503);
 
   let dateien = [];
