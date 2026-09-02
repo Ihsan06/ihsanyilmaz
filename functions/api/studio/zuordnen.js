@@ -1,6 +1,13 @@
 // POST /api/admin/zuordnen – jedes Bild bekommt sein führendes Thema.
 //
-//   { wieviele: 40 }   die nächsten, die noch keinem Thema zugeordnet sind
+//   { wieviele: 40 }            die nächsten, die noch keinem Thema tragen
+//   { alle: true, ab: 0 }       ALLE beschriebenen Bilder noch einmal durch,
+//                               seitenweise ab dieser Stelle
+//
+// Der zweite Weg ist der wichtige, wenn ein Thema NEU dazukommt: die alten
+// Bilder tragen ja bereits ein gueltiges Thema, tauchen also im ersten Weg
+// nicht auf – und das neue Thema bliebe fuer immer leer. Mit "alle" liest das
+// Modell jede Beschreibung noch einmal gegen die jetzige Themenliste.
 //
 // Warum das getrennt vom Beschreiben laeuft: die Bilder sind laengst
 // angesehen, ihre Beschreibungen stehen in der Datenbank. Fuer die Zuordnung
@@ -31,6 +38,8 @@ export async function onRequestPost({ env, request }) {
   let d;
   try { d = await request.json(); } catch { d = {}; }
   const wieviele = Math.min(Number(d && d.wieviele) || AUF_EINMAL, AUF_EINMAL);
+  const alleNochmal = !!(d && d.alle);
+  const ab = Math.max(0, Number(d && d.ab) || 0);
 
   try {
     const themen = (await alle(db)).map(k => ({ id: k.id, titel: k.titel, hinweis: k.hinweis }));
@@ -39,23 +48,35 @@ export async function onRequestPost({ env, request }) {
     // Alles, was kein gueltiges Thema traegt – dazu gehoert auch, was noch
     // unter einem geloeschten steht.
     const gueltig = themen.map(t => `'${t.id.replace(/'/g, "''")}'`).join(',');
-    const { results } = await db.prepare(
-      `SELECT schluessel, beschreibung FROM studio_vorrat
-        WHERE beschreibung IS NOT NULL AND geloescht_am IS NULL
-          AND (motiv IS NULL OR motiv NOT IN (${gueltig}))
-        ORDER BY quelle LIMIT ?`
-    ).bind(wieviele).all();
+    // Zwei Warteschlangen: im Normalfall nur das Unzugeordnete, beim
+    // Nachsortieren jedes beschriebene Bild – dann seitenweise ueber "ab",
+    // weil ohne Filter nichts kleiner wird und die Schleife sonst ewig auf
+    // derselben Seite stuende.
+    const { results } = alleNochmal
+      ? await db.prepare(
+          `SELECT schluessel, motiv, beschreibung FROM studio_vorrat
+            WHERE beschreibung IS NOT NULL AND geloescht_am IS NULL
+            ORDER BY schluessel LIMIT ? OFFSET ?`
+        ).bind(wieviele, ab).all()
+      : await db.prepare(
+          `SELECT schluessel, motiv, beschreibung FROM studio_vorrat
+            WHERE beschreibung IS NOT NULL AND geloescht_am IS NULL
+              AND (motiv IS NULL OR motiv NOT IN (${gueltig}))
+            ORDER BY quelle LIMIT ?`
+        ).bind(wieviele).all();
 
     const offene = (results || []).map(r => {
       let b = null;
       try { b = JSON.parse(r.beschreibung); } catch { /* alte Zeile */ }
       return b && b.beschreibung
-        ? { schluessel: r.schluessel, satz: String(b.beschreibung).replace(/\s+/g, ' ').trim() }
+        ? { schluessel: r.schluessel, motiv: r.motiv || null,
+            satz: String(b.beschreibung).replace(/\s+/g, ' ').trim() }
         : null;
     }).filter(Boolean);
 
     if (!offene.length) {
-      return antwort({ ok: true, fertig: 0, offen: await zaehlen(db, gueltig) });
+      return antwort({ ok: true, fertig: 0, geprueft: 0, weiter: 0,
+                       offen: await zaehlen(db, gueltig) });
     }
 
     const zuordnung = await fragen(env.ANTHROPIC_API_KEY, offene, themen);
@@ -65,12 +86,22 @@ export async function onRequestPost({ env, request }) {
     for (const [i, bild] of offene.entries()) {
       const thema = zuordnung[String(i + 1)];
       if (!thema || !erlaubt.has(thema)) continue;
+      // Beim Nachsortieren zaehlt nur, was sich wirklich bewegt – sonst
+      // meldete die Seite "40 einsortiert", obwohl alles blieb, wo es war.
+      if (thema === bild.motiv) continue;
       await db.prepare('UPDATE studio_vorrat SET motiv = ? WHERE schluessel = ?')
         .bind(thema, bild.schluessel).run();
       fertig += 1;
     }
 
-    return antwort({ ok: true, fertig, offen: await zaehlen(db, gueltig) });
+    // "weiter" ist die Stelle, an der die naechste Seite beginnt; 0 heisst
+    // fertig. Weitergezaehlt wird um die gelesenen Zeilen, nicht um die
+    // verschobenen – sonst liefe die Schleife im Kreis.
+    const weiter = alleNochmal && (results || []).length === wieviele ? ab + (results || []).length : 0;
+    return antwort({
+      ok: true, fertig, geprueft: (results || []).length, weiter,
+      offen: await zaehlen(db, gueltig)
+    });
   } catch (err) {
     console.error('Zuordnen:', err);
     return antwort({ ok: false, fehler: String(err.message || err) }, 502);

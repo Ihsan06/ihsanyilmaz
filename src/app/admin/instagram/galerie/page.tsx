@@ -167,7 +167,8 @@ export default function GalerieSeite() {
       });
       setKategorien(d.kategorien || []);
       setNeuOffen(false); setNeuTitel(""); setNeuHinweis("");
-      setMeldung(`„${neuTitel.trim()}" angelegt. Ab dem nächsten Ansehen sortiert das Modell danach ein.`);
+      setMeldung(`„${neuTitel.trim()}" angelegt. Damit auch die vorhandenen Bilder hineinkommen: `
+        + "oben auf „Alle neu einsortieren“ – sonst füllt sich das Thema erst mit neuen Bildern.");
     } catch (e) {
       setFehler(e instanceof Error ? e.message : "Ging nicht.");
     }
@@ -221,7 +222,41 @@ export default function GalerieSeite() {
       const d = await api("/api/studio/zuordnen", {
         method: "POST", body: JSON.stringify({ wieviele: 60 }),
       });
-      setMeldung(`${d.zugeordnet ?? 0} Bilder einsortiert.`);
+      setMeldung(`${d.fertig ?? 0} Bilder einsortiert.`);
+      await laden();
+    } catch (e) {
+      setMeldung("");
+      setFehler(e instanceof Error ? e.message : "Ging nicht.");
+    } finally {
+      setLaeuft("");
+    }
+  };
+
+  // Alles noch einmal durch – der Weg für ein NEUES Thema. "X einsortieren"
+  // nimmt nur Bilder ohne gültiges Thema; die alten tragen aber längst eines,
+  // und das neue Thema bliebe deshalb leer. Hier liest das Modell jede
+  // Beschreibung erneut gegen die jetzige Themenliste und schiebt um, was
+  // besser woanders steht – seitenweise, damit kein Aufruf zu groß wird.
+  const neuEinsortieren = async () => {
+    const beschriebene = bilder.filter(b => b.beschreibung).length;
+    if (!confirm(`${beschriebene} Bildbeschreibungen werden noch einmal gegen die `
+      + "Themenliste gelesen. Bilder können dabei das Thema wechseln. Weitermachen?")) return;
+    setLaeuft("neusortieren"); setFehler("");
+    try {
+      let ab = 0, verschoben = 0, gelesen = 0;
+      for (;;) {
+        setMeldung(`${gelesen} von ${beschriebene} gelesen – das Modell sortiert …`);
+        const d = await api("/api/studio/zuordnen", {
+          method: "POST", body: JSON.stringify({ alle: true, ab, wieviele: 25 }),
+        });
+        verschoben += d.fertig || 0;
+        gelesen += d.geprueft || 0;
+        if (!d.weiter) break;
+        ab = d.weiter;
+      }
+      setMeldung(verschoben
+        ? `Fertig: ${verschoben} Bilder haben ein neues Thema bekommen.`
+        : "Fertig – alle Bilder stehen schon unter dem passenden Thema.");
       await laden();
     } catch (e) {
       setMeldung("");
@@ -266,6 +301,9 @@ export default function GalerieSeite() {
   const ohneBeschreibung = bilder.filter(b => !b.beschreibung).length;
   const ids = new Set(kategorien.map(k => k.id));
   const ohneThema = bilder.filter(b => b.beschreibung && !ids.has(b.motiv || "")).length;
+  // Grundlage fürs Nachsortieren: ohne Beschreibung kann das Modell ein Bild
+  // keinem Thema zuordnen.
+  const beschriebene = bilder.filter(b => b.beschreibung).length;
   const unsortiert = bilder.filter(b => !b.motiv || b.motiv === "unsortiert").length;
   const favoriten = bilder.filter(b => b.favorit).length;
   const gezeigt = filter
@@ -332,6 +370,14 @@ export default function GalerieSeite() {
             className="chip px-3 py-2 text-sm disabled:opacity-60">
             <FolderTree size={14} />
             {laeuft === "sortieren" ? "Läuft…" : `${ohneThema} einsortieren`}
+          </button>
+        )}
+        {beschriebene > 0 && kategorien.length > 1 && (
+          <button onClick={neuEinsortieren} disabled={!!laeuft}
+            title="Liest jede Bildbeschreibung noch einmal gegen die jetzige Themenliste – nötig, wenn ein Thema neu dazugekommen ist."
+            className="chip px-3 py-2 text-sm disabled:opacity-60">
+            <FolderTree size={14} />
+            {laeuft === "neusortieren" ? "Läuft…" : "Alle neu einsortieren"}
           </button>
         )}
 
