@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 // Hinweis: lucide-react hat in dieser Version keine Marken-Icons (kein "Instagram") — daher Camera.
-import { LayoutDashboard, Inbox, Camera, Euro, FolderOpen, LogOut, Lock, ExternalLink } from "lucide-react";
+import { LayoutDashboard, Inbox, Camera, Euro, FolderOpen, LogOut, Lock, ExternalLink, ChartNoAxesColumn } from "lucide-react";
 import { Bildmarke } from "../Logo";
 
 type Seite = {
@@ -36,6 +36,7 @@ const SEITEN: Seite[] = [
       { pfad: "/admin/instagram/galerie", titel: "Galerie" },
     ],
   },
+  { pfad: "/admin/monitoring", titel: "Monitoring", icon: ChartNoAxesColumn },
   { pfad: "/admin/dokumente", titel: "Dokumente", icon: FolderOpen },
   { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
 ];
@@ -62,7 +63,18 @@ export function euro(cent: number) {
 
 export function datum(wert?: string | null) {
   if (!wert) return "—";
-  const d = new Date(wert.includes("T") || wert.includes(" ") ? wert.replace(" ", "T") + "Z" : wert);
+  // Drei Formate kommen aus der Datenbank: "2026-08-18" (nur Tag),
+  // "2026-08-18 01:15:45" (SQLite datetime, Leerzeichen, ohne Zone) und
+  // "2026-08-18T01:15:45.768Z" (ISO aus JavaScript, mit Z).
+  //
+  // Frueher wurde an alles mit T oder Leerzeichen ein "Z" angehaengt – bei
+  // der dritten Form entstand dadurch "…768ZZ", ein ungueltiges Datum, und
+  // die Funktion gab den rohen Zeitstempel zurueck. Zu sehen war das in der
+  // Galerie und im Monitoring.
+  const roh = wert.trim();
+  const hatZone = /(Z|[+-]\d{2}:?\d{2})$/.test(roh);
+  const text = roh.includes(" ") ? roh.replace(" ", "T") : roh;
+  const d = new Date(hatZone || !text.includes("T") ? text : text + "Z");
   if (isNaN(d.getTime())) return wert;
   return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }

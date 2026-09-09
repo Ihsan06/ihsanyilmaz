@@ -1,48 +1,41 @@
-// GET /api/admin/monitoring?tage=30
+// /api/studio/monitoring – die Zahlen zur eigenen Seite.
 //
-// Liefert zwei Dinge getrennt, weil sie aus zwei Welten kommen:
+// Vier Quellen, jede fuer sich abgesichert: faellt eine aus, fehlt nur ihr
+// Block, der Rest steht trotzdem da. Genau das war beim Vorgaenger der Punkt –
+// eine fehlende Analytics-Kennung darf nicht die ganze Seite leer lassen.
 //
-//   formulare – aus der eigenen D1-Datenbank. Wie oft Kontakt, Ankauf,
-//               Probefahrt, Mietwagen und Suchauftrag abgeschickt wurden.
-//               Das ist die Zahl, an der ein Autohaus sein Geschaeft misst.
-//   besucher  – aus Cloudflare Web Analytics ueber die GraphQL-Schnittstelle.
-//               Kontext: wie viele Leute kamen ueberhaupt, ueber welche Seiten
-//               und woher.
+//   Anfragen   Tabelle "anfragen" – das Kontaktformular der Website
+//   Besucher   Cloudflare Web Analytics ueber die GraphQL-Schnittstelle
+//   Instagram  Tabelle "studio_instagram" – der Follower-Verlauf
+//   Speicher   Tabelle "studio_bilder" – wie voll der Bildspeicher ist
 //
-// Beide Bloecke koennen einzeln fehlschlagen, ohne den anderen mitzureissen –
-// die Seite zeigt dann eben nur die eine Haelfte. Ein fehlender Analytics-
-// Token darf den Formular-Zaehler nicht unbrauchbar machen.
-//
-// Wichtig zur Einordnung der Zahlen: Web Analytics zaehlt nur Seiten mit
-// Beacon und filtert Bots. Die Zahlen aus dem Cloudflare-Zonenreport sind
-// etwas voellig anderes (dort waren zuletzt ~90 % Bot-Verkehr) – die beiden
-// nie nebeneinanderstellen.
+// Diese Datei kam urspruenglich aus dem Autohaus-Baukasten und fragte dort
+// "studio_eingaenge" ab – eine Tabelle, die hier nie beschrieben wird und
+// deshalb immer leer war. Das Kontaktformular schreibt nach "anfragen".
 
 const KOPF = {
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'no-store, private'
 };
 
-// Beides ist nicht geheim: die Konto-Kennung steht in jeder Dashboard-URL,
-// das Site-Tag im Quelltext jeder Seite (Beacon). Ueber Umgebungsvariablen
-// ueberschreibbar, falls das Projekt mal in ein anderes Konto umzieht.
-const KONTO_VORGABE = 'dad9b3e70113cef802e07d68cfc5ca1e';
-const SEITE_VORGABE = '4dd4de00c766442180efeebf0e9e84fa';
-
-// Laenger als ein halbes Jahr haelt Cloudflare die Besucherdaten im Gratis-
-// Tarif nicht vor – eine groessere Spanne wuerde nur stillschweigend leere
-// Balken liefern. Deshalb hier eine Grenze mit klarer Meldung.
+// Laenger als ein halbes Jahr haelt Cloudflare die Besucherdaten im
+// Gratis-Tarif nicht vor – eine groessere Spanne liefert stillschweigend
+// leere Balken. Deshalb hier eine Grenze mit klarer Meldung.
 const MAX_TAGE = 180;
 
-export async function onRequestGet({ request, env }) {
+// Der Bildspeicher ist auf 9,5 GB gedeckelt (siehe bild.js) – hier nur zum
+// Anzeigen des Fuellstands.
+const SPEICHER_GRENZE = 9.5 * 1024 * 1024 * 1024;
+
+const antwort = (d, status = 200) => new Response(JSON.stringify(d), { status, headers: KOPF });
+
+export async function onRequestGet({ env, request }) {
   const url = new URL(request.url);
 
   let zeitraum;
-  try {
-    zeitraum = spanne(url.searchParams);
-  } catch (err) {
-    return new Response(JSON.stringify({ ok: false, fehler: err.message }), { status: 400, headers: KOPF });
-  }
+  try { zeitraum = spanne(url.searchParams); }
+  catch (err) { return antwort({ ok: false, fehler: err.message }, 400); }
+
   const { von, bis, tage } = zeitraum;
 
   // Gleich langer Zeitraum unmittelbar davor – nur fuer die Vergleichspfeile
@@ -50,183 +43,161 @@ export async function onRequestGet({ request, env }) {
   const davorBis = new Date(von.getTime() - 1);
   const davorVon = new Date(davorBis.getTime() - (bis - von));
 
-  const [formulare, besucher, davor] = await Promise.all([
-    formularZahlen(env, von, bis).catch(fehlerAls('Formular-Zahlen')),
-    besucherZahlen(env, von, bis).catch(fehlerAls('Besucher-Zahlen')),
+  const [anfragen, besucher, instagram, speicher, davor] = await Promise.all([
+    anfrageZahlen(env, von, bis).catch(fehlerAls('Anfragen')),
+    besucherZahlen(env, von, bis).catch(fehlerAls('Besucher')),
+    instagramVerlauf(env, von, bis).catch(fehlerAls('Instagram')),
+    speicherStand(env).catch(fehlerAls('Speicher')),
     vergleich(env, davorVon, davorBis).catch(() => null)
   ]);
 
-  return new Response(JSON.stringify({
+  return antwort({
     ok: true,
     tage,
     von: von.toISOString(),
     bis: bis.toISOString(),
-    formulare,
-    besucher,
-    davor
-  }), { headers: KOPF });
+    anfragen, besucher, instagram, speicher, davor
+  });
 }
 
-// Nur die drei Summen des Vorzeitraums. Bewusst ohne Listen und Verlauf –
-// die will niemand sehen, und jede Abfrage kostet Zeit.
+// Nur die Summen des Vorzeitraums. Bewusst ohne Verlauf und Listen – die
+// will an dieser Stelle niemand sehen, und jede Abfrage kostet Zeit.
 async function vergleich(env, von, bis) {
-  const [f, b] = await Promise.all([
-    formularZahlen(env, von, bis).catch(() => null),
+  const [a, b] = await Promise.all([
+    anfrageZahlen(env, von, bis).catch(() => null),
     besucherZahlen(env, von, bis).catch(() => null)
   ]);
-  if (!f && !b) return null;
+  if (!a && !b) return null;
   return {
+    anfragen: a?.gesamt ?? null,
     besuche: b?.besuche ?? null,
-    aufrufe: b?.aufrufe ?? null,
-    anfragen: f ? Object.values(f.nachFormular).reduce((s, e) => s + (e.ok || 0), 0) : null
+    aufrufe: b?.aufrufe ?? null
   };
 }
 
-// Entweder ?tage=30 (Schnellauswahl) oder ?von=2026-07-01&bis=2026-07-30
-// (freier Zeitraum). "bis" meint immer den ganzen Tag, sonst fehlt dem Nutzer
-// unerklaerlicherweise der zuletzt gewaehlte Tag.
-function spanne(p) {
-  const vonRoh = p.get('von');
-  const bisRoh = p.get('bis');
+// ─── Anfragen aus dem Kontaktformular ───
 
-  if (vonRoh || bisRoh) {
-    const von = tagesBeginn(vonRoh);
-    const bis = tagesEnde(bisRoh);
-    if (!von || !bis) throw new Error('Bitte beide Daten im Format JJJJ-MM-TT angeben.');
-    if (von > bis) throw new Error('Das Startdatum liegt nach dem Enddatum.');
-
-    const jetzt = new Date();
-    const echtBis = bis > jetzt ? jetzt : bis;
-    const tage = Math.ceil((echtBis - von) / 86400000);
-    if (tage > MAX_TAGE) throw new Error(`Höchstens ${MAX_TAGE} Tage am Stück.`);
-
-    return { von, bis: echtBis, tage: Math.max(tage, 1) };
-  }
-
-  const tage = Math.min(MAX_TAGE, Math.max(1, Math.round(Number(p.get('tage')) || 30)));
-  const bis = new Date();
-  return { von: new Date(bis.getTime() - tage * 86400000), bis, tage };
-}
-
-function tagesBeginn(text) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text || '')) return null;
-  const d = new Date(text + 'T00:00:00Z');
-  return isNaN(d) ? null : d;
-}
-
-function tagesEnde(text) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text || '')) return null;
-  const d = new Date(text + 'T23:59:59Z');
-  return isNaN(d) ? null : d;
-}
-
-function fehlerAls(was) {
-  return err => {
-    console.error(`${was} fehlgeschlagen:`, err);
-    return { ok: false, fehler: String(err && err.message || err) };
-  };
-}
-
-// ─── Formulare (eigene Datenbank) ───
-
-async function formularZahlen(env, von, bis) {
+async function anfrageZahlen(env, von, bis) {
   if (!env.DB) throw new Error('Keine Datenbank verbunden.');
-  const seit = von.toISOString();
-  const okBis = bis.toISOString();
+  // Nur die Datumsanteile vergleichen. "anfragen" speichert
+  // "2026-08-18 01:15:45" mit Leerzeichen, "studio_instagram" dagegen
+  // "2026-08-18T01:15:45.175Z" mit T. Ein Textvergleich gegen einen
+  // ISO-Zeitstempel wuerde jeden Eintrag am Starttag verschlucken, weil das
+  // Leerzeichen vor dem T sortiert.
+  const seit = tagText(von);
+  const okBis = tagText(bis);
 
-  const summe = await env.DB.prepare(
-    `SELECT formular, ergebnis, COUNT(*) AS anzahl
-       FROM studio_eingaenge
-      WHERE zeitpunkt >= ? AND zeitpunkt <= ?
-      GROUP BY formular, ergebnis`
-  ).bind(seit, okBis).all();
+  const [nachStatus, verlauf, offen] = await Promise.all([
+    env.DB.prepare(
+      `SELECT status, COUNT(*) AS anzahl FROM anfragen
+        WHERE substr(erstellt_am, 1, 10) >= ? AND substr(erstellt_am, 1, 10) <= ?
+        GROUP BY status`
+    ).bind(seit, okBis).all(),
+    env.DB.prepare(
+      `SELECT substr(erstellt_am, 1, 10) AS tag, COUNT(*) AS anzahl FROM anfragen
+        WHERE substr(erstellt_am, 1, 10) >= ? AND substr(erstellt_am, 1, 10) <= ?
+        GROUP BY tag ORDER BY tag`
+    ).bind(seit, okBis).all(),
+    // Unbeantwortetes zaehlt unabhaengig vom Zeitraum: eine Anfrage von
+    // letztem Monat ist heute genauso offen wie eine von gestern.
+    env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM anfragen WHERE status IN ('neu', 'in_bearbeitung')`
+    ).first()
+  ]);
 
-  const verlauf = await env.DB.prepare(
-    `SELECT substr(zeitpunkt, 1, 10) AS tag, COUNT(*) AS anzahl
-       FROM studio_eingaenge
-      WHERE zeitpunkt >= ? AND zeitpunkt <= ? AND ergebnis = 'ok'
-      GROUP BY tag
-      ORDER BY tag`
-  ).bind(seit, okBis).all();
+  const status = {};
+  (nachStatus.results || []).forEach(z => { status[z.status] = z.anzahl; });
+  const gesamt = Object.values(status).reduce((s, n) => s + n, 0);
 
-  // Nach Formular buendeln: { kontakt: { ok: 3, ungueltig: 1, ... }, ... }
-  // Die Spalte "host" der Tabelle wird hier bewusst nicht ausgewertet – sie
-  // steht fuer den Zweifelsfall in der Datenbank ("kam das von der echten
-  // Seite oder aus einem Test?"), gehoert aber nicht in die Auswertung.
-  const nachFormular = {};
-  for (const z of summe.results || []) {
-    (nachFormular[z.formular] ||= {})[z.ergebnis] = z.anzahl;
-  }
-
-  return { ok: true, nachFormular, verlauf: verlauf.results || [] };
+  return {
+    ok: true,
+    gesamt,
+    status,
+    offen: offen?.n || 0,
+    proTag: (verlauf.results || []).map(z => ({ tag: z.tag, anzahl: z.anzahl }))
+  };
 }
 
-// ─── Besucher (Cloudflare Web Analytics) ───
+// ─── Besucher aus Cloudflare Web Analytics ───
 
 const ABFRAGE = `
-query Besucher($konto: String!, $seite: String!, $von: Time!, $bis: Time!) {
+query ($konto: String!, $seite: String!, $von: Time!, $bis: Time!) {
   viewer {
     accounts(filter: { accountTag: $konto }) {
       proTag: rumPageloadEventsAdaptiveGroups(
+        limit: 200
         filter: { siteTag: $seite, datetime_geq: $von, datetime_leq: $bis }
-        limit: 100
         orderBy: [date_ASC]
-      ) {
-        count
-        sum { visits }
-        dimensions { date }
-      }
+      ) { count sum { visits } dimensions { date } }
       proSeite: rumPageloadEventsAdaptiveGroups(
-        filter: { siteTag: $seite, datetime_geq: $von, datetime_leq: $bis }
         limit: 15
-        orderBy: [count_DESC]
-      ) {
-        count
-        dimensions { requestPath }
-      }
-      proHerkunft: rumPageloadEventsAdaptiveGroups(
         filter: { siteTag: $seite, datetime_geq: $von, datetime_leq: $bis }
-        limit: 25
         orderBy: [count_DESC]
-      ) {
-        count
-        dimensions { refererHost }
-      }
+      ) { count dimensions { requestPath } }
+      proHerkunft: rumPageloadEventsAdaptiveGroups(
+        limit: 20
+        filter: { siteTag: $seite, datetime_geq: $von, datetime_leq: $bis }
+        orderBy: [count_DESC]
+      ) { count dimensions { refererHost } }
     }
   }
 }`;
 
-async function besucherZahlen(env, von, bis) {
-  const token = env.CF_API_TOKEN;
-  if (!token) throw new Error('Kein Analytics-Token hinterlegt.');
+// Die eigene Domain taucht als Verweisquelle auf, sobald jemand INNERHALB der
+// Seite weiterklickt. Unter "woher kommen die Besucher" hat das nichts zu
+// suchen – es waere die groesste Zeile und wuerde die echten Quellen
+// (Google, Instagram) optisch erschlagen.
+const EIGENE = new Set([
+  'ihsan-yilmaz.de',
+  'www.ihsan-yilmaz.de',
+  'ihsan-yilmaz.pages.dev'
+]);
 
-  const antwort = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+function herkunft(zeilen) {
+  const raus = [];
+  for (const z of zeilen) {
+    const host = z.dimensions.refererHost || '';
+    if (EIGENE.has(host)) continue;
+    raus.push({ host: host || 'direkt', aufrufe: z.count });
+  }
+  return raus.slice(0, 8);
+}
+
+async function besucherZahlen(env, von, bis) {
+  // Ohne Kennung gibt es keine Besucherzahlen – aber einen Hinweis, was
+  // fehlt. Eine leere Kachel ohne Grund laesst einen ratlos zurueck.
+  if (!env.CF_SITE_TAG) {
+    throw new Error('Web Analytics ist für diese Seite noch nicht eingerichtet: '
+      + 'CF_SITE_TAG fehlt.');
+  }
+  if (!env.CF_API_TOKEN) throw new Error('Kein Analytics-Token hinterlegt (CF_API_TOKEN).');
+  if (!env.CF_ACCOUNT_ID) throw new Error('Keine Konto-Kennung hinterlegt (CF_ACCOUNT_ID).');
+
+  const a = await fetch('https://api.cloudflare.com/client/v4/graphql', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${env.CF_API_TOKEN}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       query: ABFRAGE,
       variables: {
-        konto: env.CF_ACCOUNT_ID || KONTO_VORGABE,
-        seite: env.CF_SITE_TAG || SEITE_VORGABE,
+        konto: env.CF_ACCOUNT_ID,
+        seite: env.CF_SITE_TAG,
         von: von.toISOString(),
         bis: bis.toISOString()
       }
     })
   });
 
-  const daten = await antwort.json();
+  const daten = await a.json();
 
   // GraphQL antwortet auch bei Fehlern mit HTTP 200 – der Statuscode allein
   // sagt hier nichts. Die Meldungen enthalten keine Geheimnisse (Feldnamen,
   // Rechtehinweise) und helfen beim Einrichten, deshalb gehen sie an den
-  // angemeldeten Admin durch.
-  if (daten.errors?.length) {
-    throw new Error(daten.errors.map(e => e.message).join(' | '));
-  }
-  if (!antwort.ok) throw new Error(`HTTP ${antwort.status}`);
+  // angemeldeten Betreiber durch.
+  if (daten.errors?.length) throw new Error(daten.errors.map(e => e.message).join(' | '));
+  if (!a.ok) throw new Error(`HTTP ${a.status}`);
 
   const konto = daten.data?.viewer?.accounts?.[0];
   if (!konto) throw new Error('Kein Konto in der Antwort – stimmt die Konto-Kennung?');
@@ -247,24 +218,96 @@ async function besucherZahlen(env, von, bis) {
   };
 }
 
-// Die eigene Domain taucht als Verweisquelle auf, sobald jemand INNERHALB der
-// Website weiterklickt. Unter "woher kommen die Besucher" hat das nichts zu
-// suchen – es waere die groesste Zeile und wuerde die echten Quellen
-// (Google, mobile.de, Facebook) optisch erschlagen.
-const EIGENE = new Set([
-  'autohaus-diezmann.de',
-  'www.autohaus-diezmann.de',
-  'autohaus-diezmann.pages.dev'
-]);
+// ─── Instagram: der Follower-Verlauf ───
 
-function herkunft(zeilen) {
-  return zeilen
-    .filter(z => !EIGENE.has((z.dimensions.refererHost || '').toLowerCase()))
-    .map(z => ({
-      // Leer heisst: direkt eingetippt, Lesezeichen, oder die Quelle hat den
-      // Verweis unterdrueckt (haeufig bei WhatsApp und E-Mail-Programmen).
-      herkunft: z.dimensions.refererHost || 'Direkt / Lesezeichen',
-      aufrufe: z.count
-    }))
-    .slice(0, 10);
+async function instagramVerlauf(env, von, bis) {
+  if (!env.DB) throw new Error('Keine Datenbank verbunden.');
+
+  const { results } = await env.DB.prepare(
+    `SELECT substr(zeitpunkt, 1, 10) AS tag, MAX(follower) AS follower, MAX(beitraege) AS beitraege
+       FROM studio_instagram
+      WHERE substr(zeitpunkt, 1, 10) >= ? AND substr(zeitpunkt, 1, 10) <= ?
+      GROUP BY tag ORDER BY tag`
+  ).bind(tagText(von), tagText(bis)).all();
+
+  const punkte = results || [];
+  if (!punkte.length) return { ok: true, punkte: [], follower: null, zuwachs: null, beitraege: null };
+
+  const erst = punkte[0];
+  const letzt = punkte[punkte.length - 1];
+  return {
+    ok: true,
+    punkte,
+    follower: letzt.follower,
+    beitraege: letzt.beitraege,
+    // Zuwachs im Zeitraum, nicht seit Beginn – sonst waere die Zahl
+    // unabhaengig vom gewaehlten Zeitraum immer dieselbe.
+    zuwachs: letzt.follower - erst.follower
+  };
+}
+
+// ─── Bildspeicher ───
+
+async function speicherStand(env) {
+  if (!env.DB) throw new Error('Keine Datenbank verbunden.');
+  const z = await env.DB.prepare(
+    'SELECT COUNT(*) AS bilder, COALESCE(SUM(groesse), 0) AS bytes FROM studio_bilder'
+  ).first();
+  return {
+    ok: true,
+    bilder: z?.bilder || 0,
+    bytes: z?.bytes || 0,
+    grenze: SPEICHER_GRENZE,
+    anteil: Math.round(((z?.bytes || 0) / SPEICHER_GRENZE) * 1000) / 10
+  };
+}
+
+// ─── Zeitraum ───
+
+// Entweder ?tage=30 (Schnellauswahl) oder ?von=2026-07-01&bis=2026-07-30
+// (freier Zeitraum). "bis" meint immer den ganzen Tag, sonst fehlt dem
+// Betrachter unerklaerlicherweise der zuletzt gewaehlte Tag.
+function spanne(p) {
+  const vonRoh = p.get('von');
+  const bisRoh = p.get('bis');
+
+  if (vonRoh || bisRoh) {
+    const von = tagesBeginn(vonRoh);
+    const bis = tagesEnde(bisRoh);
+    if (!von || !bis) throw new Error('Bitte beide Daten im Format JJJJ-MM-TT angeben.');
+    if (von > bis) throw new Error('Das Startdatum liegt nach dem Enddatum.');
+
+    const jetzt = new Date();
+    const echtBis = bis > jetzt ? jetzt : bis;
+    const tage = Math.ceil((echtBis - von) / 86400000);
+    if (tage > MAX_TAGE) throw new Error(`Höchstens ${MAX_TAGE} Tage am Stück.`);
+
+    return { von, bis: echtBis, tage: Math.max(tage, 1) };
+  }
+
+  const bis = new Date();
+  const tage = Math.min(MAX_TAGE, Math.max(1, Math.round(Number(p.get('tage')) || 30)));
+  return { von: new Date(bis.getTime() - tage * 86400000), bis, tage };
+}
+
+// "2026-08-18" – der gemeinsame Nenner beider Zeitstempelformate.
+const tagText = d => d.toISOString().slice(0, 10);
+
+function tagesBeginn(text) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text || '')) return null;
+  const d = new Date(text + 'T00:00:00Z');
+  return isNaN(d) ? null : d;
+}
+
+function tagesEnde(text) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text || '')) return null;
+  const d = new Date(text + 'T23:59:59Z');
+  return isNaN(d) ? null : d;
+}
+
+function fehlerAls(was) {
+  return err => {
+    console.error(`${was} fehlgeschlagen:`, err);
+    return { ok: false, fehler: String(err && err.message || err) };
+  };
 }
