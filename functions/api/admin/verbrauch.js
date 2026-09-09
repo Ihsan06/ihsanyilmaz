@@ -26,7 +26,7 @@ async function graphql(env, query, variables) {
   const r = await fetch(GQL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${env.CF_API_TOKEN}`,
+      Authorization: `Bearer ${env.CF_API_TOKEN || env.CF_ANALYTICS_TOKEN}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ query, variables }),
@@ -40,7 +40,10 @@ async function graphql(env, query, variables) {
 
 async function cloudflareZahlen(env) {
   const heute = new Date().toISOString().slice(0, 10);
-  const accountTag = env.CF_ACCOUNT_ID;
+  // Die Kontokennung steht in jeder Dashboard-Adresse und ist kein Geheimnis –
+  // als Vorgabe hier, damit ein einziger Eintrag im Dashboard (der Token)
+  // reicht, um Monitoring UND diese Seite freizuschalten.
+  const accountTag = env.CF_ACCOUNT_ID || 'dad9b3e70113cef802e07d68cfc5ca1e';
 
   const ergebnis = { d1: null, functions: null, fehler: [] };
 
@@ -123,7 +126,7 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
       mailsMonat,
     },
     cloudflare: null,
-    tokenVorhanden: Boolean(env.CF_API_TOKEN && env.CF_ACCOUNT_ID),
+    tokenVorhanden: Boolean(env.CF_API_TOKEN || env.CF_ANALYTICS_TOKEN),
   };
 
   if (antwort.tokenVorhanden) {

@@ -211,17 +211,22 @@ async function besucherZahlen(env, von, bis) {
   // Ohne Token gibt es keine Besucherzahlen – aber einen Hinweis, was fehlt
   // und wo er herkommt. Eine leere Kachel ohne Grund laesst einen ratlos
   // zurueck.
-  if (!env.CF_API_TOKEN) {
+  // Beide Namen gelten. autohaus-diezmann fuehrt denselben Token unter
+  // CF_ANALYTICS_TOKEN – wer die Benennung von dort uebernimmt, soll nicht
+  // an einem Wort scheitern.
+  const token = env.CF_API_TOKEN || env.CF_ANALYTICS_TOKEN;
+  if (!token) {
     throw new Error('Es fehlt der Zugang zu den Besucherzahlen. Im Cloudflare-Dashboard '
       + 'unter „Mein Profil → API-Tokens“ einen Token mit der Berechtigung '
       + '„Account · Account Analytics · Read“ anlegen und im Pages-Projekt '
-      + 'ihsan-yilmaz als CF_API_TOKEN hinterlegen.');
+      + 'ihsan-yilmaz als CF_API_TOKEN hinterlegen. Derselbe Token deckt auch '
+      + 'die Tageszahlen unter „API & Verbrauch“ ab.');
   }
 
   const a = await fetch('https://api.cloudflare.com/client/v4/graphql', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${env.CF_API_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
