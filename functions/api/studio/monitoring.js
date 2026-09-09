@@ -27,6 +27,16 @@ const MAX_TAGE = 180;
 // Anzeigen des Fuellstands.
 const SPEICHER_GRENZE = 9.5 * 1024 * 1024 * 1024;
 
+// Beides steht ohnehin oeffentlich: die Kontokennung in jeder Dashboard-Adresse,
+// die Seitenkennung im Beacon, das Cloudflare in jede ausgelieferte Seite
+// einfuegt. Sie hier als Vorgabe zu fuehren spart zwei Eintraege im Dashboard;
+// ueberschreiben laesst sich beides weiterhin per Umgebungswert.
+//
+// Geheim ist nur der Token, mit dem die Zahlen abgefragt werden – der steht
+// als CF_API_TOKEN im Pages-Projekt und nirgends im Code.
+const KONTO_VORGABE = 'dad9b3e70113cef802e07d68cfc5ca1e';
+const SEITE_VORGABE = '2d26c5e626f54976b48e2236ca91191f';   // ihsan-yilmaz.de
+
 const antwort = (d, status = 200) => new Response(JSON.stringify(d), { status, headers: KOPF });
 
 export async function onRequestGet({ env, request }) {
@@ -198,14 +208,15 @@ function herkunft(zeilen) {
 }
 
 async function besucherZahlen(env, von, bis) {
-  // Ohne Kennung gibt es keine Besucherzahlen – aber einen Hinweis, was
-  // fehlt. Eine leere Kachel ohne Grund laesst einen ratlos zurueck.
-  if (!env.CF_SITE_TAG) {
-    throw new Error('Web Analytics ist für diese Seite noch nicht eingerichtet: '
-      + 'CF_SITE_TAG fehlt.');
+  // Ohne Token gibt es keine Besucherzahlen – aber einen Hinweis, was fehlt
+  // und wo er herkommt. Eine leere Kachel ohne Grund laesst einen ratlos
+  // zurueck.
+  if (!env.CF_API_TOKEN) {
+    throw new Error('Es fehlt der Zugang zu den Besucherzahlen. Im Cloudflare-Dashboard '
+      + 'unter „Mein Profil → API-Tokens“ einen Token mit der Berechtigung '
+      + '„Account · Account Analytics · Read“ anlegen und im Pages-Projekt '
+      + 'ihsan-yilmaz als CF_API_TOKEN hinterlegen.');
   }
-  if (!env.CF_API_TOKEN) throw new Error('Kein Analytics-Token hinterlegt (CF_API_TOKEN).');
-  if (!env.CF_ACCOUNT_ID) throw new Error('Keine Konto-Kennung hinterlegt (CF_ACCOUNT_ID).');
 
   const a = await fetch('https://api.cloudflare.com/client/v4/graphql', {
     method: 'POST',
@@ -216,8 +227,8 @@ async function besucherZahlen(env, von, bis) {
     body: JSON.stringify({
       query: ABFRAGE,
       variables: {
-        konto: env.CF_ACCOUNT_ID,
-        seite: env.CF_SITE_TAG,
+        konto: env.CF_ACCOUNT_ID || KONTO_VORGABE,
+        seite: env.CF_SITE_TAG || SEITE_VORGABE,
         von: von.toISOString(),
         bis: bis.toISOString()
       }
