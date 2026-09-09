@@ -15,6 +15,7 @@ type Seite = {
 // reine Wörterliste wie ein Inhaltsverzeichnis, nicht wie ein Menü.
 const SEITEN: Seite[] = [
   { pfad: "/admin", titel: "Übersicht", icon: LayoutDashboard },
+  { pfad: "/admin/monitoring", titel: "Monitoring", icon: ChartNoAxesColumn },
   {
     pfad: "/admin/finanzen",
     titel: "Finanzen",
@@ -36,7 +37,6 @@ const SEITEN: Seite[] = [
       { pfad: "/admin/instagram/galerie", titel: "Galerie" },
     ],
   },
-  { pfad: "/admin/monitoring", titel: "Monitoring", icon: ChartNoAxesColumn },
   { pfad: "/admin/dokumente", titel: "Dokumente", icon: FolderOpen },
   { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
 ];

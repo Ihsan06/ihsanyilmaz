@@ -1,11 +1,10 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { Users, Inbox, Camera, HardDrive, TriangleAlert } from "lucide-react";
-import AdminShell, { api, datum } from "@/components/admin/AdminShell";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Calendar, ChevronDown, TriangleAlert } from "lucide-react";
+import AdminShell, { api } from "@/components/admin/AdminShell";
 
 // Jede Quelle antwortet einzeln – faellt eine aus, steht sie mit ihrem Grund
-// da und der Rest der Seite bleibt benutzbar. Deshalb ueberall dieselbe Form:
-// entweder { ok: true, … } oder { ok: false, fehler }.
+// da und der Rest der Seite bleibt benutzbar.
 type Fehlbar = { ok?: boolean; fehler?: string };
 
 type Anfragen = Fehlbar & {
@@ -15,6 +14,7 @@ type Anfragen = Fehlbar & {
   proTag: { tag: string; anzahl: number }[];
 };
 type Besucher = Fehlbar & {
+  von?: string;
   besuche: number;
   aufrufe: number;
   proTag: { tag: string; aufrufe: number; besuche: number }[];
@@ -40,72 +40,129 @@ type Stand = {
   davor: { anfragen: number | null; besuche: number | null; aufrufe: number | null } | null;
 };
 
+const STATUS_WORT: Record<string, string> = {
+  neu: "Neu",
+  in_bearbeitung: "In Bearbeitung",
+  beantwortet: "Beantwortet",
+  archiviert: "Archiviert",
+};
+
+const ERKLAERUNG = {
+  besuche:
+    "Ein Besuch ist eine Sitzung, nicht ein Klick: Wer sich vier Seiten ansieht, zählt einmal. " +
+    "Erkannte Bots sind herausgerechnet.",
+  aufrufe:
+    "Jede einzeln aufgerufene Seite. Deshalb liegt diese Zahl immer über den Besuchen – sie zeigt, " +
+    "wie gründlich geschaut wird.",
+  anfragen:
+    "Nachrichten aus dem Kontaktformular, die tatsächlich in der Datenbank gelandet sind. " +
+    "Abgebrochene Versuche und aussortierte Bots sind nicht dabei.",
+  quote:
+    "Anfragen geteilt durch Besuche. Bewusst ein grober Richtwert: Wer heute schaut, schreibt oft " +
+    "erst nächste Woche – dann fällt der Besuch in den einen Zeitraum und die Anfrage in den nächsten.",
+  verlauf:
+    "Gezählt wird ohne Cookies, direkt im Browser. Erkannte Bots sind herausgerechnet – deshalb " +
+    "liegen diese Zahlen unter den Rohwerten aus dem Cloudflare-Bericht, in denen Suchmaschinen " +
+    "und Scanner mitlaufen. Tage ohne Besuch werden als Null gezeichnet.",
+  anfragenVerlauf:
+    "Gezählt wird auf dem Server, beim tatsächlichen Absenden – nicht im Browser. Gespeichert wird " +
+    "die Anfrage selbst, nichts darüber hinaus.",
+  seiten:
+    "Zählt Seitenaufrufe, nicht Besuche. Die Startseite liegt fast immer vorn, weil die meisten " +
+    "dort einsteigen.",
+  herkunft:
+    "Klicks innerhalb der Website sind herausgerechnet – sonst wäre die eigene Domain die größte " +
+    "Zeile und würde Google verdecken. „direkt“ heißt: eingetippt, gespeichert, oder aus WhatsApp " +
+    "bzw. einem E-Mail-Programm heraus, die den Verweis nicht mitschicken.",
+  instagram:
+    "Der Stand wird einmal am Tag beim Abruf des Profils festgehalten. Der Zuwachs bezieht sich auf " +
+    "den gewählten Zeitraum, nicht auf den Anfang der Aufzeichnung.",
+  speicher:
+    "Alle Bilder in der Galerie zusammen. Die Grenze von 9,5 GB ist selbst gesetzt, mit Abstand zu " +
+    "den 10 GB des Gratis-Tarifs.",
+};
+
 const ZEITRAEUME = [
-  { tage: 7, titel: "7 Tage" },
-  { tage: 30, titel: "30 Tage" },
-  { tage: 90, titel: "90 Tage" },
-  { tage: 180, titel: "180 Tage" },
+  { wert: "7", titel: "Letzte 7 Tage" },
+  { wert: "30", titel: "Letzte 30 Tage" },
+  { wert: "90", titel: "Letzte 90 Tage" },
+  { wert: "alles", titel: "Insgesamt" },
 ];
 
-const zahl = (n: number | null | undefined) =>
-  n == null ? "—" : n.toLocaleString("de-DE");
+const zahl = (n: number | null | undefined) => (n == null ? "—" : n.toLocaleString("de-DE"));
+
+const langDatum = (iso?: string | null) =>
+  !iso ? "—"
+    : new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" });
 
 function groesse(bytes: number) {
   if (bytes >= 1024 ** 3) return (bytes / 1024 ** 3).toFixed(2).replace(".", ",") + " GB";
   return (bytes / 1024 ** 2).toFixed(1).replace(".", ",") + " MB";
 }
 
-// Der Pfeil sagt nur etwas, wenn es einen Vorzeitraum gab UND sich etwas
-// geaendert hat. Bei 0 auf 0 waere ein gruener Pfeil eine Behauptung.
-function Delta({ jetzt, davor }: { jetzt: number | null; davor: number | null | undefined }) {
-  if (jetzt == null || davor == null || jetzt === davor) return null;
-  const rauf = jetzt > davor;
-  const wert = davor === 0 ? null : Math.round(((jetzt - davor) / davor) * 100);
+// Kleines "i" neben einer Ueberschrift. Ueber title, damit es ohne eigenes
+// Aufklapp-Werk auskommt und auch mit der Tastatur erreichbar ist.
+function Info({ text }: { text: string }) {
   return (
-    <span className="text-xs ml-2" style={{ color: rauf ? "#16a34a" : "#dc2626" }}>
-      {rauf ? "▲" : "▼"} {wert == null ? `${jetzt - davor > 0 ? "+" : ""}${jetzt - davor}` : `${Math.abs(wert)} %`}
+    <span
+      tabIndex={0}
+      role="note"
+      title={text}
+      aria-label={text}
+      className="inline-flex items-center justify-center ml-1.5 cursor-help align-middle"
+      style={{
+        width: 14, height: 14, borderRadius: "50%", fontSize: 9, fontWeight: 700,
+        border: "1px solid var(--border)", color: "var(--fg-subtle)",
+      }}
+    >
+      i
+    </span>
+  );
+}
+
+// Der Pfeil sagt nur etwas, wenn es einen Vorzeitraum gab. Unter einem
+// Prozent Unterschied heisst "unveraendert" – ein Pfeil waere dort eine
+// Behauptung ueber Rauschen.
+function Trend({ jetzt, davor }: { jetzt: number | null | undefined; davor: number | null | undefined }) {
+  if (jetzt == null || davor == null || davor === 0) return null;
+  const diff = ((jetzt - davor) / davor) * 100;
+  if (Math.abs(diff) < 1) {
+    return <span className="text-xs mr-1.5" style={{ color: "var(--fg-subtle)" }}>unverändert</span>;
+  }
+  const hoch = diff > 0;
+  const wort = Math.abs(diff) >= 999 ? "999+" : Math.abs(diff).toFixed(0);
+  return (
+    <span className="text-xs mr-1.5" style={{ color: hoch ? "#16a34a" : "#dc2626" }}>
+      {hoch ? "▲" : "▼"} {wort} %
     </span>
   );
 }
 
 function Kachel({
-  titel, wert, unten, icon: Icon, delta,
+  titel, wert, unter, hinweis, vergleich,
 }: {
-  titel: string; wert: string; unten?: string;
-  icon: typeof Users; delta?: React.ReactNode;
+  titel: string; wert: string; unter: string; hinweis?: string; vergleich?: React.ReactNode;
 }) {
   return (
     <div className="card p-4">
-      <div className="flex items-center gap-2 text-[var(--fg-subtle)] text-xs mb-2">
-        <Icon size={14} /> {titel}
-      </div>
-      <div className="text-2xl font-semibold text-[var(--fg)]">
-        {wert}{delta}
-      </div>
-      {unten && <div className="text-xs text-[var(--fg-subtle)] mt-1">{unten}</div>}
+      <p className="text-[var(--fg-subtle)] text-xs mb-1.5">
+        {titel}{hinweis && <Info text={hinweis} />}
+      </p>
+      <p className="text-2xl font-semibold text-[var(--fg)] leading-tight">{wert}</p>
+      <p className="text-xs text-[var(--fg-subtle)] mt-1">{vergleich}{unter}</p>
     </div>
   );
 }
 
-// Ein Balken je Tag. Bewusst ohne Diagrammbibliothek: fuer "steigt es oder
-// nicht" reichen Balken, und die laden nicht 100 kB nach.
-function Balken({ werte }: { werte: { tag: string; wert: number }[] }) {
-  if (!werte.length) return <p className="text-[var(--fg-subtle)] text-sm">Nichts im Zeitraum.</p>;
-  const hoechst = Math.max(...werte.map(w => w.wert), 1);
+function Karte({
+  titel, hinweis, children,
+}: { titel: string; hinweis?: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-end gap-[2px]" style={{ height: 90 }}>
-      {werte.map(w => (
-        <div
-          key={w.tag}
-          title={`${w.tag}: ${zahl(w.wert)}`}
-          className="flex-1 rounded-t-[2px]"
-          style={{
-            height: `${Math.max(2, (w.wert / hoechst) * 100)}%`,
-            background: w.wert ? "var(--accent)" : "var(--surface-2)",
-            minWidth: 2,
-          }}
-        />
-      ))}
+    <div className="card p-4">
+      <h2 className="text-sm font-medium text-[var(--fg)] mb-3">
+        {titel}{hinweis && <Info text={hinweis} />}
+      </h2>
+      {children}
     </div>
   );
 }
@@ -113,151 +170,304 @@ function Balken({ werte }: { werte: { tag: string; wert: number }[] }) {
 function Ausfall({ was, fehler }: { was: string; fehler?: string }) {
   return (
     <div className="card p-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-[var(--fg)]">
-        <TriangleAlert size={15} style={{ color: "#d97706" }} /> {was}
-      </div>
+      <h2 className="flex items-center gap-2 text-sm font-medium text-[var(--fg)]">
+        <TriangleAlert size={15} style={{ color: "#d97706" }} /> {was} nicht verfügbar
+      </h2>
       <p className="text-sm text-[var(--fg-subtle)] mt-1.5">{fehler || "Konnte nicht geladen werden."}</p>
     </div>
   );
 }
 
+// Tage ohne Wert als Null einzeichnen, sonst zieht die Linie eine Gerade
+// ueber eine Luecke und behauptet Verkehr, den es nicht gab.
+function tageFuellen(punkte: { tag: string; wert: number }[], vonIso: string, bisIso: string) {
+  const habe = new Map(punkte.map(p => [p.tag, p.wert]));
+  const raus: { tag: string; wert: number }[] = [];
+  const d = new Date(vonIso.slice(0, 10) + "T00:00:00Z");
+  const ende = new Date(bisIso.slice(0, 10) + "T00:00:00Z");
+  let schutz = 0;
+  while (d <= ende && schutz++ < 400) {
+    const tag = d.toISOString().slice(0, 10);
+    raus.push({ tag, wert: habe.get(tag) ?? 0 });
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return raus;
+}
+
+// Liniendiagramm als SVG, ohne Bibliothek: fuer einen Verlauf reicht ein
+// Polygonzug, und der laedt nichts nach.
+function Linie({ punkte, farbe = "var(--accent)" }: { punkte: { tag: string; wert: number }[]; farbe?: string }) {
+  if (punkte.length < 2) {
+    return <p className="text-[var(--fg-subtle)] text-sm">Zu wenig Daten für einen Verlauf.</p>;
+  }
+  const B = 600, H = 140, rand = { oben: 8, unten: 18, links: 30, rechts: 6 };
+  const hoechst = Math.max(...punkte.map(p => p.wert), 1);
+  const x = (i: number) => rand.links + (i / (punkte.length - 1)) * (B - rand.links - rand.rechts);
+  const y = (w: number) => rand.oben + (1 - w / hoechst) * (H - rand.oben - rand.unten);
+  const pfad = punkte.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.wert).toFixed(1)}`).join(" ");
+  const flaeche = `${pfad} L${x(punkte.length - 1).toFixed(1)},${y(0)} L${x(0).toFixed(1)},${y(0)} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${B} ${H}`} width="100%" height={H} role="img"
+         aria-label={`Verlauf, Höchstwert ${hoechst}`}>
+      {[0, hoechst / 2, hoechst].map((w, i) => (
+        <g key={i}>
+          <line x1={rand.links} x2={B - rand.rechts} y1={y(w)} y2={y(w)}
+                stroke="var(--border)" strokeWidth="1" />
+          <text x={rand.links - 5} y={y(w) + 3} textAnchor="end"
+                fontSize="9" fill="var(--fg-subtle)">{Math.round(w)}</text>
+        </g>
+      ))}
+      <path d={flaeche} fill={farbe} opacity="0.12" />
+      <path d={pfad} fill="none" stroke={farbe} strokeWidth="2"
+            strokeLinejoin="round" strokeLinecap="round" />
+      {punkte.map((p, i) => (
+        <circle key={p.tag} cx={x(i)} cy={y(p.wert)} r="6" fill="transparent">
+          <title>{`${p.tag}: ${zahl(p.wert)}`}</title>
+        </circle>
+      ))}
+      <text x={rand.links} y={H - 4} fontSize="9" fill="var(--fg-subtle)">{punkte[0].tag}</text>
+      <text x={B - rand.rechts} y={H - 4} textAnchor="end" fontSize="9"
+            fill="var(--fg-subtle)">{punkte[punkte.length - 1].tag}</text>
+    </svg>
+  );
+}
+
+function Liste({ eintraege }: { eintraege: { name: string; wert: number }[] }) {
+  if (!eintraege.length) return <p className="text-[var(--fg-subtle)] text-sm">Noch keine Daten.</p>;
+  return (
+    <ul className="text-sm">
+      {eintraege.map(e => (
+        <li key={e.name} className="flex justify-between gap-3 py-1 border-b last:border-0"
+            style={{ borderColor: "var(--border)" }}>
+          <span className="text-[var(--fg-muted)] truncate">{e.name}</span>
+          <span className="text-[var(--fg)] shrink-0 tabular-nums">{zahl(e.wert)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function MonitoringSeite() {
   const [stand, setStand] = useState<Stand | null>(null);
-  const [tage, setTage] = useState(30);
+  const [wahl, setWahl] = useState("30");
+  const [offen, setOffen] = useState(false);
+  const [freiVon, setFreiVon] = useState("");
+  const [freiBis, setFreiBis] = useState("");
   const [laedt, setLaedt] = useState(true);
   const [fehler, setFehler] = useState("");
+  const tafel = useRef<HTMLDivElement>(null);
 
-  const laden = useCallback((t: number) => {
+  const laden = useCallback((abfrage: string) => {
     setLaedt(true); setFehler("");
-    api(`/api/studio/monitoring?tage=${t}`)
+    api(`/api/studio/monitoring?${abfrage}`)
       .then(d => setStand(d as Stand))
       .catch(e => setFehler(e instanceof Error ? e.message : "Ging nicht."))
       .finally(() => setLaedt(false));
   }, []);
 
-  useEffect(() => { laden(tage); }, [tage, laden]);
+  useEffect(() => { laden(`tage=${wahl}`); }, [wahl, laden]);
+
+  // Klick daneben schliesst die Tafel – sonst bliebe sie offen stehen,
+  // waehrend man schon wieder woanders liest.
+  useEffect(() => {
+    if (!offen) return;
+    const zu = (e: MouseEvent) => {
+      if (tafel.current && !tafel.current.contains(e.target as Node)) setOffen(false);
+    };
+    document.addEventListener("mousedown", zu);
+    return () => document.removeEventListener("mousedown", zu);
+  }, [offen]);
+
+  const freiAnwenden = () => {
+    if (!freiVon || !freiBis) { setFehler("Bitte beide Daten angeben."); return; }
+    setOffen(false);
+    laden(`von=${freiVon}&bis=${freiBis}`);
+  };
 
   const a = stand?.anfragen;
   const b = stand?.besucher;
   const i = stand?.instagram;
   const s = stand?.speicher;
+  const d = stand?.davor;
+
+  const name = wahl === "alles" ? "Insgesamt"
+    : ZEITRAEUME.find(z => z.wert === wahl)?.titel ?? "Eigener Zeitraum";
+  const spanne = stand ? `${langDatum(stand.von)} – ${langDatum(stand.bis)}` : "";
+
+  // Cloudflare haelt Besucherzahlen nur ein halbes Jahr vor. Reicht der
+  // gewaehlte Zeitraum weiter zurueck, muss das dabeistehen – sonst wirkt
+  // der abgeschnittene Anfang wie ein Einbruch.
+  const kuerzer = b?.ok && b.von && stand
+    && new Date(b.von).getTime() - new Date(stand.von).getTime() > 86400000
+    ? `Weiter zurück als ${langDatum(b.von)} reichen die Besucherzahlen nicht: `
+      + "Cloudflare hält sie nur ein halbes Jahr vor. Die Anfragen darunter zählen den ganzen Zeitraum."
+    : "";
+
+  const quote = a?.ok && b?.ok && b.besuche > 0 ? (a.gesamt / b.besuche) * 100 : null;
 
   return (
-    <AdminShell titel="Monitoring" eyebrow="Website" lead="Was auf der Seite und auf Instagram passiert.">
-      <div className="flex flex-wrap items-center gap-2 mb-5">
-        {ZEITRAEUME.map(z => (
+    <AdminShell
+      titel="Monitoring"
+      eyebrow="Zahlen & Auswertung"
+      lead="Was auf der Website passiert – und was davon zu einer Anfrage wird."
+    >
+      <div className="flex flex-wrap items-start gap-3 mb-5">
+        <div className="relative" ref={tafel}>
           <button
-            key={z.tage}
-            onClick={() => setTage(z.tage)}
-            className="chip px-3 py-1.5 text-sm"
-            style={tage === z.tage
-              ? { background: "var(--accent)", color: "#fff", borderColor: "transparent" }
-              : undefined}
+            onClick={() => setOffen(o => !o)}
+            aria-expanded={offen}
+            aria-haspopup="dialog"
+            className="chip px-3 py-2 text-sm flex items-center gap-2"
           >
-            {z.titel}
+            <Calendar size={15} /> {name} <ChevronDown size={13} />
           </button>
-        ))}
-        {stand && (
-          <span className="text-[var(--fg-subtle)] text-sm ml-auto">
-            {datum(stand.von)} – {datum(stand.bis)}
-          </span>
-        )}
+          {offen && (
+            <div
+              role="dialog"
+              aria-label="Zeitraum wählen"
+              className="absolute z-30 mt-1.5 card p-2"
+              style={{ minWidth: 250, boxShadow: "0 10px 30px rgba(7,26,43,0.18)" }}
+            >
+              {ZEITRAEUME.map(z => (
+                <button
+                  key={z.wert}
+                  onClick={() => { setWahl(z.wert); setOffen(false); }}
+                  className="w-full text-left px-3 py-2 rounded-[7px] text-sm"
+                  style={wahl === z.wert
+                    ? { background: "var(--accent)", color: "#fff" }
+                    : { color: "var(--fg-muted)" }}
+                >
+                  {z.titel}
+                </button>
+              ))}
+              <div className="mt-2 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+                <p className="text-xs text-[var(--fg-subtle)] px-3 mb-1.5">Eigener Zeitraum</p>
+                <div className="flex items-center gap-2 px-3">
+                  <input type="date" value={freiVon} onChange={e => setFreiVon(e.target.value)}
+                         className="feld text-xs flex-1" aria-label="Von" />
+                  <span className="text-xs text-[var(--fg-subtle)]">bis</span>
+                  <input type="date" value={freiBis} onChange={e => setFreiBis(e.target.value)}
+                         className="feld text-xs flex-1" aria-label="bis" />
+                </div>
+                <button onClick={freiAnwenden}
+                        className="btn-primary w-full mt-2 py-1.5 text-sm">Anzeigen</button>
+              </div>
+            </div>
+          )}
+        </div>
+        {stand && <span className="text-[var(--fg-subtle)] text-sm ml-auto pt-2">{spanne}</span>}
       </div>
 
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
       {laedt && !stand ? (
-        <p className="text-[var(--fg-muted)]">Wird geladen …</p>
+        <p className="text-[var(--fg-muted)]">Zahlen werden geladen …</p>
       ) : !stand ? null : (
         <>
-          <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
-            <Kachel
-              titel="Besuche" icon={Users}
-              wert={b?.ok ? zahl(b.besuche) : "—"}
-              unten={b?.ok ? `${zahl(b.aufrufe)} Seitenaufrufe` : "nicht eingerichtet"}
-              delta={b?.ok ? <Delta jetzt={b.besuche} davor={stand.davor?.besuche} /> : undefined}
-            />
-            <Kachel
-              titel="Anfragen" icon={Inbox}
-              wert={a?.ok ? zahl(a.gesamt) : "—"}
-              unten={a?.ok ? `${zahl(a.offen)} unbeantwortet` : undefined}
-              delta={a?.ok ? <Delta jetzt={a.gesamt} davor={stand.davor?.anfragen} /> : undefined}
-            />
-            <Kachel
-              titel="Follower" icon={Camera}
-              wert={i?.ok && i.follower != null ? zahl(i.follower) : "—"}
-              unten={i?.ok && i.zuwachs != null
-                ? `${i.zuwachs >= 0 ? "+" : ""}${i.zuwachs} im Zeitraum · ${zahl(i.beitraege)} Beiträge`
-                : undefined}
-            />
-            <Kachel
-              titel="Bildspeicher" icon={HardDrive}
-              wert={s?.ok ? groesse(s.bytes) : "—"}
-              unten={s?.ok ? `${zahl(s.bilder)} Bilder · ${String(s.anteil).replace(".", ",")} % von 9,5 GB` : undefined}
-            />
+          {/* Vier Kacheln – zwei aus der Besucherzaehlung, zwei aus der
+              eigenen Datenbank. Faellt eine Quelle aus, fehlen ihre Kacheln,
+              statt vier Nullen zu zeigen, die nach "nichts los" aussehen. */}
+          <div className="grid gap-3 mb-5"
+               style={{ gridTemplateColumns: "repeat(auto-fit, minmax(185px, 1fr))" }}>
+            {b?.ok && (
+              <>
+                <Kachel titel="Besuche" wert={zahl(b.besuche)} unter={spanne}
+                        hinweis={ERKLAERUNG.besuche}
+                        vergleich={<Trend jetzt={b.besuche} davor={d?.besuche} />} />
+                <Kachel titel="Seitenaufrufe" wert={zahl(b.aufrufe)} unter="wie gründlich geschaut wird"
+                        hinweis={ERKLAERUNG.aufrufe}
+                        vergleich={<Trend jetzt={b.aufrufe} davor={d?.aufrufe} />} />
+              </>
+            )}
+            {a?.ok && (
+              <Kachel titel="Anfragen" wert={zahl(a.gesamt)}
+                      unter={`${zahl(a.offen)} unbeantwortet`}
+                      hinweis={ERKLAERUNG.anfragen}
+                      vergleich={<Trend jetzt={a.gesamt} davor={d?.anfragen} />} />
+            )}
+            {quote != null && (
+              <Kachel titel="Anfrage je Besuch"
+                      wert={quote.toFixed(1).replace(".", ",") + " %"}
+                      unter="grober Richtwert" hinweis={ERKLAERUNG.quote} />
+            )}
+            {i?.ok && i.follower != null && (
+              <Kachel titel="Follower" wert={zahl(i.follower)}
+                      unter={`${i.zuwachs != null && i.zuwachs >= 0 ? "+" : ""}${i.zuwachs ?? 0} im Zeitraum · ${zahl(i.beitraege)} Beiträge`}
+                      hinweis={ERKLAERUNG.instagram} />
+            )}
+            {s?.ok && (
+              <Kachel titel="Bildspeicher" wert={groesse(s.bytes)}
+                      unter={`${zahl(s.bilder)} Bilder · ${String(s.anteil).replace(".", ",")} % von 9,5 GB`}
+                      hinweis={ERKLAERUNG.speicher} />
+            )}
           </div>
 
-          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+          <div className="grid gap-4"
+               style={{ gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))" }}>
             {b?.ok === false ? (
               <Ausfall was="Besucherzahlen" fehler={b.fehler} />
+            ) : b?.proTag?.length ? (
+              <Karte titel="Besucher im Verlauf" hinweis={ERKLAERUNG.verlauf}>
+                <Linie punkte={tageFuellen(
+                  b.proTag.map(z => ({ tag: z.tag, wert: z.besuche })),
+                  b.von || stand.von, stand.bis)} />
+                {kuerzer && <p className="text-xs text-[var(--fg-subtle)] mt-2">{kuerzer}</p>}
+              </Karte>
             ) : (
-              <div className="card p-4">
-                <h2 className="text-sm font-medium text-[var(--fg)] mb-3">Besuche je Tag</h2>
-                <Balken werte={(b?.proTag || []).map(z => ({ tag: z.tag, wert: z.besuche }))} />
-              </div>
+              <Karte titel="Besucher im Verlauf" hinweis={ERKLAERUNG.verlauf}>
+                <p className="text-[var(--fg-subtle)] text-sm">
+                  Für diesen Zeitraum liegen keine Besucherdaten vor.
+                </p>
+              </Karte>
             )}
 
             {a?.ok === false ? (
               <Ausfall was="Anfragen" fehler={a.fehler} />
             ) : (
-              <div className="card p-4">
-                <h2 className="text-sm font-medium text-[var(--fg)] mb-3">Anfragen je Tag</h2>
-                <Balken werte={(a?.proTag || []).map(z => ({ tag: z.tag, wert: z.anzahl }))} />
+              <Karte titel="Anfragen im Verlauf" hinweis={ERKLAERUNG.anfragenVerlauf}>
+                {a?.proTag?.length ? (
+                  <Linie punkte={tageFuellen(
+                    a.proTag.map(z => ({ tag: z.tag, wert: z.anzahl })), stand.von, stand.bis)} />
+                ) : (
+                  <p className="text-[var(--fg-subtle)] text-sm">
+                    In diesem Zeitraum ist keine Anfrage eingegangen.
+                  </p>
+                )}
                 {a && Object.keys(a.status || {}).length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {Object.entries(a.status).map(([k, n]) => (
-                      <span key={k} className="chip px-2 py-1 text-xs">
-                        {k.replace("_", " ")} <span className="opacity-70 ml-1">{n}</span>
-                      </span>
-                    ))}
+                  <div className="mt-3" style={{ borderTop: "1px solid var(--border)" }}>
+                    <table className="w-full text-sm mt-2">
+                      <tbody>
+                        {Object.entries(a.status).map(([k, n]) => (
+                          <tr key={k}>
+                            <td className="py-1 text-[var(--fg-muted)]">{STATUS_WORT[k] || k}</td>
+                            <td className="py-1 text-right text-[var(--fg)] tabular-nums">{zahl(n)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
-              </div>
+              </Karte>
             )}
 
-            {b?.ok && b.proSeite?.length > 0 && (
-              <div className="card p-4">
-                <h2 className="text-sm font-medium text-[var(--fg)] mb-3">Meistbesuchte Seiten</h2>
-                <ul className="text-sm">
-                  {b.proSeite.slice(0, 8).map(z => (
-                    <li key={z.pfad} className="flex justify-between gap-3 py-1">
-                      <span className="text-[var(--fg-muted)] truncate">{z.pfad}</span>
-                      <span className="text-[var(--fg)] shrink-0">{zahl(z.aufrufe)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {b?.ok && b.proHerkunft?.length > 0 && (
-              <div className="card p-4">
-                <h2 className="text-sm font-medium text-[var(--fg)] mb-3">Woher die Besucher kommen</h2>
-                <ul className="text-sm">
-                  {b.proHerkunft.map(z => (
-                    <li key={z.host} className="flex justify-between gap-3 py-1">
-                      <span className="text-[var(--fg-muted)] truncate">{z.host}</span>
-                      <span className="text-[var(--fg)] shrink-0">{zahl(z.aufrufe)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            {b?.ok && (
+              <>
+                <Karte titel="Meistbesuchte Seiten" hinweis={ERKLAERUNG.seiten}>
+                  <Liste eintraege={(b.proSeite || []).map(z => ({ name: z.pfad, wert: z.aufrufe }))} />
+                </Karte>
+                <Karte titel="Woher die Besucher kommen" hinweis={ERKLAERUNG.herkunft}>
+                  <Liste eintraege={(b.proHerkunft || []).map(z => ({
+                    name: z.host === "direkt" ? "direkt / Lesezeichen" : z.host, wert: z.aufrufe,
+                  }))} />
+                </Karte>
+              </>
             )}
 
             {i?.ok && i.punkte?.length > 1 && (
-              <div className="card p-4">
-                <h2 className="text-sm font-medium text-[var(--fg)] mb-3">Follower im Verlauf</h2>
-                <Balken werte={i.punkte.map(z => ({ tag: z.tag, wert: z.follower }))} />
-              </div>
+              <Karte titel="Follower im Verlauf" hinweis={ERKLAERUNG.instagram}>
+                <Linie punkte={i.punkte.map(z => ({ tag: z.tag, wert: z.follower }))} />
+              </Karte>
             )}
           </div>
         </>

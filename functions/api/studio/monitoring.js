@@ -36,7 +36,19 @@ export async function onRequestGet({ env, request }) {
   try { zeitraum = spanne(url.searchParams); }
   catch (err) { return antwort({ ok: false, fehler: err.message }, 400); }
 
-  const { von, bis, tage } = zeitraum;
+  const { bis, alles } = zeitraum;
+
+  // "Insgesamt" beginnt beim ersten Eintrag in der eigenen Datenbank. Steht
+  // dort noch nichts, bleibt es beim groessten Fenster, das Cloudflare fuer
+  // die Besucherzahlen ueberhaupt vorhaelt.
+  const von = alles ? await ersterTag(env, bis) : zeitraum.von;
+  const tage = alles ? Math.max(1, Math.ceil((bis - von) / 86400000)) : zeitraum.tage;
+
+  // Besucherzahlen hoechstens fuer die letzten MAX_TAGE Tage – aeltere haelt
+  // Cloudflare im Gratistarif nicht vor. Die Anfragen gehen weiter zurueck,
+  // die stehen in der eigenen Datenbank.
+  const grenze = new Date(bis.getTime() - MAX_TAGE * 86400000);
+  const besucherVon = von < grenze ? grenze : von;
 
   // Gleich langer Zeitraum unmittelbar davor – nur fuer die Vergleichspfeile
   // an den Kacheln. Faellt er aus, fehlt eben der Pfeil.
@@ -45,7 +57,7 @@ export async function onRequestGet({ env, request }) {
 
   const [anfragen, besucher, instagram, speicher, davor] = await Promise.all([
     anfrageZahlen(env, von, bis).catch(fehlerAls('Anfragen')),
-    besucherZahlen(env, von, bis).catch(fehlerAls('Besucher')),
+    besucherZahlen(env, besucherVon, bis).catch(fehlerAls('Besucher')),
     instagramVerlauf(env, von, bis).catch(fehlerAls('Instagram')),
     speicherStand(env).catch(fehlerAls('Speicher')),
     vergleich(env, davorVon, davorBis).catch(() => null)
@@ -116,6 +128,28 @@ async function anfrageZahlen(env, von, bis) {
     offen: offen?.n || 0,
     proTag: (verlauf.results || []).map(z => ({ tag: z.tag, anzahl: z.anzahl }))
   };
+}
+
+// Der aelteste Eintrag, den es ueberhaupt gibt – aus Anfragen und
+// Instagram-Verlauf, je nachdem was frueher beginnt.
+async function ersterTag(env, bis) {
+  const rueckfall = new Date(bis.getTime() - MAX_TAGE * 86400000);
+  if (!env.DB) return rueckfall;
+  try {
+    const z = await env.DB.prepare(
+      `SELECT MIN(t) AS erste FROM (
+         SELECT MIN(substr(erstellt_am, 1, 10)) AS t FROM anfragen
+         UNION ALL
+         SELECT MIN(substr(zeitpunkt, 1, 10)) AS t FROM studio_instagram
+       ) WHERE t IS NOT NULL`
+    ).first();
+    if (!z || !z.erste) return rueckfall;
+    // Auf den Tagesbeginn, sonst faengt die Zeitachse mitten am Tag an.
+    const d = new Date(z.erste + 'T00:00:00Z');
+    return isNaN(d) ? rueckfall : d;
+  } catch {
+    return rueckfall;
+  }
 }
 
 // ─── Besucher aus Cloudflare Web Analytics ───
@@ -210,6 +244,10 @@ async function besucherZahlen(env, von, bis) {
 
   return {
     ok: true,
+    // Kann spaeter beginnen als der gewaehlte Zeitraum – siehe MAX_TAGE.
+    // Die Seite schreibt daraus einen Hinweis, sonst sieht der abgeschnittene
+    // Anfang wie ein Einbruch aus.
+    von: von.toISOString(),
     aufrufe: proTag.reduce((s, z) => s + z.aufrufe, 0),
     besuche: proTag.reduce((s, z) => s + z.besuche, 0),
     proTag,
@@ -286,6 +324,11 @@ function spanne(p) {
   }
 
   const bis = new Date();
+
+  // "Insgesamt": den Anfang kennt erst der Aufrufer, der in die Datenbank
+  // schauen kann – hier steht nur die Marke.
+  if (p.get('tage') === 'alles') return { von: null, bis, tage: null, alles: true };
+
   const tage = Math.min(MAX_TAGE, Math.max(1, Math.round(Number(p.get('tage')) || 30)));
   return { von: new Date(bis.getTime() - tage * 86400000), bis, tage };
 }
