@@ -36,14 +36,14 @@ window.admin = (function () {
         { pfad: '/admin/finanzen/api', titel: 'API & Verbrauch' },
         { pfad: '/admin/finanzen/steuer', titel: 'Steuer' }
       ] },
-    { pfad: '/admin/instagram', titel: 'Instagram',
+    { pfad: '/admin/content', titel: 'Instagram',
       symbol: '<rect x="3" y="3" width="18" height="18" rx="4.5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/>',
       unter: [
-        { pfad: '/admin/instagram', titel: 'Profil' },
         { pfad: '/admin/content', titel: 'Content erstellen' },
-        { pfad: '/admin/planen', titel: 'Content planen' },
-        { pfad: '/admin/instagram/galerie', titel: 'Galerie' }
+        { pfad: '/admin/planen', titel: 'Content planen' }
       ] },
+    { pfad: '/admin/galerie', titel: 'Galerie',
+      symbol: '<rect x="7" y="3" width="14" height="14" rx="2"/><circle cx="12" cy="8" r="1.6"/><path d="m21 13-2.6-2.6a1.8 1.8 0 0 0-2.6 0L10 16.2M3 7.5v11.7A1.8 1.8 0 0 0 4.8 21h11.7" stroke-linecap="round" stroke-linejoin="round"/>' },
     { pfad: '/admin/dokumente', titel: 'Dokumente',
       symbol: '<path d="M3 7.5V18a1.8 1.8 0 0 0 1.8 1.8h14.4A1.8 1.8 0 0 0 21 18v-7.5a1.8 1.8 0 0 0-1.8-1.8h-7.4L10 6H4.8A1.8 1.8 0 0 0 3 7.8z" stroke-linejoin="round"/>' },
     { pfad: '/admin/anfragen', titel: 'Anfragen',

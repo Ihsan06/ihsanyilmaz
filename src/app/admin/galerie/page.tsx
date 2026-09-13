@@ -329,7 +329,7 @@ export default function GalerieSeite() {
   return (
     <AdminShell
       titel="Galerie"
-      eyebrow="Instagram"
+      eyebrow="Verwaltung"
       lead="Deine Fotos — hinzufügen, ansehen, herausnehmen."
     >
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}

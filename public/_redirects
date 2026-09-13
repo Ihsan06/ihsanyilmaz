@@ -5,3 +5,10 @@
 /Admin/* /admin/:splat 301
 /ADMIN /admin 301
 /ADMIN/* /admin/:splat 301
+
+# Die Galerie ist ein eigener Menuepunkt geworden, die Instagram-Profilseite
+# gibt es nicht mehr. Alte Lesezeichen landen trotzdem richtig.
+/admin/instagram/galerie /admin/galerie 301
+/admin/instagram/galerie/ /admin/galerie 301
+/admin/instagram /admin/content 301
+/admin/instagram/ /admin/content 301

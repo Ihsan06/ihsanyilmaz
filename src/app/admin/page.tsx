@@ -86,7 +86,7 @@ export default function AdminUebersicht() {
           label="Posts in Planung"
           wert={stats ? String(stats.geplantePosts) : "—"}
           zusatz="Entwürfe & geplant"
-          href="/admin/instagram"
+          href="/admin/planen"
         />
         <Kachel
           icon={<FolderOpen size={20} />}
@@ -145,7 +145,7 @@ export default function AdminUebersicht() {
           wert={kurz?.speicher?.ok ? groesse(kurz.speicher.bytes) : "—"}
           zusatz={kurz?.speicher?.ok
             ? `${String(kurz.speicher.anteil).replace(".", ",")} % von 9,5 GB` : ""}
-          href="/admin/instagram/galerie"
+          href="/admin/galerie"
         />
       </div>
 

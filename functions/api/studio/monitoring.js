@@ -27,15 +27,19 @@ const MAX_TAGE = 180;
 // Anzeigen des Fuellstands.
 const SPEICHER_GRENZE = 9.5 * 1024 * 1024 * 1024;
 
-// Beides steht ohnehin oeffentlich: die Kontokennung in jeder Dashboard-Adresse,
-// die Seitenkennung im Beacon, das Cloudflare in jede ausgelieferte Seite
-// einfuegt. Sie hier als Vorgabe zu fuehren spart zwei Eintraege im Dashboard;
-// ueberschreiben laesst sich beides weiterhin per Umgebungswert.
+// Die Kontokennung steht ohnehin in jeder Dashboard-Adresse; ueberschreiben
+// laesst sie sich per Umgebungswert.
+//
+// Gezaehlt wird nach Domain, nicht nach Web-Analytics-Kennung: Die Kennung im
+// Beacon ist ein anderer Wert als die, nach der die API filtert – mit der
+// falschen kam still eine Null zurueck. Und wechselt die Zaehlung einmal (vom
+// Zonen-Einbau auf den des Pages-Projekts), bekommt sie eine neue Kennung,
+// die Domain bleibt.
 //
 // Geheim ist nur der Token, mit dem die Zahlen abgefragt werden – der steht
 // als CF_API_TOKEN im Pages-Projekt und nirgends im Code.
 const KONTO_VORGABE = 'dad9b3e70113cef802e07d68cfc5ca1e';
-const SEITE_VORGABE = '2d26c5e626f54976b48e2236ca91191f';   // ihsan-yilmaz.de
+const HOSTS = ['ihsan-yilmaz.de', 'www.ihsan-yilmaz.de'];
 
 const antwort = (d, status = 200) => new Response(JSON.stringify(d), { status, headers: KOPF });
 
@@ -165,22 +169,22 @@ async function ersterTag(env, bis) {
 // ─── Besucher aus Cloudflare Web Analytics ───
 
 const ABFRAGE = `
-query ($konto: String!, $seite: String!, $von: Time!, $bis: Time!) {
+query ($konto: String!, $hosts: [String!], $von: Time!, $bis: Time!) {
   viewer {
     accounts(filter: { accountTag: $konto }) {
       proTag: rumPageloadEventsAdaptiveGroups(
         limit: 200
-        filter: { siteTag: $seite, datetime_geq: $von, datetime_leq: $bis }
+        filter: { requestHost_in: $hosts, datetime_geq: $von, datetime_leq: $bis }
         orderBy: [date_ASC]
       ) { count sum { visits } dimensions { date } }
       proSeite: rumPageloadEventsAdaptiveGroups(
         limit: 15
-        filter: { siteTag: $seite, datetime_geq: $von, datetime_leq: $bis }
+        filter: { requestHost_in: $hosts, datetime_geq: $von, datetime_leq: $bis }
         orderBy: [count_DESC]
       ) { count dimensions { requestPath } }
       proHerkunft: rumPageloadEventsAdaptiveGroups(
         limit: 20
-        filter: { siteTag: $seite, datetime_geq: $von, datetime_leq: $bis }
+        filter: { requestHost_in: $hosts, datetime_geq: $von, datetime_leq: $bis }
         orderBy: [count_DESC]
       ) { count dimensions { refererHost } }
     }
@@ -233,7 +237,7 @@ async function besucherZahlen(env, von, bis) {
       query: ABFRAGE,
       variables: {
         konto: env.CF_ACCOUNT_ID || KONTO_VORGABE,
-        seite: env.CF_SITE_TAG || SEITE_VORGABE,
+        hosts: HOSTS,
         von: von.toISOString(),
         bis: bis.toISOString()
       }

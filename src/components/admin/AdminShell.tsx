@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 // Hinweis: lucide-react hat in dieser Version keine Marken-Icons (kein "Instagram") — daher Camera.
-import { LayoutDashboard, Inbox, Camera, Euro, FolderOpen, LogOut, Lock, ExternalLink, ChartNoAxesColumn } from "lucide-react";
+import { LayoutDashboard, Inbox, Camera, Euro, FolderOpen, LogOut, Lock, ExternalLink, ChartNoAxesColumn, Images } from "lucide-react";
 import { Bildmarke } from "../Logo";
 
 type Seite = {
@@ -27,16 +27,15 @@ const SEITEN: Seite[] = [
     ],
   },
   {
-    pfad: "/admin/instagram",
+    pfad: "/admin/content",
     titel: "Instagram",
     icon: Camera,
     unter: [
-      { pfad: "/admin/instagram", titel: "Profil" },
       { pfad: "/admin/content", titel: "Content erstellen" },
       { pfad: "/admin/planen", titel: "Content planen" },
-      { pfad: "/admin/instagram/galerie", titel: "Galerie" },
     ],
   },
+  { pfad: "/admin/galerie", titel: "Galerie", icon: Images },
   { pfad: "/admin/dokumente", titel: "Dokumente", icon: FolderOpen },
   { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
 ];
