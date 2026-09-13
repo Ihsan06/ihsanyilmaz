@@ -193,8 +193,8 @@ export default function AdminShell({
                   <span>{s.titel}</span>
                 </a>
 
-                {/* Unterpunkte erscheinen nur im geöffneten Bereich */}
-                {s.unter && aktiv && (
+                {/* Unterpunkte sind immer ausgeklappt */}
+                {s.unter && (
                   <div className="hidden lg:flex flex-col gap-0.5 mt-0.5 mb-1 ml-[30px] pl-3.5"
                     style={{ borderLeft: "1px solid rgba(255,255,255,0.14)" }}>
                     {s.unter.map(u => (

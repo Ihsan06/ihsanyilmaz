@@ -2908,8 +2908,8 @@ html.vp-offen { overflow: hidden; }
 .plan-warnung { color: var(--gold, #12557F); font-weight: 700; }
 
 /* ─── Unterpunkte in der Leiste ───────────────────────────────────────
-   Nur beim offenen Bereich sichtbar: zehn Einträge untereinander wären
-   keine Navigation, sondern ein Inhaltsverzeichnis. */
+   Am Rechner immer ausgeklappt, damit jede Unterseite einen Klick entfernt
+   ist. Quer am Telefon nur beim offenen Bereich – siehe unten. */
 /* Senkrechte Linie wie in der React-Leiste: sie bindet die Unterpunkte an
    ihren Bereich, statt sie als eigene Liste erscheinen zu lassen. Beide
    Leisten sahen hier verschieden aus, je nachdem auf welcher Seite man war. */
@@ -2948,6 +2948,7 @@ html.leiste-zu .admin-unter { display: none; }
     background: rgba(255,255,255,.06);
   }
   .admin-unter a.hier { background: rgba(255,255,255,.16); }
+  .admin-unter:not(.offen) { display: none; }
 }
 
 /* ─── Eigene Galerie ──────────────────────────────────────────────────

@@ -27,6 +27,8 @@ window.admin = (function () {
   const SEITEN = [
     { pfad: '/admin', titel: 'Übersicht',
       symbol: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>' },
+    { pfad: '/admin/monitoring', titel: 'Monitoring',
+      symbol: '<path d="M5 21v-6M12 21V3M19 21V9" stroke-linecap="round"/>' },
     { pfad: '/admin/finanzen', titel: 'Finanzen',
       symbol: '<path d="M4 10h11M4 14h8" stroke-linecap="round"/><path d="M18.6 7.2A7.3 7.3 0 0 0 13.5 5 7.2 7.2 0 0 0 6.3 12a7.2 7.2 0 0 0 7.2 7c2 0 3.7-.7 5.1-2.2" stroke-linecap="round"/>',
       unter: [
@@ -81,15 +83,14 @@ window.admin = (function () {
       </a>
       <nav class="admin-nav" aria-label="Bereiche">
         ${SEITEN.map(s => {
-          // Ein Bereich gilt als offen, wenn man auf ihm oder auf einer
-          // seiner Unterseiten steht. Nur dann klappen die Unterpunkte aus –
-          // sonst waere die Leiste eine Liste von zehn Eintraegen.
+          // Ein Bereich ist aktiv, wenn man auf ihm oder auf einer seiner
+          // Unterseiten steht. Die Unterpunkte sind immer ausgeklappt.
           const unter = s.unter || [];
           const drin = s.pfad === hier || unter.some(u => u.pfad === hier);
           return `<a href="${s.pfad}" title="${s.titel}"${drin ? ' class="active" aria-current="page"' : ''}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">${s.symbol}</svg>
             <span>${s.titel}</span>
-          </a>${drin && unter.length ? `<span class="admin-unter">
+          </a>${unter.length ? `<span class="admin-unter${drin ? ' offen' : ''}">
             ${unter.map(u => `<a href="${u.pfad}"${u.pfad === hier ? ' class="hier"' : ''}>${u.titel}</a>`).join('')}
           </span>` : ''}`;
         }).join('')}
