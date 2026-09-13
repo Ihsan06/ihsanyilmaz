@@ -1,0 +1,18 @@
+// Leitet www.ihsan-yilmaz.de auf ihsan-yilmaz.de um.
+//
+// Eigener Mini-Worker statt Pages-Function: eine _middleware im Pages-Projekt
+// liefe bei JEDER Anfrage mit (auch Bildern und CSS) und zaehlte gegen das
+// Tageskontingent. Der hier bekommt nur die seltenen www-Aufrufe.
+// Die eigene Domain legt DNS-Eintrag und Zertifikat selbst an – im
+// Dashboard ist dafuer nichts einzutragen.
+//
+// Deployen:  cd worker/www && npx wrangler deploy
+{
+  "name": "aiy-www",
+  "main": "www.js",
+  "compatibility_date": "2026-06-23",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "www.ihsan-yilmaz.de", "custom_domain": true }
+  ]
+}
