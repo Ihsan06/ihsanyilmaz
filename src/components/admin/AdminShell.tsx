@@ -17,6 +17,15 @@ const SEITEN: Seite[] = [
   { pfad: "/admin", titel: "Übersicht", icon: LayoutDashboard },
   { pfad: "/admin/monitoring", titel: "Monitoring", icon: ChartNoAxesColumn },
   {
+    pfad: "/admin/content",
+    titel: "Instagram",
+    icon: Camera,
+    unter: [
+      { pfad: "/admin/content", titel: "Content erstellen" },
+      { pfad: "/admin/planen", titel: "Content planen" },
+    ],
+  },
+  {
     pfad: "/admin/finanzen",
     titel: "Finanzen",
     icon: Euro,
@@ -24,15 +33,6 @@ const SEITEN: Seite[] = [
       { pfad: "/admin/finanzen", titel: "Einnahmen & Ausgaben" },
       { pfad: "/admin/finanzen/api", titel: "API & Verbrauch" },
       { pfad: "/admin/finanzen/steuer", titel: "Steuer" },
-    ],
-  },
-  {
-    pfad: "/admin/content",
-    titel: "Instagram",
-    icon: Camera,
-    unter: [
-      { pfad: "/admin/content", titel: "Content erstellen" },
-      { pfad: "/admin/planen", titel: "Content planen" },
     ],
   },
   { pfad: "/admin/galerie", titel: "Galerie", icon: Images },

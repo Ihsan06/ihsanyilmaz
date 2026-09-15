@@ -29,18 +29,18 @@ window.admin = (function () {
       symbol: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>' },
     { pfad: '/admin/monitoring', titel: 'Monitoring',
       symbol: '<path d="M5 21v-6M12 21V3M19 21V9" stroke-linecap="round"/>' },
+    { pfad: '/admin/content', titel: 'Instagram',
+      symbol: '<rect x="3" y="3" width="18" height="18" rx="4.5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/>',
+      unter: [
+        { pfad: '/admin/content', titel: 'Content erstellen' },
+        { pfad: '/admin/planen', titel: 'Content planen' }
+      ] },
     { pfad: '/admin/finanzen', titel: 'Finanzen',
       symbol: '<path d="M4 10h11M4 14h8" stroke-linecap="round"/><path d="M18.6 7.2A7.3 7.3 0 0 0 13.5 5 7.2 7.2 0 0 0 6.3 12a7.2 7.2 0 0 0 7.2 7c2 0 3.7-.7 5.1-2.2" stroke-linecap="round"/>',
       unter: [
         { pfad: '/admin/finanzen', titel: 'Einnahmen & Ausgaben' },
         { pfad: '/admin/finanzen/api', titel: 'API & Verbrauch' },
         { pfad: '/admin/finanzen/steuer', titel: 'Steuer' }
-      ] },
-    { pfad: '/admin/content', titel: 'Instagram',
-      symbol: '<rect x="3" y="3" width="18" height="18" rx="4.5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/>',
-      unter: [
-        { pfad: '/admin/content', titel: 'Content erstellen' },
-        { pfad: '/admin/planen', titel: 'Content planen' }
       ] },
     { pfad: '/admin/galerie', titel: 'Galerie',
       symbol: '<rect x="7" y="3" width="14" height="14" rx="2"/><circle cx="12" cy="8" r="1.6"/><path d="m21 13-2.6-2.6a1.8 1.8 0 0 0-2.6 0L10 16.2M3 7.5v11.7A1.8 1.8 0 0 0 4.8 21h11.7" stroke-linecap="round" stroke-linejoin="round"/>' },
