@@ -17,8 +17,8 @@ export default function Home() {
         <Leistungen />
         <Geo />
         <About />
-        <Portfolio />
         <Instagram />
+        <Portfolio />
         <Contact />
       </main>
       <Footer />
