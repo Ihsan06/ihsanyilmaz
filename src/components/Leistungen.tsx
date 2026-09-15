@@ -80,13 +80,11 @@ const LEISTUNGEN: Leistung[] = [
 
 export default function Leistungen() {
   return (
-    <section id="leistungen" className="surface-base py-24">
+    <section id="leistungen" className="surface-base pt-16 pb-24">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="max-w-2xl mb-16">
-          <span className="eyebrow inline-block mb-3">Leistungen</span>
-          <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-4">Drei Bausteine.</h2>
-          <p className="text-[var(--fg-muted)] text-lg">Einzeln buchbar, zusammen am stärksten.</p>
-        </div>
+        {/* Keine Ueberschrift: die drei Bloecke sprechen fuer sich. Fuer
+            Vorleser bleibt sie unsichtbar stehen. */}
+        <h2 className="sr-only">Leistungen</h2>
 
         <div className="flex flex-col gap-24 md:gap-32">
           {LEISTUNGEN.map((l, i) => (
