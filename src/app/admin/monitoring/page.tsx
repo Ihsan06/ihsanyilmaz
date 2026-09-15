@@ -1,7 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Calendar, ChevronDown, TriangleAlert } from "lucide-react";
+import { Calendar, ChevronDown } from "lucide-react";
 import AdminShell, { api } from "@/components/admin/AdminShell";
+
+// Aufbau und Optik wie das Monitoring im Autohaus-Admin (Diezmann): vier
+// Kennzahlen, der Besucherverlauf ueber die volle Breite, darunter die
+// Anfragen und zum Schluss Seiten und Herkunft nebeneinander.
+// Die Klassen (.mon-*, .viz-*, .zeitwahl-*) stehen in globals.css.
 
 // Jede Quelle antwortet einzeln – faellt eine aus, steht sie mit ihrem Grund
 // da und der Rest der Seite bleibt benutzbar.
@@ -21,13 +26,6 @@ type Besucher = Fehlbar & {
   proSeite: { pfad: string; aufrufe: number }[];
   proHerkunft: { host: string; aufrufe: number }[];
 };
-type Instagram = Fehlbar & {
-  punkte: { tag: string; follower: number; beitraege: number }[];
-  follower: number | null;
-  beitraege: number | null;
-  zuwachs: number | null;
-};
-type Speicher = Fehlbar & { bilder: number; bytes: number; grenze: number; anteil: number };
 
 type Stand = {
   tage: number;
@@ -35,17 +33,19 @@ type Stand = {
   bis: string;
   anfragen: Anfragen;
   besucher: Besucher;
-  instagram: Instagram;
-  speicher: Speicher;
   davor: { anfragen: number | null; besuche: number | null; aufrufe: number | null } | null;
 };
 
-const STATUS_WORT: Record<string, string> = {
-  neu: "Neu",
-  in_bearbeitung: "In Bearbeitung",
-  beantwortet: "Beantwortet",
-  archiviert: "Archiviert",
-};
+// Zwei Reihen, klar unterscheidbar auch ohne Farbsehen: dunkel und hell.
+const FARBE_BESUCHE = "#12557F";
+const FARBE_AUFRUFE = "#4DA3E0";
+
+const STATUS = [
+  { schluessel: "neu", wort: "Neu" },
+  { schluessel: "in_bearbeitung", wort: "In Bearbeitung" },
+  { schluessel: "beantwortet", wort: "Beantwortet" },
+  { schluessel: "archiviert", wort: "Archiviert" },
+];
 
 const ERKLAERUNG = {
   besuche:
@@ -64,58 +64,41 @@ const ERKLAERUNG = {
     "Gezählt wird ohne Cookies, direkt im Browser. Erkannte Bots sind herausgerechnet – deshalb " +
     "liegen diese Zahlen unter den Rohwerten aus dem Cloudflare-Bericht, in denen Suchmaschinen " +
     "und Scanner mitlaufen. Tage ohne Besuch werden als Null gezeichnet.",
-  anfragenVerlauf:
-    "Gezählt wird auf dem Server, beim tatsächlichen Absenden – nicht im Browser. Gespeichert wird " +
-    "die Anfrage selbst, nichts darüber hinaus.",
+  anfragenStatus:
+    "Gezählt wird auf dem Server, beim tatsächlichen Absenden – nicht im Browser. Der Status ist " +
+    "der, den die Anfrage unter „Anfragen“ gerade hat.",
   seiten:
     "Zählt Seitenaufrufe, nicht Besuche. Die Startseite liegt fast immer vorn, weil die meisten " +
     "dort einsteigen.",
   herkunft:
     "Klicks innerhalb der Website sind herausgerechnet – sonst wäre die eigene Domain die größte " +
-    "Zeile und würde Google verdecken. „direkt“ heißt: eingetippt, gespeichert, oder aus WhatsApp " +
-    "bzw. einem E-Mail-Programm heraus, die den Verweis nicht mitschicken.",
-  instagram:
-    "Der Stand wird einmal am Tag beim Abruf des Profils festgehalten. Der Zuwachs bezieht sich auf " +
-    "den gewählten Zeitraum, nicht auf den Anfang der Aufzeichnung.",
-  speicher:
-    "Alle Bilder in der Galerie zusammen. Die Grenze von 9,5 GB ist selbst gesetzt, mit Abstand zu " +
-    "den 10 GB des Gratis-Tarifs.",
+    "Zeile und würde Google verdecken. „Direkt / Lesezeichen“ heißt: eingetippt, gespeichert, oder " +
+    "aus WhatsApp bzw. einem E-Mail-Programm heraus, die den Verweis nicht mitschicken.",
 };
 
+// "Gesamt" steht vorn und ist die Voreinstellung: beim Öffnen soll man
+// alles sehen, eingegrenzt wird bei Bedarf.
 const ZEITRAEUME = [
+  { wert: "alles", titel: "Gesamt" },
   { wert: "7", titel: "Letzte 7 Tage" },
   { wert: "30", titel: "Letzte 30 Tage" },
   { wert: "90", titel: "Letzte 90 Tage" },
-  { wert: "alles", titel: "Gesamt" },
 ];
 
 const zahl = (n: number | null | undefined) => (n == null ? "—" : n.toLocaleString("de-DE"));
 
-const langDatum = (iso?: string | null) =>
-  !iso ? "—"
-    : new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" });
+const kurzDatum = (iso: string) =>
+  new Date(iso.slice(0, 10) + "T12:00:00Z").toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
 
-function groesse(bytes: number) {
-  if (bytes >= 1024 ** 3) return (bytes / 1024 ** 3).toFixed(2).replace(".", ",") + " GB";
-  return (bytes / 1024 ** 2).toFixed(1).replace(".", ",") + " MB";
-}
+const langDatum = (iso: string) =>
+  new Date(iso.length === 10 ? iso + "T12:00:00Z" : iso)
+    .toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
 
-// Kleines "i" neben einer Ueberschrift. Ueber title, damit es ohne eigenes
-// Aufklapp-Werk auskommt und auch mit der Tastatur erreichbar ist.
 function Info({ text }: { text: string }) {
   return (
-    <span
-      tabIndex={0}
-      role="note"
-      title={text}
-      aria-label={text}
-      className="inline-flex items-center justify-center ml-1.5 cursor-help align-middle"
-      style={{
-        width: 14, height: 14, borderRadius: "50%", fontSize: 9, fontWeight: 700,
-        border: "1px solid var(--border)", color: "var(--fg-subtle)",
-      }}
-    >
-      i
+    <span className="mon-info" tabIndex={0} role="note" aria-label={text}>
+      <span className="mon-info-zeichen" aria-hidden="true">i</span>
+      <span className="mon-info-blase" aria-hidden="true">{text}</span>
     </span>
   );
 }
@@ -126,122 +109,186 @@ function Info({ text }: { text: string }) {
 function Trend({ jetzt, davor }: { jetzt: number | null | undefined; davor: number | null | undefined }) {
   if (jetzt == null || davor == null || davor === 0) return null;
   const diff = ((jetzt - davor) / davor) * 100;
-  if (Math.abs(diff) < 1) {
-    return <span className="text-xs mr-1.5" style={{ color: "var(--fg-subtle)" }}>unverändert</span>;
-  }
+  if (Math.abs(diff) < 1) return <span className="mon-trend gleich">unverändert</span>;
   const hoch = diff > 0;
   const wort = Math.abs(diff) >= 999 ? "999+" : Math.abs(diff).toFixed(0);
-  return (
-    <span className="text-xs mr-1.5" style={{ color: hoch ? "#16a34a" : "#dc2626" }}>
-      {hoch ? "▲" : "▼"} {wort} %
-    </span>
-  );
+  return <span className={`mon-trend ${hoch ? "hoch" : "runter"}`}>{hoch ? "▲" : "▼"} {wort} %</span>;
 }
 
-function Kachel({
-  titel, wert, unter, hinweis, vergleich,
-}: {
+function Kachel({ titel, wert, unter, hinweis, vergleich }: {
   titel: string; wert: string; unter: string; hinweis?: string; vergleich?: React.ReactNode;
 }) {
   return (
-    <div className="card p-4">
-      <p className="text-[var(--fg-subtle)] text-xs mb-1.5">
-        {titel}{hinweis && <Info text={hinweis} />}
-      </p>
-      <p className="text-2xl font-semibold text-[var(--fg)] leading-tight">{wert}</p>
-      <p className="text-xs text-[var(--fg-subtle)] mt-1">{vergleich}{unter}</p>
+    <div className="mon-kachel">
+      <p className="mon-kachel-titel">{titel}{hinweis && <Info text={hinweis} />}</p>
+      <p className="mon-kachel-wert">{wert}</p>
+      <p className="mon-kachel-unter">{vergleich}{unter}</p>
     </div>
   );
 }
 
-function Karte({
-  titel, hinweis, children,
-}: { titel: string; hinweis?: string; children: React.ReactNode }) {
+function Karte({ titel, hinweis, children }: { titel: string; hinweis?: string; children: React.ReactNode }) {
   return (
-    <div className="card p-4">
-      <h2 className="text-sm font-medium text-[var(--fg)] mb-3">
-        {titel}{hinweis && <Info text={hinweis} />}
-      </h2>
+    <section className="mon-block">
+      <h2>{titel}{hinweis && <Info text={hinweis} />}</h2>
       {children}
-    </div>
+    </section>
   );
 }
 
 function Ausfall({ was, fehler }: { was: string; fehler?: string }) {
   return (
-    <div className="card p-4">
-      <h2 className="flex items-center gap-2 text-sm font-medium text-[var(--fg)]">
-        <TriangleAlert size={15} style={{ color: "#d97706" }} /> {was} nicht verfügbar
-      </h2>
-      <p className="text-sm text-[var(--fg-subtle)] mt-1.5">{fehler || "Konnte nicht geladen werden."}</p>
-    </div>
+    <section className="mon-block mon-fehler">
+      <h2>{was} nicht verfügbar</h2>
+      <p>{fehler || "Unbekannter Grund."}</p>
+    </section>
   );
 }
 
-// Tage ohne Wert als Null einzeichnen, sonst zieht die Linie eine Gerade
-// ueber eine Luecke und behauptet Verkehr, den es nicht gab.
-function tageFuellen(punkte: { tag: string; wert: number }[], vonIso: string, bisIso: string) {
-  const habe = new Map(punkte.map(p => [p.tag, p.wert]));
-  const raus: { tag: string; wert: number }[] = [];
+// Erklaerungen unter einer Tabelle oder einem Diagramm, als abgesetzter Kasten.
+function Legende({ paare }: { paare: [string, string][] }) {
+  return (
+    <dl className="mon-legende">
+      {paare.map(([wort, text]) => (
+        <div key={wort}><dt>{wort}</dt><dd>{text}</dd></div>
+      ))}
+    </dl>
+  );
+}
+
+// Cloudflare liefert nur Tage MIT Daten. Fuer eine ehrliche Zeitachse
+// muessen die Luecken als Null dazwischen.
+function tageFuellen(proTag: Besucher["proTag"], vonIso: string, bisIso: string) {
+  const nachTag = new Map(proTag.map(z => [z.tag, z]));
+  const raus: { tag: string; besuche: number; aufrufe: number }[] = [];
   const d = new Date(vonIso.slice(0, 10) + "T00:00:00Z");
   const ende = new Date(bisIso.slice(0, 10) + "T00:00:00Z");
-  let schutz = 0;
-  while (d <= ende && schutz++ < 400) {
+  for (let i = 0; d <= ende && i < 400; i++) {
     const tag = d.toISOString().slice(0, 10);
-    raus.push({ tag, wert: habe.get(tag) ?? 0 });
+    const z = nachTag.get(tag);
+    raus.push({ tag, besuche: z?.besuche ?? 0, aufrufe: z?.aufrufe ?? 0 });
     d.setUTCDate(d.getUTCDate() + 1);
   }
   return raus;
 }
 
-// Liniendiagramm als SVG, ohne Bibliothek: fuer einen Verlauf reicht ein
-// Polygonzug, und der laedt nichts nach.
-function Linie({ punkte, farbe = "var(--accent)" }: { punkte: { tag: string; wert: number }[]; farbe?: string }) {
-  if (punkte.length < 2) {
-    return <p className="text-[var(--fg-subtle)] text-sm">Zu wenig Daten für einen Verlauf.</p>;
-  }
-  const B = 600, H = 140, rand = { oben: 8, unten: 18, links: 30, rechts: 6 };
-  const hoechst = Math.max(...punkte.map(p => p.wert), 1);
-  const x = (i: number) => rand.links + (i / (punkte.length - 1)) * (B - rand.links - rand.rechts);
-  const y = (w: number) => rand.oben + (1 - w / hoechst) * (H - rand.oben - rand.unten);
-  const pfad = punkte.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.wert).toFixed(1)}`).join(" ");
-  const flaeche = `${pfad} L${x(punkte.length - 1).toFixed(1)},${y(0)} L${x(0).toFixed(1)},${y(0)} Z`;
+// Runder Achsenschritt, damit 0/20/40/60/80 dasteht und nicht 0/16/33/49/65.
+function runderSchritt(roh: number) {
+  if (roh <= 1) return 1;
+  const zehner = Math.pow(10, Math.floor(Math.log10(roh)));
+  const rest = roh / zehner;
+  const gewaehlt = rest <= 1 ? 1 : rest <= 2 ? 2 : rest <= 2.5 ? 2.5 : rest <= 5 ? 5 : 10;
+  return Math.max(1, Math.round(gewaehlt * zehner));
+}
+
+// Besuche und Seitenaufrufe als zwei Linien. Gezeichnet in echter
+// Pixelbreite (nicht per viewBox gestreckt), sonst wird die Schrift mit
+// verzerrt. Ein Faden folgt der Maus und zeigt die Werte des Tages.
+function Verlauf({ punkte }: { punkte: { tag: string; besuche: number; aufrufe: number }[] }) {
+  const kasten = useRef<HTMLDivElement>(null);
+  const [breite, setBreite] = useState(0);
+  const [zeiger, setZeiger] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = kasten.current;
+    if (!el) return;
+    const beobachter = new ResizeObserver(e => setBreite(Math.max(280, Math.floor(e[0].contentRect.width))));
+    beobachter.observe(el);
+    return () => beobachter.disconnect();
+  }, []);
+
+  const hoehe = 250;
+  const rand = { oben: 14, rechts: 14, unten: 26, links: 42 };
+  const zeichenBreite = breite - rand.links - rand.rechts;
+  const zeichenHoehe = hoehe - rand.oben - rand.unten;
+  const stufen = 4;
+  const hoechst = Math.max(1, ...punkte.map(p => Math.max(p.besuche, p.aufrufe)));
+  const schritt = runderSchritt(hoechst / stufen);
+  const obergrenze = schritt * stufen;
+
+  const x = (i: number) => punkte.length === 1
+    ? rand.links + zeichenBreite / 2
+    : rand.links + (i / (punkte.length - 1)) * zeichenBreite;
+  const y = (v: number) => rand.oben + zeichenHoehe - (v / obergrenze) * zeichenHoehe;
+  const linie = (feld: "besuche" | "aufrufe") =>
+    punkte.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p[feld]).toFixed(1)}`).join(" ");
+
+  // Nur so viele Datumsangaben, wie nebeneinander passen.
+  const platz = Math.max(1, Math.floor(punkte.length / Math.max(2, Math.floor(zeichenBreite / 76))));
+  const letzter = punkte.length - 1;
+
+  const zeigen = (e: React.PointerEvent<SVGRectElement>) => {
+    const kiste = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
+    const anteil = (e.clientX - kiste.left - rand.links) / zeichenBreite;
+    setZeiger(Math.max(0, Math.min(letzter, Math.round(anteil * letzter))));
+  };
+
+  const p = zeiger != null ? punkte[zeiger] : null;
 
   return (
-    <svg viewBox={`0 0 ${B} ${H}`} width="100%" height={H} role="img"
-         aria-label={`Verlauf, Höchstwert ${hoechst}`}>
-      {[0, hoechst / 2, hoechst].map((w, i) => (
-        <g key={i}>
-          <line x1={rand.links} x2={B - rand.rechts} y1={y(w)} y2={y(w)}
-                stroke="var(--border)" strokeWidth="1" />
-          <text x={rand.links - 5} y={y(w) + 3} textAnchor="end"
-                fontSize="9" fill="var(--fg-subtle)">{Math.round(w)}</text>
-        </g>
-      ))}
-      <path d={flaeche} fill={farbe} opacity="0.12" />
-      <path d={pfad} fill="none" stroke={farbe} strokeWidth="2"
-            strokeLinejoin="round" strokeLinecap="round" />
-      {punkte.map((p, i) => (
-        <circle key={p.tag} cx={x(i)} cy={y(p.wert)} r="6" fill="transparent">
-          <title>{`${p.tag}: ${zahl(p.wert)}`}</title>
-        </circle>
-      ))}
-      <text x={rand.links} y={H - 4} fontSize="9" fill="var(--fg-subtle)">{punkte[0].tag}</text>
-      <text x={B - rand.rechts} y={H - 4} textAnchor="end" fontSize="9"
-            fill="var(--fg-subtle)">{punkte[punkte.length - 1].tag}</text>
-    </svg>
+    <div className="viz" ref={kasten} onPointerLeave={() => setZeiger(null)}>
+      {breite > 0 && (
+        <svg className="viz-svg" viewBox={`0 0 ${breite} ${hoehe}`} width={breite} height={hoehe} role="img"
+             aria-label="Besuche und Seitenaufrufe im gewählten Zeitraum">
+          {Array.from({ length: stufen + 1 }, (_, k) => {
+            const yy = y(schritt * k);
+            return (
+              <g key={k}>
+                <line className="viz-raster" x1={rand.links} y1={yy} x2={breite - rand.rechts} y2={yy} />
+                <text className="viz-achse" x={rand.links - 8} y={yy + 4} textAnchor="end">
+                  {zahl(Math.round(schritt * k))}
+                </text>
+              </g>
+            );
+          })}
+          {punkte.map((pt, i) => {
+            const istLetzter = i === letzter;
+            if (i % platz !== 0 && !istLetzter) return null;
+            // Beschriftungen, die der letzten zu nahe kaemen, entfallen –
+            // sonst stehen zwei Daten uebereinander.
+            if (!istLetzter && letzter - i < platz / 2) return null;
+            return (
+              <text key={pt.tag} className="viz-achse" x={x(i)} y={hoehe - 8}
+                    textAnchor={i === 0 ? "start" : istLetzter ? "end" : "middle"}>
+                {kurzDatum(pt.tag)}
+              </text>
+            );
+          })}
+          <path className="viz-linie" d={linie("aufrufe")} stroke={FARBE_AUFRUFE} />
+          <path className="viz-linie" d={linie("besuche")} stroke={FARBE_BESUCHE} />
+          <circle className="viz-ende" cx={x(letzter)} cy={y(punkte[letzter].aufrufe)} r="4" fill={FARBE_AUFRUFE} />
+          <circle className="viz-ende" cx={x(letzter)} cy={y(punkte[letzter].besuche)} r="4" fill={FARBE_BESUCHE} />
+          {p && zeiger != null && (
+            <>
+              <line className="viz-faden" x1={x(zeiger)} x2={x(zeiger)} y1={rand.oben} y2={rand.oben + zeichenHoehe} />
+              <circle className="viz-treffer" cx={x(zeiger)} cy={y(p.aufrufe)} r="5" fill={FARBE_AUFRUFE} />
+              <circle className="viz-treffer" cx={x(zeiger)} cy={y(p.besuche)} r="5" fill={FARBE_BESUCHE} />
+            </>
+          )}
+          <rect x={rand.links} y={rand.oben} width={Math.max(0, zeichenBreite)} height={zeichenHoehe}
+                fill="transparent" onPointerMove={zeigen} onPointerDown={zeigen} />
+        </svg>
+      )}
+      {p && zeiger != null && (
+        <div className={`viz-blase ${x(zeiger) / breite > 0.6 ? "links" : ""}`}
+             style={{ left: `${(x(zeiger) / breite) * 100}%` }}>
+          <p className="viz-blase-tag">{langDatum(p.tag)}</p>
+          <p className="viz-blase-zeile"><i style={{ background: FARBE_BESUCHE }} /><b>{zahl(p.besuche)}</b> Besuche</p>
+          <p className="viz-blase-zeile"><i style={{ background: FARBE_AUFRUFE }} /><b>{zahl(p.aufrufe)}</b> Seitenaufrufe</p>
+        </div>
+      )}
+    </div>
   );
 }
 
-function Liste({ eintraege }: { eintraege: { name: string; wert: number }[] }) {
-  if (!eintraege.length) return <p className="text-[var(--fg-subtle)] text-sm">Noch keine Daten.</p>;
+function Liste({ eintraege, leer }: { eintraege: { name: string; wert: number }[]; leer: string }) {
+  if (!eintraege.length) return <p className="mon-leer">{leer}</p>;
   return (
-    <ul className="text-sm">
+    <ul className="mon-liste">
       {eintraege.map(e => (
-        <li key={e.name} className="flex justify-between gap-3 py-1 border-b last:border-0"
-            style={{ borderColor: "var(--border)" }}>
-          <span className="text-[var(--fg-muted)] truncate">{e.name}</span>
-          <span className="text-[var(--fg)] shrink-0 tabular-nums">{zahl(e.wert)}</span>
+        <li key={e.name}>
+          <span className="mon-liste-name">{e.name}</span>
+          <span className="mon-liste-wert">{zahl(e.wert)}</span>
         </li>
       ))}
     </ul>
@@ -250,7 +297,7 @@ function Liste({ eintraege }: { eintraege: { name: string; wert: number }[] }) {
 
 export default function MonitoringSeite() {
   const [stand, setStand] = useState<Stand | null>(null);
-  const [wahl, setWahl] = useState("30");
+  const [wahl, setWahl] = useState("alles");
   const [offen, setOffen] = useState(false);
   const [freiVon, setFreiVon] = useState("");
   const [freiBis, setFreiBis] = useState("");
@@ -266,10 +313,9 @@ export default function MonitoringSeite() {
       .finally(() => setLaedt(false));
   }, []);
 
-  useEffect(() => { laden(`tage=${wahl}`); }, [wahl, laden]);
+  useEffect(() => { if (wahl !== "frei") laden(`tage=${wahl}`); }, [wahl, laden]);
 
-  // Klick daneben schliesst die Tafel – sonst bliebe sie offen stehen,
-  // waehrend man schon wieder woanders liest.
+  // Klick daneben schliesst die Tafel.
   useEffect(() => {
     if (!offen) return;
     const zu = (e: MouseEvent) => {
@@ -282,17 +328,15 @@ export default function MonitoringSeite() {
   const freiAnwenden = () => {
     if (!freiVon || !freiBis) { setFehler("Bitte beide Daten angeben."); return; }
     setOffen(false);
+    setWahl("frei");
     laden(`von=${freiVon}&bis=${freiBis}`);
   };
 
   const a = stand?.anfragen;
   const b = stand?.besucher;
-  const i = stand?.instagram;
-  const s = stand?.speicher;
   const d = stand?.davor;
 
-  const name = wahl === "alles" ? "Gesamt"
-    : ZEITRAEUME.find(z => z.wert === wahl)?.titel ?? "Eigener Zeitraum";
+  const name = ZEITRAEUME.find(z => z.wert === wahl)?.titel ?? "Eigener Zeitraum";
   const spanne = stand ? `${langDatum(stand.von)} – ${langDatum(stand.bis)}` : "";
 
   // Cloudflare haelt Besucherzahlen nur ein halbes Jahr vor. Reicht der
@@ -305,81 +349,58 @@ export default function MonitoringSeite() {
     : "";
 
   const quote = a?.ok && b?.ok && b.besuche > 0 ? (a.gesamt / b.besuche) * 100 : null;
-
-  // Rechts neben der Ueberschrift wie in der Autohaus-Demo; die Tafel klappt
-  // nach links auf, damit sie am rechten Rand nicht abgeschnitten wird.
-  const zeitwahl = (
-    <div className="flex flex-col items-end gap-1.5">
-      <div className="relative" ref={tafel}>
-        <button
-          onClick={() => setOffen(o => !o)}
-          aria-expanded={offen}
-          aria-haspopup="dialog"
-          className="chip px-3 py-2 text-sm flex items-center gap-2"
-        >
-          <Calendar size={15} /> {name} <ChevronDown size={13} />
-        </button>
-        {offen && (
-          <div
-            role="dialog"
-            aria-label="Zeitraum wählen"
-            className="absolute right-0 z-30 mt-1.5 card p-2"
-            style={{ minWidth: 250, boxShadow: "0 10px 30px rgba(7,26,43,0.18)" }}
-          >
-            {ZEITRAEUME.map(z => (
-              <button
-                key={z.wert}
-                onClick={() => { setWahl(z.wert); setOffen(false); }}
-                className="w-full text-left px-3 py-2 rounded-[7px] text-sm"
-                style={wahl === z.wert
-                  ? { background: "var(--accent)", color: "#fff" }
-                  : { color: "var(--fg-muted)" }}
-              >
-                {z.titel}
-              </button>
-            ))}
-            <div className="mt-2 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
-              <p className="text-xs text-[var(--fg-subtle)] px-3 mb-1.5">Eigener Zeitraum</p>
-              <div className="flex items-center gap-2 px-3">
-                <input type="date" value={freiVon} onChange={e => setFreiVon(e.target.value)}
-                       className="feld text-xs flex-1" aria-label="Von" />
-                <span className="text-xs text-[var(--fg-subtle)]">bis</span>
-                <input type="date" value={freiBis} onChange={e => setFreiBis(e.target.value)}
-                       className="feld text-xs flex-1" aria-label="bis" />
-              </div>
-              <button onClick={freiAnwenden}
-                      className="btn-primary w-full mt-2 py-1.5 text-sm">Anzeigen</button>
-            </div>
-          </div>
-        )}
-      </div>
-      {stand && <span className="text-[var(--fg-subtle)] text-xs">{spanne}</span>}
-    </div>
-  );
+  const tageMitAnfragen = (a?.proTag || []).filter(z => z.anzahl > 0);
+  const hoechsterTag = Math.max(1, ...tageMitAnfragen.map(z => z.anzahl));
 
   return (
-    <AdminShell
-      titel="Monitoring"
-      eyebrow="Zahlen & Auswertung"
-      lead="Was auf der Website passiert – und was davon zu einer Anfrage wird."
-      aktion={zeitwahl}
-    >
+    <AdminShell titel="Monitoring" eyebrow="Zahlen & Auswertung">
+
+      {/* Unter dem Titel, rechtsbuendig. Die Tafel klappt nach links auf,
+          damit sie am rechten Rand nicht abgeschnitten wird. */}
+      <div className="flex justify-end -mt-3 mb-5">
+        <div className={`zeitwahl ${offen ? "offen" : ""}`} ref={tafel}>
+          <button type="button" className="zeitwahl-knopf" onClick={() => setOffen(o => !o)}
+                  aria-expanded={offen} aria-haspopup="dialog">
+            <Calendar size={15} />
+            <span>{name}</span>
+            <ChevronDown size={13} className="zeitwahl-pfeil" />
+          </button>
+          {offen && (
+            <div className="zeitwahl-tafel" role="dialog" aria-label="Zeitraum wählen">
+              {ZEITRAEUME.map(z => (
+                <button key={z.wert} type="button"
+                        className={`zeitwahl-reihe ${wahl === z.wert ? "aktiv" : ""}`}
+                        onClick={() => { setWahl(z.wert); setOffen(false); }}>
+                  {z.titel}
+                </button>
+              ))}
+              <div className="zeitwahl-frei">
+                <p className="zeitwahl-frei-titel">Eigener Zeitraum</p>
+                <div className="zeitwahl-felder">
+                  <label htmlFor="mon-von">Von</label>
+                  <input type="date" id="mon-von" value={freiVon} onChange={e => setFreiVon(e.target.value)} />
+                  <label htmlFor="mon-bis">bis</label>
+                  <input type="date" id="mon-bis" value={freiBis} onChange={e => setFreiBis(e.target.value)} />
+                </div>
+                <button type="button" className="zeitwahl-anwenden" onClick={freiAnwenden}>Anzeigen</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
       {laedt && !stand ? (
-        <p className="text-[var(--fg-muted)]">Zahlen werden geladen …</p>
+        <p className="mon-leer">Zahlen werden geladen …</p>
       ) : !stand ? null : (
-        <>
-          {/* Vier Kacheln – zwei aus der Besucherzaehlung, zwei aus der
-              eigenen Datenbank. Faellt eine Quelle aus, fehlen ihre Kacheln,
-              statt vier Nullen zu zeigen, die nach "nichts los" aussehen. */}
-          <div className="grid gap-3 mb-5"
-               style={{ gridTemplateColumns: "repeat(auto-fit, minmax(185px, 1fr))" }}>
+        <div style={{ opacity: laedt ? 0.6 : 1, transition: "opacity .2s ease" }}>
+          {/* Faellt eine Quelle aus, fehlen ihre Kacheln, statt Nullen zu
+              zeigen, die nach "nichts los" aussehen. */}
+          <div className="mon-kennzahlen">
             {b?.ok && (
               <>
-                <Kachel titel="Besuche" wert={zahl(b.besuche)} unter={spanne}
-                        hinweis={ERKLAERUNG.besuche}
+                <Kachel titel="Besuche" wert={zahl(b.besuche)} unter={spanne} hinweis={ERKLAERUNG.besuche}
                         vergleich={<Trend jetzt={b.besuche} davor={d?.besuche} />} />
                 <Kachel titel="Seitenaufrufe" wert={zahl(b.aufrufe)} unter="wie gründlich geschaut wird"
                         hinweis={ERKLAERUNG.aufrufe}
@@ -387,91 +408,96 @@ export default function MonitoringSeite() {
               </>
             )}
             {a?.ok && (
-              <Kachel titel="Anfragen" wert={zahl(a.gesamt)}
-                      unter={`${zahl(a.offen)} unbeantwortet`}
+              <Kachel titel="Anfragen" wert={zahl(a.gesamt)} unter={`${zahl(a.offen)} unbeantwortet`}
                       hinweis={ERKLAERUNG.anfragen}
                       vergleich={<Trend jetzt={a.gesamt} davor={d?.anfragen} />} />
             )}
             {quote != null && (
-              <Kachel titel="Anfrage je Besuch"
-                      wert={quote.toFixed(1).replace(".", ",") + " %"}
+              <Kachel titel="Anfrage je Besuch" wert={quote.toFixed(1).replace(".", ",") + " %"}
                       unter="grober Richtwert" hinweis={ERKLAERUNG.quote} />
-            )}
-            {s?.ok && (
-              <Kachel titel="Bildspeicher" wert={groesse(s.bytes)}
-                      unter={`${zahl(s.bilder)} Bilder · ${String(s.anteil).replace(".", ",")} % von 9,5 GB`}
-                      hinweis={ERKLAERUNG.speicher} />
             )}
           </div>
 
-          <div className="grid gap-4"
-               style={{ gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))" }}>
-            {b?.ok === false ? (
-              <Ausfall was="Besucherzahlen" fehler={b.fehler} />
-            ) : b?.proTag?.length ? (
-              <Karte titel="Besucher im Verlauf" hinweis={ERKLAERUNG.verlauf}>
-                <Linie punkte={tageFuellen(
-                  b.proTag.map(z => ({ tag: z.tag, wert: z.besuche })),
-                  b.von || stand.von, stand.bis)} />
-                {kuerzer && <p className="text-xs text-[var(--fg-subtle)] mt-2">{kuerzer}</p>}
-              </Karte>
-            ) : (
-              <Karte titel="Besucher im Verlauf" hinweis={ERKLAERUNG.verlauf}>
-                <p className="text-[var(--fg-subtle)] text-sm">
-                  Für diesen Zeitraum liegen keine Besucherdaten vor.
-                </p>
-              </Karte>
-            )}
+          {b?.ok === false ? (
+            <Ausfall was="Besucherzahlen" fehler={b.fehler} />
+          ) : (
+            <Karte titel="Besucher im Verlauf" hinweis={ERKLAERUNG.verlauf}>
+              {b?.proTag?.length ? (
+                <>
+                  <div className="viz-legende">
+                    <span><i style={{ background: FARBE_BESUCHE }} />Besuche</span>
+                    <span><i style={{ background: FARBE_AUFRUFE }} />Seitenaufrufe</span>
+                  </div>
+                  <Verlauf punkte={tageFuellen(b.proTag, b.von || stand.von, stand.bis)} />
+                  {kuerzer && <p className="mon-notiz">{kuerzer}</p>}
+                </>
+              ) : (
+                <p className="mon-leer">Für diesen Zeitraum liegen keine Besucherdaten vor.</p>
+              )}
+            </Karte>
+          )}
 
-            {a?.ok === false ? (
-              <Ausfall was="Anfragen" fehler={a.fehler} />
-            ) : (
-              <Karte titel="Anfragen im Verlauf" hinweis={ERKLAERUNG.anfragenVerlauf}>
-                {a?.proTag?.length ? (
-                  <Linie punkte={tageFuellen(
-                    a.proTag.map(z => ({ tag: z.tag, wert: z.anzahl })), stand.von, stand.bis)} />
-                ) : (
-                  <p className="text-[var(--fg-subtle)] text-sm">
-                    In diesem Zeitraum ist keine Anfrage eingegangen.
-                  </p>
-                )}
-                {a && Object.keys(a.status || {}).length > 0 && (
-                  <div className="mt-3" style={{ borderTop: "1px solid var(--border)" }}>
-                    <table className="w-full text-sm mt-2">
+          {a?.ok === false ? (
+            <Ausfall was="Anfragen" fehler={a.fehler} />
+          ) : a && (
+            <>
+              <Karte titel="Anfragen nach Status" hinweis={ERKLAERUNG.anfragenStatus}>
+                {a.gesamt ? (
+                  <div className="mon-tabelle-huelle">
+                    <table className="mon-tabelle">
+                      <thead>
+                        <tr><th>Status</th><th className="num">Anfragen</th></tr>
+                      </thead>
                       <tbody>
-                        {Object.entries(a.status).map(([k, n]) => (
-                          <tr key={k}>
-                            <td className="py-1 text-[var(--fg-muted)]">{STATUS_WORT[k] || k}</td>
-                            <td className="py-1 text-right text-[var(--fg)] tabular-nums">{zahl(n)}</td>
+                        {STATUS.filter(st => a.status?.[st.schluessel]).map(st => (
+                          <tr key={st.schluessel}>
+                            <td>{st.wort}</td>
+                            <td className="num stark">{zahl(a.status[st.schluessel])}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                ) : (
+                  <p className="mon-leer">In diesem Zeitraum ist keine Anfrage eingegangen.</p>
                 )}
               </Karte>
-            )}
 
-            {b?.ok && (
-              <>
-                <Karte titel="Meistbesuchte Seiten" hinweis={ERKLAERUNG.seiten}>
-                  <Liste eintraege={(b.proSeite || []).map(z => ({ name: z.pfad, wert: z.aufrufe }))} />
+              {tageMitAnfragen.length > 0 && (
+                <Karte titel="Anfragen pro Tag">
+                  <div className="mon-balken" role="img" aria-label="Anfragen pro Tag">
+                    {tageMitAnfragen.map(z => (
+                      <div key={z.tag} className="mon-balken-spalte" title={`${z.tag}: ${zahl(z.anzahl)}`}>
+                        <div className="mon-balken-wert"
+                             style={{ height: `${Math.round((z.anzahl / hoechsterTag) * 100)}%` }} />
+                        <span className="mon-balken-tag">{kurzDatum(z.tag)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Legende paare={[
+                    ["Gezeigt", "nur Tage, an denen etwas ankam."],
+                    ["Höchstwert", `${zahl(hoechsterTag)} an einem Tag.`],
+                  ]} />
                 </Karte>
-                <Karte titel="Woher die Besucher kommen" hinweis={ERKLAERUNG.herkunft}>
-                  <Liste eintraege={(b.proHerkunft || []).map(z => ({
-                    name: z.host === "direkt" ? "direkt / Lesezeichen" : z.host, wert: z.aufrufe,
-                  }))} />
-                </Karte>
-              </>
-            )}
+              )}
+            </>
+          )}
 
-            {i?.ok && i.punkte?.length > 1 && (
-              <Karte titel="Follower im Verlauf" hinweis={ERKLAERUNG.instagram}>
-                <Linie punkte={i.punkte.map(z => ({ tag: z.tag, wert: z.follower }))} />
+          {b?.ok && (
+            <div className="mon-zwei">
+              <Karte titel="Meistbesuchte Seiten" hinweis={ERKLAERUNG.seiten}>
+                <Liste leer="Noch keine Daten."
+                       eintraege={(b.proSeite || []).map(z => ({ name: z.pfad, wert: z.aufrufe }))} />
               </Karte>
-            )}
-          </div>
-        </>
+              <Karte titel="Woher die Besucher kommen" hinweis={ERKLAERUNG.herkunft}>
+                <Liste leer="Noch keine Verweise von außerhalb."
+                       eintraege={(b.proHerkunft || []).map(z => ({
+                         name: z.host === "direkt" ? "Direkt / Lesezeichen" : z.host, wert: z.aufrufe,
+                       }))} />
+              </Karte>
+            </div>
+          )}
+        </div>
       )}
     </AdminShell>
   );

@@ -193,3 +193,147 @@ html, body {
 .animation-delay-200 { animation-delay:200ms; }
 .animation-delay-400 { animation-delay:400ms; }
 .animation-delay-600 { animation-delay:600ms; }
+
+/* ============================================================
+   MONITORING — dieselbe Optik wie im Autohaus-Admin (Diezmann).
+   Eigene Klassen statt .card: die Kacheln dort heben sich beim
+   Drueberfahren nicht, und Zahlen, die springen, liest man schlecht.
+   ============================================================ */
+.admin-theme { --mon-schatten: 0 4px 24px rgba(0,0,0,.06); --mon-off: #f4f6f9; --mon-dunkel: #0e1621; }
+
+.mon-kennzahlen { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:22px; }
+.mon-kachel, .mon-block {
+  background: var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow: var(--mon-schatten);
+}
+.mon-kachel { padding:20px 22px; }
+.mon-kachel-titel { margin:0 0 6px; font-size:.74rem; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-subtle); display:flex; align-items:center; }
+.mon-kachel-wert { margin:0; font-size:1.9rem; font-weight:700; line-height:1.1; font-variant-numeric:tabular-nums; color:var(--fg); }
+.mon-kachel-unter { margin:6px 0 0; font-size:.78rem; color:var(--fg-subtle); display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.mon-trend { font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.mon-trend.hoch { color:#1d8a52; }
+.mon-trend.runter { color:var(--accent); }
+.mon-trend.gleich { color:var(--fg-subtle); font-weight:600; }
+
+.mon-block { padding:26px 28px; margin-bottom:22px; }
+.mon-block h2 { font-size:1.05rem; font-weight:700; margin:0 0 16px; display:flex; align-items:center; gap:4px; color:var(--fg); }
+.mon-leer { color:var(--fg-subtle); font-size:.89rem; margin:0; }
+.mon-notiz { color:var(--fg-subtle); font-size:.8rem; margin:12px 0 0; }
+.mon-zwei { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:22px; align-items:start; }
+.mon-fehler { border-color: rgba(18,85,127,.3); }
+.mon-fehler h2 { color:var(--accent); }
+.mon-fehler p { color:var(--fg-subtle); font-size:.86rem; line-height:1.6; margin:0; word-break:break-word; }
+
+/* Info-Punkt mit dunkler Blase darueber */
+.mon-info { position:relative; display:inline-flex; margin-left:6px; vertical-align:middle; cursor:help; }
+.mon-info-zeichen {
+  width:15px; height:15px; border-radius:50%; background:var(--mon-off); color:var(--fg-subtle);
+  font-size:.62rem; font-weight:700; font-style:italic; display:flex; align-items:center; justify-content:center;
+  transition: background .2s ease, color .2s ease;
+}
+.mon-info:hover .mon-info-zeichen, .mon-info:focus .mon-info-zeichen { background:var(--accent); color:#fff; }
+.mon-info:focus { outline:none; }
+.mon-info-blase {
+  position:absolute; bottom:calc(100% + 9px); left:50%; transform:translateX(-50%);
+  width:max-content; max-width:min(300px, 78vw);
+  background:var(--mon-dunkel); color:rgba(255,255,255,.9);
+  font-size:.77rem; font-weight:400; font-style:normal; line-height:1.55; letter-spacing:0; text-transform:none; text-align:left;
+  padding:10px 13px; border-radius:10px; box-shadow:0 10px 28px rgba(0,0,0,.28);
+  display:none; z-index:20; pointer-events:none;
+}
+/* display statt visibility: eine unsichtbare Blase am rechten Rand wuerde
+   sonst die Seite verbreitern und einen Scrollbalken erzeugen. */
+.mon-info:hover .mon-info-blase, .mon-info:focus .mon-info-blase { display:block; }
+
+/* Tabelle, Legende, Balken, Liste */
+.mon-tabelle-huelle { overflow-x:auto; }
+.mon-tabelle { width:100%; border-collapse:collapse; font-size:.88rem; }
+.mon-tabelle th, .mon-tabelle td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
+.mon-tabelle th { font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--fg-subtle); font-weight:600; }
+.mon-tabelle tbody tr:last-child td { border-bottom:0; }
+.mon-tabelle .num { text-align:right; font-variant-numeric:tabular-nums; }
+.mon-tabelle .stark { font-weight:700; color:var(--fg); }
+
+.mon-legende {
+  margin:18px 0 0; padding:12px 15px 13px; background:var(--mon-off); border:1px solid var(--border);
+  border-radius:10px; display:flex; flex-direction:column; gap:5px;
+}
+.mon-legende > div { display:flex; gap:10px; font-size:.78rem; line-height:1.55; }
+.mon-legende dt { flex:0 0 116px; font-weight:700; color:var(--fg); }
+.mon-legende dd { margin:0; color:var(--fg-subtle); }
+@media (max-width: 620px) {
+  .mon-legende > div { flex-direction:column; gap:1px; }
+  .mon-legende dt { flex:none; }
+}
+
+.mon-balken { display:flex; align-items:flex-end; gap:6px; height:150px; overflow-x:auto; padding-bottom:4px; }
+.mon-balken-spalte { flex:1 0 26px; max-width:64px; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; gap:6px; }
+.mon-balken-wert { width:100%; min-height:3px; background:var(--accent); border-radius:4px 4px 0 0; }
+.mon-balken-tag { font-size:.64rem; color:var(--fg-subtle); white-space:nowrap; }
+
+.mon-liste { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+.mon-liste li { display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:8px 0; border-bottom:1px solid var(--border); font-size:.88rem; }
+.mon-liste li:last-child { border-bottom:0; }
+.mon-liste-name { color:var(--fg); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mon-liste-wert { flex:none; font-weight:700; font-variant-numeric:tabular-nums; }
+
+/* Liniendiagramm */
+.viz-legende { display:flex; gap:20px; margin:-6px 0 12px; font-size:.8rem; color:var(--fg-subtle); }
+.viz-legende span { display:inline-flex; align-items:center; gap:7px; }
+.viz-legende i { width:16px; height:3px; border-radius:2px; }
+.viz { position:relative; width:100%; }
+.viz-svg { display:block; width:100%; height:auto; touch-action:pan-y; }
+.viz-raster { stroke:var(--border); stroke-width:1; }
+.viz-achse { fill:var(--fg-subtle); font-size:11px; font-variant-numeric:tabular-nums; }
+.viz-linie { fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+.viz-ende, .viz-treffer { stroke:#fff; stroke-width:2; }
+.viz-faden { stroke:var(--fg-subtle); stroke-width:1; stroke-dasharray:3 3; }
+.viz-blase {
+  position:absolute; top:4px; transform:translateX(12px); background:var(--mon-dunkel); color:#fff;
+  padding:9px 12px; border-radius:10px; font-size:.78rem; line-height:1.5; box-shadow:0 10px 28px rgba(0,0,0,.28);
+  pointer-events:none; white-space:nowrap; z-index:5;
+}
+.viz-blase.links { transform:translateX(calc(-100% - 12px)); }
+.viz-blase p { margin:0; }
+.viz-blase-tag { color:rgba(255,255,255,.6); font-size:.72rem; margin-bottom:5px !important; }
+.viz-blase-zeile { display:flex; align-items:center; gap:7px; }
+.viz-blase-zeile i { width:12px; height:3px; border-radius:2px; flex:none; }
+.viz-blase-zeile b { font-variant-numeric:tabular-nums; }
+
+/* Zeitraumwahl: ein Knopf, eine Tafel mit Zeilen */
+.zeitwahl { position:relative; }
+.zeitwahl-knopf {
+  display:inline-flex; align-items:center; gap:9px; background:var(--surface); border:1px solid var(--border);
+  border-radius:999px; padding:9px 16px; font:inherit; font-size:.87rem; color:var(--fg); cursor:pointer;
+  transition: border-color .2s ease; white-space:nowrap;
+}
+.zeitwahl-knopf:hover, .zeitwahl.offen .zeitwahl-knopf { border-color:var(--accent); }
+.zeitwahl-knopf > svg:first-child { color:var(--accent); flex:none; }
+.zeitwahl-pfeil { color:var(--fg-subtle); transition:transform .2s ease; }
+.zeitwahl.offen .zeitwahl-pfeil { transform:rotate(180deg); }
+.zeitwahl-tafel {
+  position:absolute; top:calc(100% + 8px); right:0; z-index:30; min-width:268px;
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  box-shadow:0 16px 44px rgba(0,0,0,.16); padding:6px;
+}
+.zeitwahl-reihe {
+  display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; border:0; background:none;
+  cursor:pointer; font:inherit; font-size:.88rem; color:var(--fg); text-align:left; padding:9px 12px; border-radius:9px;
+  transition:background .15s ease;
+}
+.zeitwahl-reihe:hover { background:var(--mon-off); }
+.zeitwahl-reihe.aktiv { font-weight:700; }
+.zeitwahl-reihe.aktiv::after { content:"✓"; color:var(--accent); font-size:1rem; font-weight:700; }
+.zeitwahl-frei { border-top:1px solid var(--border); margin-top:6px; padding:14px 12px 10px; }
+.zeitwahl-frei-titel { margin:0 0 10px; font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-subtle); }
+.zeitwahl-felder { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:8px 10px; }
+.zeitwahl-felder label { font-size:.8rem; color:var(--fg-subtle); }
+.zeitwahl-felder input[type="date"] {
+  width:100%; font:inherit; font-size:.84rem; color:var(--fg); border:1px solid var(--border);
+  border-radius:8px; padding:6px 9px; background:#fff; color-scheme:light;
+}
+.zeitwahl-felder input[type="date"]:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(18,85,127,.15); }
+.zeitwahl-anwenden {
+  width:100%; margin-top:12px; border:0; background:var(--mon-dunkel); color:#fff; font:inherit; font-size:.84rem;
+  cursor:pointer; padding:9px 16px; border-radius:999px; transition:background .2s ease;
+}
+.zeitwahl-anwenden:hover { background:var(--accent); }
