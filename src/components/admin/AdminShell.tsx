@@ -125,9 +125,10 @@ function Login({ onErfolg }: { onErfolg: () => void }) {
 }
 
 export default function AdminShell({
-  titel, eyebrow, lead, children,
+  titel, eyebrow, lead, aktion, children,
 }: {
-  titel: string; eyebrow?: string; lead?: string; children: ReactNode;
+  // aktion: steht rechtsbuendig neben der Ueberschrift (z. B. die Zeitraumwahl)
+  titel: string; eyebrow?: string; lead?: string; aktion?: ReactNode; children: ReactNode;
 }) {
   const [status, setStatus] = useState<"pruefe" | "aus" | "an">("pruefe");
   const [pfad, setPfad] = useState("");
@@ -251,10 +252,13 @@ export default function AdminShell({
         </div>
 
         <main className="flex-1 px-6 lg:px-8 pt-4 pb-12 max-w-[1340px] w-full">
-          <div className="mb-8">
-            {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
-            <h1 className="display-h text-3xl font-semibold text-[var(--fg)]">{titel}</h1>
-            {lead && <p className="text-[var(--fg-muted)] mt-2">{lead}</p>}
+          <div className="mb-8 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+            <div>
+              {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
+              <h1 className="display-h text-3xl font-semibold text-[var(--fg)]">{titel}</h1>
+              {lead && <p className="text-[var(--fg-muted)] mt-2">{lead}</p>}
+            </div>
+            {aktion && <div className="ml-auto">{aktion}</div>}
           </div>
           {children}
         </main>

@@ -86,7 +86,7 @@ const ZEITRAEUME = [
   { wert: "7", titel: "Letzte 7 Tage" },
   { wert: "30", titel: "Letzte 30 Tage" },
   { wert: "90", titel: "Letzte 90 Tage" },
-  { wert: "alles", titel: "Insgesamt" },
+  { wert: "alles", titel: "Gesamt" },
 ];
 
 const zahl = (n: number | null | undefined) => (n == null ? "—" : n.toLocaleString("de-DE"));
@@ -291,7 +291,7 @@ export default function MonitoringSeite() {
   const s = stand?.speicher;
   const d = stand?.davor;
 
-  const name = wahl === "alles" ? "Insgesamt"
+  const name = wahl === "alles" ? "Gesamt"
     : ZEITRAEUME.find(z => z.wert === wahl)?.titel ?? "Eigener Zeitraum";
   const spanne = stand ? `${langDatum(stand.von)} – ${langDatum(stand.bis)}` : "";
 
@@ -306,58 +306,64 @@ export default function MonitoringSeite() {
 
   const quote = a?.ok && b?.ok && b.besuche > 0 ? (a.gesamt / b.besuche) * 100 : null;
 
+  // Rechts neben der Ueberschrift wie in der Autohaus-Demo; die Tafel klappt
+  // nach links auf, damit sie am rechten Rand nicht abgeschnitten wird.
+  const zeitwahl = (
+    <div className="flex flex-col items-end gap-1.5">
+      <div className="relative" ref={tafel}>
+        <button
+          onClick={() => setOffen(o => !o)}
+          aria-expanded={offen}
+          aria-haspopup="dialog"
+          className="chip px-3 py-2 text-sm flex items-center gap-2"
+        >
+          <Calendar size={15} /> {name} <ChevronDown size={13} />
+        </button>
+        {offen && (
+          <div
+            role="dialog"
+            aria-label="Zeitraum wählen"
+            className="absolute right-0 z-30 mt-1.5 card p-2"
+            style={{ minWidth: 250, boxShadow: "0 10px 30px rgba(7,26,43,0.18)" }}
+          >
+            {ZEITRAEUME.map(z => (
+              <button
+                key={z.wert}
+                onClick={() => { setWahl(z.wert); setOffen(false); }}
+                className="w-full text-left px-3 py-2 rounded-[7px] text-sm"
+                style={wahl === z.wert
+                  ? { background: "var(--accent)", color: "#fff" }
+                  : { color: "var(--fg-muted)" }}
+              >
+                {z.titel}
+              </button>
+            ))}
+            <div className="mt-2 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+              <p className="text-xs text-[var(--fg-subtle)] px-3 mb-1.5">Eigener Zeitraum</p>
+              <div className="flex items-center gap-2 px-3">
+                <input type="date" value={freiVon} onChange={e => setFreiVon(e.target.value)}
+                       className="feld text-xs flex-1" aria-label="Von" />
+                <span className="text-xs text-[var(--fg-subtle)]">bis</span>
+                <input type="date" value={freiBis} onChange={e => setFreiBis(e.target.value)}
+                       className="feld text-xs flex-1" aria-label="bis" />
+              </div>
+              <button onClick={freiAnwenden}
+                      className="btn-primary w-full mt-2 py-1.5 text-sm">Anzeigen</button>
+            </div>
+          </div>
+        )}
+      </div>
+      {stand && <span className="text-[var(--fg-subtle)] text-xs">{spanne}</span>}
+    </div>
+  );
+
   return (
     <AdminShell
       titel="Monitoring"
       eyebrow="Zahlen & Auswertung"
       lead="Was auf der Website passiert – und was davon zu einer Anfrage wird."
+      aktion={zeitwahl}
     >
-      <div className="flex flex-wrap items-start gap-3 mb-5">
-        <div className="relative" ref={tafel}>
-          <button
-            onClick={() => setOffen(o => !o)}
-            aria-expanded={offen}
-            aria-haspopup="dialog"
-            className="chip px-3 py-2 text-sm flex items-center gap-2"
-          >
-            <Calendar size={15} /> {name} <ChevronDown size={13} />
-          </button>
-          {offen && (
-            <div
-              role="dialog"
-              aria-label="Zeitraum wählen"
-              className="absolute z-30 mt-1.5 card p-2"
-              style={{ minWidth: 250, boxShadow: "0 10px 30px rgba(7,26,43,0.18)" }}
-            >
-              {ZEITRAEUME.map(z => (
-                <button
-                  key={z.wert}
-                  onClick={() => { setWahl(z.wert); setOffen(false); }}
-                  className="w-full text-left px-3 py-2 rounded-[7px] text-sm"
-                  style={wahl === z.wert
-                    ? { background: "var(--accent)", color: "#fff" }
-                    : { color: "var(--fg-muted)" }}
-                >
-                  {z.titel}
-                </button>
-              ))}
-              <div className="mt-2 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
-                <p className="text-xs text-[var(--fg-subtle)] px-3 mb-1.5">Eigener Zeitraum</p>
-                <div className="flex items-center gap-2 px-3">
-                  <input type="date" value={freiVon} onChange={e => setFreiVon(e.target.value)}
-                         className="feld text-xs flex-1" aria-label="Von" />
-                  <span className="text-xs text-[var(--fg-subtle)]">bis</span>
-                  <input type="date" value={freiBis} onChange={e => setFreiBis(e.target.value)}
-                         className="feld text-xs flex-1" aria-label="bis" />
-                </div>
-                <button onClick={freiAnwenden}
-                        className="btn-primary w-full mt-2 py-1.5 text-sm">Anzeigen</button>
-              </div>
-            </div>
-          )}
-        </div>
-        {stand && <span className="text-[var(--fg-subtle)] text-sm ml-auto pt-2">{spanne}</span>}
-      </div>
 
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
@@ -390,11 +396,6 @@ export default function MonitoringSeite() {
               <Kachel titel="Anfrage je Besuch"
                       wert={quote.toFixed(1).replace(".", ",") + " %"}
                       unter="grober Richtwert" hinweis={ERKLAERUNG.quote} />
-            )}
-            {i?.ok && i.follower != null && (
-              <Kachel titel="Follower" wert={zahl(i.follower)}
-                      unter={`${i.zuwachs != null && i.zuwachs >= 0 ? "+" : ""}${i.zuwachs ?? 0} im Zeitraum · ${zahl(i.beitraege)} Beiträge`}
-                      hinweis={ERKLAERUNG.instagram} />
             )}
             {s?.ok && (
               <Kachel titel="Bildspeicher" wert={groesse(s.bytes)}
