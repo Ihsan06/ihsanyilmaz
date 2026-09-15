@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import Leistungen from "@/components/Leistungen";
 import About from "@/components/About";
 import Portfolio from "@/components/Portfolio";
 import Instagram from "@/components/Instagram";
@@ -12,6 +13,7 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
+        <Leistungen />
         <About />
         <Portfolio />
         <Instagram />

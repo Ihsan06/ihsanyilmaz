@@ -92,3 +92,15 @@ CREATE TABLE IF NOT EXISTS login_versuche (
   zeitpunkt  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_login_zeit ON login_versuche(zeitpunkt);
+
+-- Jeder Absendeversuch des Kontaktformulars, auch die, aus denen keine
+-- Anfrage wurde. Daraus baut das Monitoring die Tabelle "Anfragen nach
+-- Formular": ok | ungueltig (Pflichtfeld fehlte) | fehler (Versand
+-- scheiterte) | bot (Honeypot ausgefuellt).
+CREATE TABLE IF NOT EXISTS eingaenge (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  zeitpunkt TEXT NOT NULL,
+  formular  TEXT NOT NULL,
+  ergebnis  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_eingaenge_zeit ON eingaenge(zeitpunkt);

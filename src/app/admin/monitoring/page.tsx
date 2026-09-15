@@ -16,8 +16,12 @@ type Anfragen = Fehlbar & {
   gesamt: number;
   offen: number;
   status: Record<string, number>;
+  nachFormular: Record<string, { ok: number; ungueltig: number; fehler: number; bot: number }>;
   proTag: { tag: string; anzahl: number }[];
 };
+
+// Anzeigenamen der Formulare – die Website hat bisher eines.
+const NAMEN: Record<string, string> = { kontakt: "Kontakt" };
 type Besucher = Fehlbar & {
   von?: string;
   besuche: number;
@@ -58,9 +62,8 @@ const ERKLAERUNG = {
     "liegen diese Zahlen unter den Rohwerten aus dem Cloudflare-Bericht, in denen Suchmaschinen " +
     "und Scanner mitlaufen. Tage ohne Besuch werden als Null gezeichnet.",
   formulare:
-    "Gezählt wird auf dem Server, beim tatsächlichen Absenden – nicht im Browser. Die Website hat " +
-    "ein Formular, das Kontaktformular. „Unbeantwortet“ sind die Anfragen aus dem Zeitraum, die " +
-    "unter „Anfragen“ noch als neu oder in Bearbeitung stehen.",
+    "Gezählt wird auf dem Server, beim tatsächlichen Absenden – nicht im Browser. Gespeichert wird " +
+    "dabei nichts Persönliches, nur dass ein Formular abgeschickt wurde und wie es ausging.",
   seiten:
     "Zählt Seitenaufrufe, nicht Besuche. Die Startseite liegt fast immer vorn, weil die meisten " +
     "dort einsteigen.",
@@ -136,6 +139,19 @@ function Ausfall({ was, fehler }: { was: string; fehler?: string }) {
       <h2>{was} nicht verfügbar</h2>
       <p>{fehler || "Unbekannter Grund."}</p>
     </section>
+  );
+}
+
+// Erklaerungen unter einer Tabelle, als abgesetzter Kasten: so liest man
+// "jemand hat abgeschickt, ohne ein Pflichtfeld auszufuellen" nicht als
+// Meldung ueber einen Vorfall – der Satz erklaert nur die Spalte.
+function Legende({ paare }: { paare: [string, string][] }) {
+  return (
+    <dl className="mon-legende">
+      {paare.map(([wort, text]) => (
+        <div key={wort}><dt>{wort}</dt><dd>{text}</dd></div>
+      ))}
+    </dl>
   );
 }
 
@@ -331,8 +347,14 @@ export default function MonitoringSeite() {
       + "Cloudflare hält sie nur ein halbes Jahr vor. Die Anfragen darunter zählen den ganzen Zeitraum."
     : "";
 
-  const quote = a?.ok && b?.ok && b.besuche > 0 ? (a.gesamt / b.besuche) * 100 : null;
+  // Die Kachel steht auch bei null Besuchen – dann mit Strich statt Zahl,
+  // damit die Reihe nicht auf drei schrumpft, sobald die Zaehlung hakt.
+  const quote = a?.ok && b?.ok ? (b.besuche > 0 ? (a.gesamt / b.besuche) * 100 : null) : undefined;
   const tageMitAnfragen = (a?.proTag || []).filter(z => z.anzahl > 0);
+  const zeilen = Object.entries(a?.nachFormular || {})
+    .map(([name, e]) => ({ name: NAMEN[name] || name, ...e }))
+    .filter(z => z.ok || z.ungueltig || z.fehler || z.bot)
+    .sort((x, y) => y.ok - x.ok);
   const hoechsterTag = Math.max(1, ...tageMitAnfragen.map(z => z.anzahl));
 
   return (
@@ -395,9 +417,11 @@ export default function MonitoringSeite() {
                       hinweis={ERKLAERUNG.anfragen}
                       vergleich={<Trend jetzt={a.gesamt} davor={d?.anfragen} />} />
             )}
-            {quote != null && (
-              <Kachel titel="Anfrage je Besuch" wert={quote.toFixed(1).replace(".", ",") + " %"}
-                      unter="grober Richtwert" hinweis={ERKLAERUNG.quote} />
+            {quote !== undefined && (
+              <Kachel titel="Anfrage je Besuch"
+                      wert={quote == null ? "—" : quote.toFixed(1).replace(".", ",") + " %"}
+                      unter={quote == null ? "noch keine Besuche gezählt" : "grober Richtwert"}
+                      hinweis={ERKLAERUNG.quote} />
             )}
           </div>
 
@@ -425,21 +449,38 @@ export default function MonitoringSeite() {
           ) : a && (
             <>
               <Karte titel="Anfragen nach Formular" hinweis={ERKLAERUNG.formulare}>
-                {a.gesamt ? (
-                  <div className="mon-tabelle-huelle">
-                    <table className="mon-tabelle">
-                      <thead>
-                        <tr><th>Formular</th><th className="num">Abgeschickt</th><th className="num">Unbeantwortet</th></tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>Kontakt</td>
-                          <td className="num stark">{zahl(a.gesamt)}</td>
-                          <td className="num">{zahl((a.status?.neu || 0) + (a.status?.in_bearbeitung || 0))}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                {zeilen.length ? (
+                  <>
+                    <div className="mon-tabelle-huelle">
+                      <table className="mon-tabelle">
+                        <thead>
+                          <tr>
+                            <th>Formular</th>
+                            <th className="num">Abgeschickt</th>
+                            <th className="num">Unvollständig</th>
+                            <th className="num">Störung</th>
+                            <th className="num">Bot</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {zeilen.map(z => (
+                            <tr key={z.name}>
+                              <td>{z.name}</td>
+                              <td className="num stark">{zahl(z.ok)}</td>
+                              <td className="num">{zahl(z.ungueltig)}</td>
+                              <td className={`num ${z.fehler ? "warn" : ""}`}>{zahl(z.fehler)}</td>
+                              <td className="num leise">{zahl(z.bot)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <Legende paare={[
+                      ["Unvollständig", "jemand hat abgeschickt, ohne ein Pflichtfeld auszufüllen."],
+                      ["Störung", "die Anfrage war gültig, der Versand hat aber nicht geklappt – wenn hier etwas steht, ist eine echte Anfrage verloren gegangen."],
+                      ["Bot", "automatisch ausgefiltert, hat nie jemanden erreicht."],
+                    ]} />
+                  </>
                 ) : (
                   <p className="mon-leer">In diesem Zeitraum wurde kein Formular abgeschickt.</p>
                 )}

@@ -1,53 +1,54 @@
-import { Globe, Sparkles, MapPin } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-const services = [
-  {
-    icon: Globe,
-    title: "Website & Landingpage",
-    description: "Leistungen, Öffnungszeiten, Kontakt und Fotos an einem Ort.",
-    tags: ["Design", "Öffnungszeiten", "Kontakt", "Fotos"],
-  },
-  {
-    icon: Sparkles,
-    title: "Smarte KI-Funktionen",
-    description: "Anfragen beantworten, Termine annehmen — rund um die Uhr.",
-    tags: ["KI-Assistent", "Termine", "24/7", "Zeitersparnis"],
-  },
-  {
-    icon: MapPin,
-    title: "Google & Local SEO",
-    description: "Gefunden werden, wenn Kunden in der Nähe suchen.",
-    tags: ["Google Maps", "SEO", "Bewertungen"],
-  },
+// Der Einstieg: eine klare Aussage ueber dem KI-Motiv, zwei Wege weiter,
+// darunter vier Zahlen, die den Nutzen greifbar machen. Die eigentlichen
+// Leistungen stehen im Abschnitt darunter (Leistungen.tsx).
+const ZAHLEN = [
+  { wert: "3 von 4", text: "Google-Suchen in Deutschland zeigen heute eine KI-Antwort" },
+  { wert: "24/7", text: "Ihr KI-Assistent beantwortet Anfragen – auch nachts" },
+  { wert: "Wochen", text: "statt Monate, bis Ihre Website online ist" },
+  { wert: "Festpreis", text: "vorab vereinbart, ohne Überraschungen" },
 ];
 
 export default function Hero() {
   return (
     <section
-      id="leistungen"
+      id="start"
       className="hero-bg surface-alt relative min-h-screen flex flex-col justify-center overflow-hidden pt-28 pb-16"
     >
       <div className="hero-photo" aria-hidden="true" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 w-full animate-fade-in-up">
-        {/* Ohne Ueberschrift: die drei Karten sagen selbst, was angeboten wird.
-            Die Ueberschrift bleibt fuer Vorleser da, sichtbar ist sie nicht. */}
-        <h2 className="sr-only">Leistungen</h2>
+        <div className="max-w-3xl">
+          <span className="eyebrow inline-block mb-4">Websites · KI-Assistenten · GEO — für lokale Betriebe</span>
+          <h1 className="display-h text-4xl md:text-6xl text-[var(--fg)] mb-6">
+            Gefunden werden.<br />
+            <span className="accent-text">Auch von der KI.</span>
+          </h1>
+          <p className="hero-sub text-[var(--fg-muted)] text-lg md:text-xl leading-relaxed max-w-2xl mb-8">
+            Ich baue smarte Websites mit eigenem Verwaltungsbereich, KI-Assistenten, die Anfragen
+            rund um die Uhr beantworten – und sorge dafür, dass Ihr Betrieb dort auftaucht, wo heute
+            gesucht wird: bei Google, ChatGPT &amp; Co.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <a href="#kontakt" className="btn-primary px-6 py-3 text-sm">
+              Projekt anfragen <ArrowRight size={16} />
+            </a>
+            <a href="#leistungen" className="btn-ghost px-6 py-3 text-sm">
+              Leistungen ansehen
+            </a>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {services.map(s => (
-            <div key={s.title} className="card p-6">
-              <div className="icon-tile w-11 h-11 mb-4">
-                <s.icon size={20} />
-              </div>
-              <h3 className="display-h text-lg font-semibold text-[var(--fg)] mb-2">{s.title}</h3>
-              <p className="text-[var(--fg-muted)] text-sm leading-relaxed mb-4">{s.description}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {s.tags.map(t => <span key={t} className="chip px-2.5 py-1 text-xs font-medium">{t}</span>)}
-              </div>
+        <dl className="mt-16 md:mt-24 grid grid-cols-2 md:grid-cols-4 gap-px rounded-[14px] overflow-hidden"
+            style={{ background: "var(--border)" }}>
+          {ZAHLEN.map(z => (
+            <div key={z.wert} className="px-5 py-5" style={{ background: "rgba(10,15,20,0.72)", backdropFilter: "blur(6px)" }}>
+              <dt className="display-h text-2xl md:text-3xl text-[var(--fg)]">{z.wert}</dt>
+              <dd className="text-[var(--fg-muted)] text-sm mt-1.5 leading-snug">{z.text}</dd>
             </div>
           ))}
-        </div>
+        </dl>
       </div>
     </section>
   );

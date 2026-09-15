@@ -26,11 +26,13 @@ export default function Header() {
       style={{ background: scrolled ? "var(--bg)" : "transparent" }}
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        {/* Die Marke links, das Menue in der Mitte der Zeile: absolut
+            gesetzt, damit es unabhaengig von der Logobreite zentriert steht. */}
+        <div className="relative flex items-center justify-between h-16">
           <a href="#" className="text-[var(--fg)]" aria-label="AIY · Ihsan Yilmaz — zum Seitenanfang">
             <Logo size={30} />
           </a>
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             {navLinks.map(l => (
               <a key={l.href} href={l.href} className="text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors">{l.label}</a>
             ))}

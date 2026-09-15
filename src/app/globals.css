@@ -117,6 +117,43 @@ html, body {
 }
 
 /* ============================================================
+   LEISTUNGEN — Bildrahmen und gebaute Ansichten
+   ============================================================ */
+.rahmen-browser {
+  border-radius: 12px; overflow: hidden; background: #0B1219;
+  border: 1px solid var(--border); box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+}
+.rahmen-browser-leiste { display:flex; gap:6px; padding:9px 12px; background:#131C26; border-bottom:1px solid var(--border); }
+.rahmen-browser-leiste i { width:9px; height:9px; border-radius:50%; background:#2B3946; }
+.rahmen-browser img { display:block; width:100%; height:auto; }
+.rahmen-handy {
+  border-radius: 22px; overflow:hidden; background:#0B1219;
+  border: 4px solid #1C2732; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+}
+.rahmen-handy img { display:block; width:100%; height:auto; }
+
+.mock-karte {
+  background: var(--surface); border:1px solid var(--border); border-radius:14px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5); padding: 18px 20px 16px; max-width: 560px; margin: 0 auto;
+}
+.mock-kopf { display:flex; align-items:center; gap:8px; font-size:.78rem; color:var(--fg-subtle); margin-bottom:14px; }
+.mock-punkt { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.2); }
+.mock-chat { display:flex; flex-direction:column; gap:10px; }
+.mock-chat p { margin:0; font-size:.9rem; line-height:1.5; padding:10px 14px; border-radius:14px; max-width:88%; }
+.mock-frage { align-self:flex-end; background:var(--accent-2); color:#fff; border-bottom-right-radius:4px !important; }
+.mock-antwort { align-self:flex-start; background:var(--surface-2); color:var(--fg); border-bottom-left-radius:4px !important; }
+.mock-fuss { display:flex; align-items:center; gap:6px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border); font-size:.76rem; color:var(--fg-subtle); }
+.mock-fuss svg { color:#22c55e; flex:none; }
+.mock-suche {
+  margin:0 0 14px; padding:11px 14px; border-radius:999px; background:var(--surface-2);
+  border:1px solid var(--border); font-size:.9rem; color:var(--fg);
+}
+.mock-geo p { margin:0; font-size:.92rem; line-height:1.6; color:var(--fg-muted); }
+.mock-geo b { color:var(--fg); }
+.mock-quellen { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+.mock-quellen span { font-size:.72rem; padding:4px 10px; border-radius:999px; background:var(--accent-soft); color:var(--accent); }
+
+/* ============================================================
    ADMINBEREICH — eigenes Thema: Schwarz / Weiß / Ozeanblau
    Nur hier gültig, die Website selbst ist dunkel.
    ============================================================ */
@@ -259,6 +296,20 @@ html, body {
 .mon-tabelle tbody tr:last-child td { border-bottom:0; }
 .mon-tabelle .num { text-align:right; font-variant-numeric:tabular-nums; }
 .mon-tabelle .stark { font-weight:700; color:var(--fg); }
+
+.mon-legende {
+  margin:18px 0 0; padding:12px 15px 13px; background:var(--mon-off); border:1px solid var(--border);
+  border-radius:10px; display:flex; flex-direction:column; gap:5px;
+}
+.mon-legende > div { display:flex; gap:10px; font-size:.78rem; line-height:1.55; }
+.mon-legende dt { flex:0 0 116px; font-weight:700; color:var(--fg); }
+.mon-legende dd { margin:0; color:var(--fg-subtle); }
+@media (max-width: 620px) {
+  .mon-legende > div { flex-direction:column; gap:1px; }
+  .mon-legende dt { flex:none; }
+}
+.mon-tabelle .leise { color:var(--fg-subtle); }
+.mon-tabelle .warn { color:#b45309; font-weight:700; }
 
 /* Oben 30px Luft: dort erscheint die Blase ueber dem hoechsten Balken,
    noch innerhalb der Scrollflaeche, die sie sonst abschneiden wuerde. */

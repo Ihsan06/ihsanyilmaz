@@ -113,7 +113,7 @@ async function anfrageZahlen(env, von, bis) {
   const seit = tagText(von);
   const okBis = tagText(bis);
 
-  const [nachStatus, verlauf, offen] = await Promise.all([
+  const [nachStatus, verlauf, offen, versuche] = await Promise.all([
     env.DB.prepare(
       `SELECT status, COUNT(*) AS anzahl FROM anfragen
         WHERE substr(erstellt_am, 1, 10) >= ? AND substr(erstellt_am, 1, 10) <= ?
@@ -128,17 +128,39 @@ async function anfrageZahlen(env, von, bis) {
     // letztem Monat ist heute genauso offen wie eine von gestern.
     env.DB.prepare(
       `SELECT COUNT(*) AS n FROM anfragen WHERE status IN ('neu', 'in_bearbeitung')`
-    ).first()
+    ).first(),
+    // Alle Absendeversuche, auch die ohne Anfrage (siehe contact.js).
+    // Die Tabelle gibt es erst seit September 2026 – vorher nur "anfragen".
+    env.DB.prepare(
+      `SELECT ergebnis, COUNT(*) AS anzahl FROM eingaenge
+        WHERE substr(zeitpunkt, 1, 10) >= ? AND substr(zeitpunkt, 1, 10) <= ?
+          AND formular = 'kontakt'
+        GROUP BY ergebnis`
+    ).bind(seit, okBis).all().catch(() => ({ results: [] }))
   ]);
 
   const status = {};
   (nachStatus.results || []).forEach(z => { status[z.status] = z.anzahl; });
   const gesamt = Object.values(status).reduce((s, n) => s + n, 0);
 
+  // Wie bei Diezmann: je Formular ok / ungueltig / fehler / bot. "ok" kommt
+  // aus "anfragen" – die Tabelle reicht weiter zurueck als "eingaenge".
+  const ergebnisse = {};
+  (versuche.results || []).forEach(z => { ergebnisse[z.ergebnis] = z.anzahl; });
+  const nachFormular = {
+    kontakt: {
+      ok: gesamt,
+      ungueltig: ergebnisse.ungueltig || 0,
+      fehler: ergebnisse.fehler || 0,
+      bot: ergebnisse.bot || 0
+    }
+  };
+
   return {
     ok: true,
     gesamt,
     status,
+    nachFormular,
     offen: offen?.n || 0,
     proTag: (verlauf.results || []).map(z => ({ tag: z.tag, anzahl: z.anzahl }))
   };

@@ -43,6 +43,18 @@ async function notifyTelegram(env) {
   }
 }
 
+// Jeder Versuch landet in "eingaenge" – auch die, aus denen keine Anfrage
+// wird. Das Monitoring zeigt daraus, wie oft das Formular haengt (fehler),
+// unvollstaendig abgeschickt wird (ungueltig) oder Bots abfaengt (bot).
+// Darf die Antwort nie verzoegern oder scheitern lassen.
+function zaehlen(env, waitUntil, ergebnis) {
+  if (!env.DB) return;
+  const lauf = env.DB.prepare(
+    'INSERT INTO eingaenge (zeitpunkt, formular, ergebnis) VALUES (?, ?, ?)'
+  ).bind(new Date().toISOString(), 'kontakt', ergebnis).run().catch(() => {});
+  if (typeof waitUntil === 'function') waitUntil(lauf);
+}
+
 export async function onRequestPost({ request, env, waitUntil }) {
   let data;
   try {
@@ -54,12 +66,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const { name, email, company, message, fax } = data || {};
 
   // Honeypot: Bots füllen "fax" aus → stillschweigend ignorieren
-  if (fax) return json({ ok: true });
+  if (fax) { zaehlen(env, waitUntil, 'bot'); return json({ ok: true }); }
 
   if (!name || !email || !message) {
+    zaehlen(env, waitUntil, 'ungueltig');
     return json({ ok: false, error: 'Bitte Name, E-Mail und Nachricht ausfüllen.' }, 400);
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    zaehlen(env, waitUntil, 'ungueltig');
     return json({ ok: false, error: 'Bitte eine gültige E-Mail-Adresse angeben.' }, 400);
   }
 
@@ -76,6 +90,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   }
 
   if (!env.RESEND_API_KEY) {
+    zaehlen(env, waitUntil, 'fehler');
     return json({ ok: false, error: 'E-Mail-Dienst ist noch nicht konfiguriert.' }, 500);
   }
 
@@ -107,12 +122,15 @@ export async function onRequestPost({ request, env, waitUntil }) {
       }),
     });
   } catch {
+    zaehlen(env, waitUntil, 'fehler');
     return json({ ok: false, error: 'E-Mail-Dienst nicht erreichbar.' }, 502);
   }
 
   if (!r.ok) {
+    zaehlen(env, waitUntil, 'fehler');
     return json({ ok: false, error: 'Versand fehlgeschlagen. Bitte später erneut versuchen.' }, 502);
   }
+  zaehlen(env, waitUntil, 'ok');
 
   // Zusätzliche Telegram-Benachrichtigung, ohne die Antwort zu verzögern.
   const tg = notifyTelegram(env);
