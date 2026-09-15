@@ -44,8 +44,7 @@ html, body {
 /* ============================================================
    SURFACES & COMPONENT UTILITIES
    ============================================================ */
-/* dritte Stufe: ins Blau gezogen, fuer "Ueber mich" – hebt sich von den
-   Leistungen davor und den Projekten danach ab */
+/* dritte Stufe: ins Blau gezogen, fuer die Projekte */
 .surface-tief {
   --bg:#0B1B29; --fg:#F2F5F7; --fg-muted:#B4BFC9; --fg-subtle:#7C8A97;
   --border:#22394B; --surface:#10253A; --surface-2:#173049;
@@ -212,7 +211,8 @@ html, body {
 .hero-bg .hero-sub { text-shadow:0 1px 14px rgba(0,0,0,0.78); }
 
 /* ============================================================
-   PROJEKTE — unterer Bildteil (Stadt/Main) als sticky Hintergrund
+   ÜBER MICH — Würzburg am Main als sticky Hintergrund (Klasse heisst
+   historisch projekte-bg)
    ============================================================ */
 .projekte-bg {
   position:absolute; inset:0; z-index:0; pointer-events:none; filter:grayscale(1);

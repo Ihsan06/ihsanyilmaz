@@ -33,9 +33,8 @@ const projects = [
 
 export default function Portfolio() {
   return (
-    <section id="projekte" className="relative surface-alt py-24 overflow-hidden">
-      <div className="projekte-bg" aria-hidden="true" />
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
+    <section id="projekte" className="surface-tief py-24">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-12">Projekte</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

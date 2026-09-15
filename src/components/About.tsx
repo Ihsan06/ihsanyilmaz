@@ -13,8 +13,10 @@ const values = [
 
 export default function About() {
   return (
-    <section id="ueber-mich" className="surface-tief py-24">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section id="ueber-mich" className="relative surface-alt py-24 overflow-hidden">
+      {/* Der lokale Bezug: Wuerzburg am Main als stiller Hintergrund */}
+      <div className="projekte-bg" aria-hidden="true" />
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Text */}
           <div>
