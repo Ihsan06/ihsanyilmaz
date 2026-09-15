@@ -138,12 +138,6 @@ html, body {
 }
 .mock-kopf { display:flex; align-items:center; gap:8px; font-size:.78rem; color:var(--fg-subtle); margin-bottom:14px; }
 .mock-punkt { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.2); }
-.mock-chat { display:flex; flex-direction:column; gap:10px; }
-.mock-chat p { margin:0; font-size:.9rem; line-height:1.5; padding:10px 14px; border-radius:14px; max-width:88%; }
-.mock-frage { align-self:flex-end; background:var(--accent-2); color:#fff; border-bottom-right-radius:4px !important; }
-.mock-antwort { align-self:flex-start; background:var(--surface-2); color:var(--fg); border-bottom-left-radius:4px !important; }
-.mock-fuss { display:flex; align-items:center; gap:6px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border); font-size:.76rem; color:var(--fg-subtle); }
-.mock-fuss svg { color:#22c55e; flex:none; }
 .mock-suche {
   margin:0 0 14px; padding:11px 14px; border-radius:999px; background:var(--surface-2);
   border:1px solid var(--border); font-size:.9rem; color:var(--fg);

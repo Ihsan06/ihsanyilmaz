@@ -1,13 +1,13 @@
 import { ArrowRight } from "lucide-react";
 
-// Der Einstieg: eine klare Aussage ueber dem KI-Motiv, zwei Wege weiter,
-// darunter vier Zahlen, die den Nutzen greifbar machen. Die eigentlichen
+// Der Einstieg: eine Aussage ueber dem KI-Motiv, zwei Wege weiter, darunter
+// vier kurze Versprechen. Kurz gehalten – lange Erklaerungen liest hier keiner. Die eigentlichen
 // Leistungen stehen im Abschnitt darunter (Leistungen.tsx).
 const ZAHLEN = [
-  { wert: "3 von 4", text: "Google-Suchen in Deutschland zeigen heute eine KI-Antwort" },
-  { wert: "24/7", text: "Ihr KI-Assistent beantwortet Anfragen – auch nachts" },
-  { wert: "Wochen", text: "statt Monate, bis Ihre Website online ist" },
-  { wert: "Festpreis", text: "vorab vereinbart, ohne Überraschungen" },
+  { wert: "Tage", text: "statt Monate – für Änderungen und neue Ideen" },
+  { wert: "Idee zuerst", text: "KI ist der Beschleuniger, nicht der Ersatz" },
+  { wert: "Instagram", text: "Beiträge aus Ihren Fotos, in Minuten geplant" },
+  { wert: "Festpreis", text: "vorab, ohne Überraschungen" },
 ];
 
 export default function Hero() {
@@ -20,15 +20,14 @@ export default function Hero() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 w-full animate-fade-in-up">
         <div className="max-w-3xl">
-          <span className="eyebrow inline-block mb-4">Websites · KI-Assistenten · GEO — für lokale Betriebe</span>
+          <span className="eyebrow inline-block mb-4">Websites für lokale Betriebe</span>
           <h1 className="display-h text-4xl md:text-6xl text-[var(--fg)] mb-6">
-            Gefunden werden.<br />
-            <span className="accent-text">Auch von der KI.</span>
+            Ihre Website.<br />
+            <span className="accent-text">Ideen schneller online.</span>
           </h1>
-          <p className="hero-sub text-[var(--fg-muted)] text-lg md:text-xl leading-relaxed max-w-2xl mb-8">
-            Ich baue smarte Websites mit eigenem Verwaltungsbereich, KI-Assistenten, die Anfragen
-            rund um die Uhr beantworten – und sorge dafür, dass Ihr Betrieb dort auftaucht, wo heute
-            gesucht wird: bei Google, ChatGPT &amp; Co.
+          <p className="hero-sub text-[var(--fg-muted)] text-lg md:text-xl leading-relaxed max-w-xl mb-8">
+            Ich baue Websites für lokale Betriebe – und setze Änderungen und neue Ideen mit KI
+            in Tagen um. Die Idee muss gut sein. Das Tempo liefere ich.
           </p>
           <div className="flex flex-wrap gap-3">
             <a href="#kontakt" className="btn-primary px-6 py-3 text-sm">

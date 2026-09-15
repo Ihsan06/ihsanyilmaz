@@ -26,7 +26,7 @@ export default function About() {
 
             <div className="mb-8">
               <p className="text-[var(--fg-muted)] text-lg leading-relaxed">
-                Ich bin Ihsan, Wirtschaftsinformatiker aus Würzburg. Ich baue Websites für lokale Betriebe — mit Funktionen, die früher nur große Firmen hatten.
+                Ich bin Ihsan, Wirtschaftsinformatiker aus Würzburg. Ich baue Websites für lokale Betriebe – mit Funktionen, die früher nur große Firmen hatten.
               </p>
               <a
                 href="https://www.linkedin.com/in/ihsan-yilmaz-3a634713a/"

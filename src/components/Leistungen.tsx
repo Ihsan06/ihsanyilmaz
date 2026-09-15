@@ -1,9 +1,9 @@
-import { Globe, LayoutDashboard, Bot, Sparkles, Check } from "lucide-react";
+import { Globe, LayoutDashboard, Zap, Sparkles, Check } from "lucide-react";
 
 // Die vier Leistungen, jede mit einem Bild: Screenshots aus der eigenen
-// Autohaus-Demo (public/leistungen/*.jpg) fuer Website und Verwaltung,
-// gebaute Ansichten fuer Assistent und KI-Antwort – da gibt es nichts zu
-// fotografieren, was man versteht.
+// Autohaus-Demo (public/leistungen/*.jpg) fuer Website, Verwaltung und
+// Instagram, eine gebaute Ansicht fuer die KI-Antwort – die gibt es nirgends
+// zu fotografieren. Texte bewusst kurz: Ueberschrift, zwei Saetze, drei Punkte.
 
 type Leistung = {
   nummer: string;
@@ -13,7 +13,6 @@ type Leistung = {
   text: string;
   punkte: string[];
   bild: React.ReactNode;
-  notiz?: string;
 };
 
 // Ein Bildschirm-Rahmen um einen Screenshot: dunkle Leiste mit drei Punkten,
@@ -33,33 +32,6 @@ function Handy({ src, alt, className = "" }: { src: string; alt: string; classNa
     <div className={`rahmen-handy ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt={alt} loading="lazy" />
-    </div>
-  );
-}
-
-// Der Assistent: ein kurzer Wechsel, wie er auf einer Werkstatt-Website
-// tatsaechlich laufen wuerde. Kein echter Chat, eine Ansicht.
-function AssistentAnsicht() {
-  return (
-    <div className="mock-karte" aria-label="Beispiel: Gespräch mit dem KI-Assistenten">
-      <div className="mock-kopf">
-        <span className="mock-punkt" /> Assistent · Autohaus Mustermann
-      </div>
-      <div className="mock-chat">
-        <p className="mock-frage">Habt ihr am Samstag auf? Ich bräuchte einen Reifenwechsel.</p>
-        <p className="mock-antwort">
-          Ja, samstags von 9 bis 13 Uhr. Ein Reifenwechsel dauert etwa 45 Minuten.
-          Am Samstag ist um 10:30 Uhr noch etwas frei – soll ich das für Sie eintragen?
-        </p>
-        <p className="mock-frage">Ja bitte, Golf, Kennzeichen WÜ-AB 123.</p>
-        <p className="mock-antwort">
-          Eingetragen: Samstag, 10:30 Uhr, Reifenwechsel, VW Golf. Sie bekommen gleich eine
-          Bestätigung. Bis Samstag!
-        </p>
-      </div>
-      <div className="mock-fuss">
-        <Check size={14} /> Termin an die Werkstatt übergeben · Zusammenfassung per E-Mail
-      </div>
     </div>
   );
 }
@@ -93,11 +65,9 @@ const LEISTUNGEN: Leistung[] = [
     nummer: "01",
     eyebrow: "Smart Websites",
     icon: Globe,
-    titel: "Eine Website, die arbeitet – nicht nur gut aussieht.",
-    text:
-      "Schnell, mobil, für Google gebaut. Mit den Funktionen, die Ihr Betrieb wirklich braucht: " +
-      "Anfragen, Termine, Buchungen, Öffnungszeiten, Fahrzeug- oder Speisekarte – und WhatsApp mit einem Tipp.",
-    punkte: ["Anfragen & Termine direkt auf der Seite", "Online-Buchung, z. B. Mietwagen oder Probefahrt", "Lädt in unter einer Sekunde", "DSGVO-konform, gehostet in der EU-Region"],
+    titel: "Eine Website, die arbeitet.",
+    text: "Schnell, mobil, für Google gebaut – mit Anfragen, Terminen und Buchungen direkt auf der Seite.",
+    punkte: ["Anfragen & Termine", "Online-Buchung", "Lädt in unter einer Sekunde"],
     bild: (
       <div className="relative">
         <Browser src="/leistungen/website.jpg" alt="Startseite der Autohaus-Demo" />
@@ -110,12 +80,9 @@ const LEISTUNGEN: Leistung[] = [
     nummer: "02",
     eyebrow: "Verwaltungsbereich",
     icon: LayoutDashboard,
-    titel: "Alles an einer Stelle. Ohne Agentur.",
-    text:
-      "Zu jeder Website gehört ein eigener Verwaltungsbereich: Anfragen lesen, Belegungen planen, " +
-      "Fahrzeuge oder Angebote pflegen, Instagram-Beiträge vorbereiten und einplanen – und sehen, " +
-      "wie viele Menschen die Seite besuchen. Sie ändern selbst, wann Sie wollen.",
-    punkte: ["Anfragen und Termine im Blick", "Belegungsplan, Bestand, Galerie", "Instagram-Beiträge planen, automatisch posten", "Besucherzahlen ohne Cookie-Banner"],
+    titel: "Alles an einer Stelle.",
+    text: "Anfragen, Belegungen, Bestand, Besucherzahlen – Sie ändern selbst, ohne Agentur.",
+    punkte: ["Anfragen & Termine", "Belegungsplan & Bestand", "Besucherzahlen"],
     bild: (
       <div className="relative">
         <Browser src="/leistungen/verwaltung.jpg" alt="Übersicht im Verwaltungsbereich der Autohaus-Demo" />
@@ -126,30 +93,21 @@ const LEISTUNGEN: Leistung[] = [
   },
   {
     nummer: "03",
-    eyebrow: "KI-Assistenten",
-    icon: Bot,
-    titel: "Antwortet, wenn Sie gerade keine Hand frei haben.",
-    text:
-      "Ein Assistent auf Ihrer Website, der Ihre Öffnungszeiten, Leistungen und Preise kennt. " +
-      "Er beantwortet Fragen, nimmt Termin- und Rückrufwünsche auf und schickt Ihnen eine saubere " +
-      "Zusammenfassung – rund um die Uhr, in Ihrem Ton.",
-    punkte: ["Kennt Ihr Angebot, nicht das Internet", "Nimmt Termine und Rückrufe auf", "Übergibt an Sie, sobald es persönlich wird", "Auch per WhatsApp möglich"],
-    bild: <AssistentAnsicht />,
+    eyebrow: "KI als Beschleuniger",
+    icon: Zap,
+    titel: "Gute Idee heute. Online morgen.",
+    text: "KI ersetzt keine Idee – sie macht die Umsetzung schnell. Beispiel Instagram: Foto wählen, Text kommt von der KI, Beitrag einplanen. Fertig.",
+    punkte: ["Instagram-Beiträge in Minuten", "Änderungen an der Website in Tagen", "Texte und Bilder in Ihrem Ton"],
+    bild: <Browser src="/leistungen/instagram.jpg" alt="Instagram-Beitrag im Verwaltungsbereich erstellen" />,
   },
   {
     nummer: "04",
     eyebrow: "GEO – Generative Engine Optimization",
     icon: Sparkles,
-    titel: "Sichtbar in ChatGPT, Google AI & Co.",
-    text:
-      "Kunden fragen heute eine KI: „Welche Werkstatt in Würzburg macht samstags Reifenwechsel?“ " +
-      "Genannt wird, wer klar strukturierte Fakten liefert. Ich richte Ihre Website und Ihr " +
-      "Google-Unternehmensprofil so ein, dass KI-Antworten Ihren Betrieb finden und empfehlen.",
-    punkte: ["Strukturierte Daten (schema.org) für Öffnungszeiten, Leistungen, Preise", "Fragen & Antworten, die eine KI zitieren kann", "Google-Unternehmensprofil und Bewertungen im Griff", "Läuft mit klassischem SEO zusammen, nicht dagegen"],
+    titel: "Auch von ChatGPT & Google AI empfohlen.",
+    text: "Kunden fragen heute eine KI. Genannt wird, wer klare Fakten liefert – dafür richte ich Website und Google-Profil ein.",
+    punkte: ["Strukturierte Daten", "Fragen & Antworten", "Google-Unternehmensprofil"],
     bild: <GeoAnsicht />,
-    notiz:
-      "In Deutschland zeigen inzwischen rund drei von vier Google-Suchen eine KI-Antwort – " +
-      "und fast die Hälfte aller Unternehmen hat dafür noch keinen Plan.",
   },
 ];
 
@@ -159,12 +117,8 @@ export default function Leistungen() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="max-w-2xl mb-16">
           <span className="eyebrow inline-block mb-3">Leistungen</span>
-          <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-4">
-            Vier Bausteine. Ein Betrieb, der online läuft.
-          </h2>
-          <p className="text-[var(--fg-muted)] text-lg">
-            Einzeln buchbar, zusammen am stärksten. Alles aus einer Hand, aus Würzburg.
-          </p>
+          <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-4">Vier Bausteine.</h2>
+          <p className="text-[var(--fg-muted)] text-lg">Einzeln buchbar, zusammen am stärksten.</p>
         </div>
 
         <div className="flex flex-col gap-24 md:gap-32">
@@ -185,10 +139,6 @@ export default function Leistungen() {
                     </li>
                   ))}
                 </ul>
-                {l.notiz && (
-                  <p className="mt-6 text-sm leading-relaxed pl-4 text-[var(--fg-muted)]"
-                     style={{ borderLeft: "2px solid var(--accent)" }}>{l.notiz}</p>
-                )}
               </div>
               <div className="lg:col-span-7 pb-8">{l.bild}</div>
             </article>
