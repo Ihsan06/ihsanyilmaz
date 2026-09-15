@@ -17,7 +17,7 @@ export default function Hero() {
           <span className="eyebrow inline-block mb-4">Websites für lokale Betriebe</span>
           <h1 className="display-h text-4xl md:text-6xl text-[var(--fg)] mb-6">
             Ihre Website.<br />
-            <span className="accent-text">Ideen schneller online.</span>
+            <span className="accent-text">Von der Idee bis online – in Tagen.</span>
           </h1>
           <a href="#leistungen" className="btn-ghost px-6 py-3 text-sm">
             Leistungen ansehen <ArrowRight size={16} />

@@ -34,7 +34,7 @@ export default function Header() {
           </a>
           <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             {navLinks.map(l => (
-              <a key={l.href} href={l.href} className="text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors">{l.label}</a>
+              <a key={l.href} href={l.href} className="text-sm font-semibold text-[var(--fg)] hover:text-[var(--accent)] transition-colors">{l.label}</a>
             ))}
           </nav>
           <button className="md:hidden text-[var(--fg)]" onClick={() => setOpen(!open)}>
@@ -45,7 +45,7 @@ export default function Header() {
       {open && (
         <div className="md:hidden border-b border-[var(--border)] px-6 py-4 flex flex-col gap-4" style={{ background: "var(--bg)" }}>
           {navLinks.map(l => (
-            <a key={l.href} href={l.href} className="text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors" onClick={() => setOpen(false)}>{l.label}</a>
+            <a key={l.href} href={l.href} className="font-semibold text-[var(--fg)] hover:text-[var(--accent)] transition-colors" onClick={() => setOpen(false)}>{l.label}</a>
           ))}
           <a href="#kontakt" className="btn-primary px-4 py-2 text-sm" onClick={() => setOpen(false)}>Projekt anfragen</a>
         </div>
