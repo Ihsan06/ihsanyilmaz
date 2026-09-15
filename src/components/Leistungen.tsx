@@ -1,9 +1,9 @@
-import { Globe, LayoutDashboard, Zap, Sparkles, Check } from "lucide-react";
+import { Globe, LayoutDashboard, Zap, Check } from "lucide-react";
 
-// Die vier Leistungen, jede mit einem Bild: Screenshots aus der eigenen
-// Autohaus-Demo (public/leistungen/*.jpg) fuer Website, Verwaltung und
-// Instagram, eine gebaute Ansicht fuer die KI-Antwort – die gibt es nirgends
-// zu fotografieren. Texte bewusst kurz: Ueberschrift, zwei Saetze, drei Punkte.
+// Die drei Leistungen mit Bild: Screenshots aus der eigenen Autohaus-Demo
+// (public/leistungen/*.jpg). GEO steht in einem eigenen Abschnitt (Geo.tsx),
+// weil es kein Bild hat, das in diese Reihe passt.
+// Texte bewusst kurz: Ueberschrift, zwei Saetze, drei Punkte.
 
 type Leistung = {
   nummer: string;
@@ -32,30 +32,6 @@ function Handy({ src, alt, className = "" }: { src: string; alt: string; classNa
     <div className={`rahmen-handy ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt={alt} loading="lazy" />
-    </div>
-  );
-}
-
-// Die KI-Antwort: so sieht es aus, wenn ChatGPT oder Google den Betrieb
-// nennt. Genau das ist das Ziel von GEO.
-function GeoAnsicht() {
-  return (
-    <div className="mock-karte" aria-label="Beispiel: KI-Antwort, die den Betrieb empfiehlt">
-      <div className="mock-kopf">
-        <Sparkles size={14} /> KI-Antwort
-      </div>
-      <p className="mock-suche">Welche Werkstatt in Würzburg macht samstags Reifenwechsel?</p>
-      <div className="mock-geo">
-        <p>
-          <b>Autohaus Mustermann</b> in Würzburg bietet samstags von 9 bis 13 Uhr Reifenwechsel
-          an, Termine lassen sich online buchen. Kunden bewerten den Betrieb mit 4,8 von 5 Sternen.
-        </p>
-        <div className="mock-quellen">
-          <span>autohaus-mustermann.de</span>
-          <span>Google Unternehmensprofil</span>
-          <span>Bewertungen · 4,8 ★</span>
-        </div>
-      </div>
     </div>
   );
 }
@@ -100,15 +76,6 @@ const LEISTUNGEN: Leistung[] = [
     punkte: ["Instagram-Beiträge in Minuten", "Änderungen an der Website in Tagen", "Texte und Bilder in Ihrem Ton"],
     bild: <Browser src="/leistungen/instagram.jpg" alt="Instagram-Beitrag im Verwaltungsbereich erstellen" />,
   },
-  {
-    nummer: "04",
-    eyebrow: "GEO – Generative Engine Optimization",
-    icon: Sparkles,
-    titel: "Auch von ChatGPT & Google AI empfohlen.",
-    text: "Kunden fragen heute eine KI. Genannt wird, wer klare Fakten liefert – dafür richte ich Website und Google-Profil ein.",
-    punkte: ["Strukturierte Daten", "Fragen & Antworten", "Google-Unternehmensprofil"],
-    bild: <GeoAnsicht />,
-  },
 ];
 
 export default function Leistungen() {
@@ -117,7 +84,7 @@ export default function Leistungen() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="max-w-2xl mb-16">
           <span className="eyebrow inline-block mb-3">Leistungen</span>
-          <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-4">Vier Bausteine.</h2>
+          <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-4">Drei Bausteine.</h2>
           <p className="text-[var(--fg-muted)] text-lg">Einzeln buchbar, zusammen am stärksten.</p>
         </div>
 

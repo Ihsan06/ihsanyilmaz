@@ -44,7 +44,13 @@ html, body {
 /* ============================================================
    SURFACES & COMPONENT UTILITIES
    ============================================================ */
-.surface-base, .surface-alt { background: var(--bg); color: var(--fg); }
+/* dritte Stufe: ins Blau gezogen, fuer "Ueber mich" – hebt sich von den
+   Leistungen davor und den Projekten danach ab */
+.surface-tief {
+  --bg:#0B1B29; --fg:#F2F5F7; --fg-muted:#B4BFC9; --fg-subtle:#7C8A97;
+  --border:#22394B; --surface:#10253A; --surface-2:#173049;
+}
+.surface-base, .surface-alt, .surface-tief { background: var(--bg); color: var(--fg); }
 
 .font-display { font-family: var(--font-display); }
 
