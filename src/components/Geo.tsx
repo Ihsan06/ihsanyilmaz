@@ -1,4 +1,5 @@
 import { Sparkles, Check } from "lucide-react";
+import GeoNetz from "./GeoNetz";
 
 // GEO als eigener Abschnitt: Text links, die gebaute KI-Antwort rechts.
 // Absichtlich nicht in der Bilderreihe der Leistungen – dort stehen
@@ -32,8 +33,10 @@ const PUNKTE = ["Strukturierte Daten", "Fragen & Antworten", "Google-Unternehmen
 
 export default function Geo() {
   return (
-    <section id="geo" className="surface-alt py-24">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section id="geo" className="relative surface-alt py-24 overflow-hidden">
+      <GeoNetz />
+      <div className="geo-schein" aria-hidden="true" />
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
           <div className="lg:col-span-5">
             <span className="eyebrow inline-block mb-3">GEO – Generative Engine Optimization</span>
