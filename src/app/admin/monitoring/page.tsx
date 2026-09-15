@@ -142,19 +142,6 @@ function Ausfall({ was, fehler }: { was: string; fehler?: string }) {
   );
 }
 
-// Erklaerungen unter einer Tabelle, als abgesetzter Kasten: so liest man
-// "jemand hat abgeschickt, ohne ein Pflichtfeld auszufuellen" nicht als
-// Meldung ueber einen Vorfall – der Satz erklaert nur die Spalte.
-function Legende({ paare }: { paare: [string, string][] }) {
-  return (
-    <dl className="mon-legende">
-      {paare.map(([wort, text]) => (
-        <div key={wort}><dt>{wort}</dt><dd>{text}</dd></div>
-      ))}
-    </dl>
-  );
-}
-
 // Cloudflare liefert nur Tage MIT Daten. Fuer eine ehrliche Zeitachse
 // muessen die Luecken als Null dazwischen.
 function tageFuellen(proTag: Besucher["proTag"], vonIso: string, bisIso: string) {
@@ -457,9 +444,9 @@ export default function MonitoringSeite() {
                           <tr>
                             <th>Formular</th>
                             <th className="num">Abgeschickt</th>
-                            <th className="num">Unvollständig</th>
-                            <th className="num">Störung</th>
-                            <th className="num">Bot</th>
+                            <th className="num">Unvollständig<Info text="Jemand hat abgeschickt, ohne ein Pflichtfeld auszufüllen." /></th>
+                            <th className="num">Störung<Info text="Die Anfrage war gültig, der Versand hat aber nicht geklappt – wenn hier etwas steht, ist eine echte Anfrage verloren gegangen." /></th>
+                            <th className="num">Bot<Info text="Automatisch ausgefiltert, hat nie jemanden erreicht." /></th>
                           </tr>
                         </thead>
                         <tbody>
@@ -475,11 +462,6 @@ export default function MonitoringSeite() {
                         </tbody>
                       </table>
                     </div>
-                    <Legende paare={[
-                      ["Unvollständig", "jemand hat abgeschickt, ohne ein Pflichtfeld auszufüllen."],
-                      ["Störung", "die Anfrage war gültig, der Versand hat aber nicht geklappt – wenn hier etwas steht, ist eine echte Anfrage verloren gegangen."],
-                      ["Bot", "automatisch ausgefiltert, hat nie jemanden erreicht."],
-                    ]} />
                   </>
                 ) : (
                   <p className="mon-leer">In diesem Zeitraum wurde kein Formular abgeschickt.</p>

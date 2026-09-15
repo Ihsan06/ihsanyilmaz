@@ -289,7 +289,10 @@ html, body {
 .mon-info:hover .mon-info-blase, .mon-info:focus .mon-info-blase { display:block; }
 
 /* Tabelle, Balken, Liste */
-.mon-tabelle-huelle { overflow-x:auto; }
+/* Nur am Telefon scrollt die Tabelle in ihrer Huelle – am Rechner wuerde
+   der Scrollrahmen die Info-Blasen der Kopfzeile abschneiden. */
+.mon-tabelle-huelle { overflow:visible; }
+@media (max-width: 700px) { .mon-tabelle-huelle { overflow-x:auto; } }
 .mon-tabelle { width:100%; border-collapse:collapse; font-size:.88rem; }
 .mon-tabelle th, .mon-tabelle td { padding:9px 12px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
 .mon-tabelle th { font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--fg-subtle); font-weight:600; }
@@ -297,19 +300,11 @@ html, body {
 .mon-tabelle .num { text-align:right; font-variant-numeric:tabular-nums; }
 .mon-tabelle .stark { font-weight:700; color:var(--fg); }
 
-.mon-legende {
-  margin:18px 0 0; padding:12px 15px 13px; background:var(--mon-off); border:1px solid var(--border);
-  border-radius:10px; display:flex; flex-direction:column; gap:5px;
-}
-.mon-legende > div { display:flex; gap:10px; font-size:.78rem; line-height:1.55; }
-.mon-legende dt { flex:0 0 116px; font-weight:700; color:var(--fg); }
-.mon-legende dd { margin:0; color:var(--fg-subtle); }
-@media (max-width: 620px) {
-  .mon-legende > div { flex-direction:column; gap:1px; }
-  .mon-legende dt { flex:none; }
-}
 .mon-tabelle .leise { color:var(--fg-subtle); }
 .mon-tabelle .warn { color:#b45309; font-weight:700; }
+/* In der Kopfzeile sitzt das i am rechten Rand: die Blase haengt deshalb
+   rechtsbuendig, sonst ragt sie aus dem Kasten. */
+.mon-tabelle th .mon-info-blase { left:auto; right:0; transform:none; white-space:normal; font-weight:400; letter-spacing:0; text-transform:none; }
 
 /* Oben 30px Luft: dort erscheint die Blase ueber dem hoechsten Balken,
    noch innerhalb der Scrollflaeche, die sie sonst abschneiden wuerde. */
