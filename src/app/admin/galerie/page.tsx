@@ -363,7 +363,7 @@ export default function GalerieSeite() {
           multiple hidden onChange={e => hochladen(e.target.files)}
         />
 
-        <button onClick={() => setNeuOffen(o => !o)} className="chip px-3 py-2 text-sm">
+        <button onClick={() => setNeuOffen(o => !o)} className="chip inline-flex items-center gap-1.5 px-3 py-2 text-sm">
           <Plus size={14} /> Thema hinzufügen
         </button>
 
@@ -371,14 +371,14 @@ export default function GalerieSeite() {
             deshalb steht die Zahl hier oben und nicht in einer Ecke. */}
         {ohneBeschreibung > 0 && (
           <button onClick={ansehenLassen} disabled={!!laeuft}
-            className="chip px-3 py-2 text-sm disabled:opacity-60">
+            className="chip inline-flex items-center gap-1.5 px-3 py-2 text-sm disabled:opacity-60">
             <Sparkles size={14} />
             {laeuft === "ansehen" ? "Läuft…" : `${ohneBeschreibung} ansehen lassen`}
           </button>
         )}
         {ohneThema > 0 && (
           <button onClick={einsortieren} disabled={!!laeuft}
-            className="chip px-3 py-2 text-sm disabled:opacity-60">
+            className="chip inline-flex items-center gap-1.5 px-3 py-2 text-sm disabled:opacity-60">
             <FolderTree size={14} />
             {laeuft === "sortieren" ? "Läuft…" : `${ohneThema} einsortieren`}
           </button>
@@ -386,7 +386,7 @@ export default function GalerieSeite() {
         {beschriebene > 0 && kategorien.length > 1 && (
           <button onClick={neuEinsortieren} disabled={!!laeuft}
             title="Liest jede Bildbeschreibung noch einmal gegen die jetzige Themenliste – nötig, wenn ein Thema neu dazugekommen ist."
-            className="chip px-3 py-2 text-sm disabled:opacity-60">
+            className="chip inline-flex items-center gap-1.5 px-3 py-2 text-sm disabled:opacity-60">
             <FolderTree size={14} />
             {laeuft === "neusortieren" ? "Läuft…" : "Alle neu einsortieren"}
           </button>
@@ -411,7 +411,7 @@ export default function GalerieSeite() {
             className="field px-3 py-2 text-sm flex-1" style={{ minWidth: "18rem" }}
           />
           <button onClick={themaAnlegen} className="btn-primary px-4 py-2 text-sm">Anlegen</button>
-          <button onClick={() => setNeuOffen(false)} className="chip px-3 py-2 text-sm">Abbrechen</button>
+          <button onClick={() => setNeuOffen(false)} className="chip inline-flex items-center gap-1.5 px-3 py-2 text-sm">Abbrechen</button>
         </div>
       )}
 

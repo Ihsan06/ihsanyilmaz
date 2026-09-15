@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 // Hinweis: lucide-react hat in dieser Version keine Marken-Icons (kein "Instagram") — daher Camera.
-import { LayoutDashboard, Inbox, Camera, Euro, FolderOpen, LogOut, Lock, ExternalLink, ChartNoAxesColumn, Images } from "lucide-react";
+import { LayoutDashboard, Inbox, Camera, Euro, FolderOpen, LogOut, Lock, ChartNoAxesColumn, Images } from "lucide-react";
 import { Bildmarke } from "../Logo";
 
 type Seite = {
@@ -195,6 +195,7 @@ export default function AdminShell({
   return (
     <div className="admin-theme min-h-screen flex flex-col">
       <aside className="admin-leiste">
+        <div className="flex items-center">
         <a href="/admin" className="flex items-center gap-2.5 px-6 py-5 no-underline" style={{ color: "#fff" }}>
           <Bildmarke size={30} className="shrink-0" />
           <span className="flex flex-col leading-none">
@@ -205,6 +206,14 @@ export default function AdminShell({
             </span>
           </span>
         </a>
+        {/* Am Handy ist die Leiste ein Kopfblock – Abmelden steht dort neben der Marke */}
+        <button
+          onClick={abmelden}
+          className="lg:hidden ml-auto mr-4 inline-flex items-center gap-2 px-3 py-2 rounded-[9px] text-sm"
+        >
+          <LogOut size={16} /> Abmelden
+        </button>
+        </div>
 
         <nav className="flex lg:flex-col gap-1 px-3 pb-4 overflow-x-auto lg:overflow-x-visible"
           aria-label="Bereiche">
@@ -260,26 +269,24 @@ export default function AdminShell({
             ))}
           </div>
         )}
+
+        {/* Rechner: Abmelden ganz unten in der Leiste, wie auf den Studio-Seiten */}
+        <div className="hidden lg:flex mt-auto flex-col gap-2 px-3 pt-4 pb-5"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.09)" }}>
+          <button
+            onClick={abmelden}
+            className="flex items-center gap-3 px-3.5 py-2.5 rounded-[9px] text-sm font-medium"
+          >
+            <LogOut size={18} className="shrink-0" /> Abmelden
+          </button>
+          <span className="px-3.5 text-[0.72rem] leading-snug" style={{ color: "rgba(255,255,255,0.35)" }}>
+            Die Anmeldung läuft nach 12 Stunden ab.
+          </span>
+        </div>
       </aside>
 
       <div className="admin-inhalt flex-1 flex flex-col">
-        {/* Beide Wege nach draußen sitzen ganz außen am rechten Bildschirmrand */}
-        <div className="flex justify-end items-center gap-6 px-6 lg:px-8 pt-5">
-          <a
-            href="/" target="_blank" rel="noopener noreferrer"
-            className="hidden lg:inline-flex items-center gap-1.5 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-          >
-            Website ansehen <ExternalLink size={14} />
-          </a>
-          <button
-            onClick={abmelden}
-            className="inline-flex items-center gap-2 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)] transition-colors"
-          >
-            <LogOut size={16} /> Abmelden
-          </button>
-        </div>
-
-        <main className="flex-1 px-6 lg:px-8 pt-4 pb-12 max-w-[1340px] w-full">
+        <main className="flex-1 px-6 lg:px-8 pt-7 lg:pt-10 pb-12 max-w-[1340px] w-full">
           <div className="mb-8 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
             <div>
               {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
