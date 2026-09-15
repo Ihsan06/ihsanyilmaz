@@ -40,6 +40,34 @@ const SEITEN: Seite[] = [
   { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
 ];
 
+// Kleines "i" mit Erklaerung beim Drueberfahren – oder beim Antippen am
+// Telefon (tabIndex macht es fokussierbar, focus-within haelt es offen).
+// Mehr als ein title-Text: die Erklaerung darf Zeilen und Hervorhebungen haben.
+export function InfoTipp({ children, breite = 330 }: { children: ReactNode; breite?: number }) {
+  return (
+    <span className="group relative inline-flex align-middle ml-1.5">
+      <span
+        tabIndex={0}
+        aria-label="Erklärung"
+        className="inline-flex items-center justify-center cursor-help"
+        style={{
+          width: 16, height: 16, borderRadius: "50%", fontSize: 10, fontWeight: 700,
+          border: "1px solid var(--border)", color: "var(--fg-subtle)", background: "var(--card, #fff)",
+        }}
+      >
+        i
+      </span>
+      <span
+        role="tooltip"
+        className="hidden group-hover:block group-focus-within:block absolute left-0 top-full z-40 mt-2 card p-3.5 text-[0.8rem] leading-relaxed text-[var(--fg-muted)]"
+        style={{ width: breite, maxWidth: "calc(100vw - 2rem)", boxShadow: "0 10px 30px rgba(7,26,43,0.18)" }}
+      >
+        {children}
+      </span>
+    </span>
+  );
+}
+
 export async function api(pfad: string, options: RequestInit = {}) {
   const res = await fetch(pfad, {
     headers: { "Content-Type": "application/json" },
@@ -128,7 +156,7 @@ export default function AdminShell({
   titel, eyebrow, lead, aktion, children,
 }: {
   // aktion: steht rechtsbuendig neben der Ueberschrift (z. B. die Zeitraumwahl)
-  titel: string; eyebrow?: string; lead?: string; aktion?: ReactNode; children: ReactNode;
+  titel: string; eyebrow?: string; lead?: ReactNode; aktion?: ReactNode; children: ReactNode;
 }) {
   const [status, setStatus] = useState<"pruefe" | "aus" | "an">("pruefe");
   const [pfad, setPfad] = useState("");

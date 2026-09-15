@@ -1,7 +1,18 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Upload, Trash2, ImageOff, Plus, Sparkles, FolderTree, X, ChevronLeft, ChevronRight, Heart } from "lucide-react";
-import AdminShell, { api, datum } from "@/components/admin/AdminShell";
+import AdminShell, { api, datum, InfoTipp } from "@/components/admin/AdminShell";
+
+// Was die Knoepfe oben tun – kurz, fuer das "i" hinter der Unterzeile.
+const HILFE = (
+  <span className="flex flex-col gap-1.5">
+    <span><b className="text-[var(--fg)]">Bilder hinzufügen</b> – Fotos und Screenshots hochladen.</span>
+    <span><b className="text-[var(--fg)]">… ansehen lassen</b> – die KI beschreibt neue Bilder und ordnet sie einem Thema zu. Ohne Beschreibung kommt ein Bild in keinem Vorschlag vor.</span>
+    <span><b className="text-[var(--fg)]">Thema hinzufügen</b> – Name und ein Satz, was hineingehört. Das Thema gilt auch unter „Content erstellen“.</span>
+    <span><b className="text-[var(--fg)]">Alle neu einsortieren</b> – ordnet alle Bilder noch einmal den Themen zu, z. B. nach einem neuen Thema.</span>
+    <span><b className="text-[var(--fg)]">Themen-Leiste</b> filtert, ♥ markiert Lieblingsbilder, ein Klick aufs Bild zeigt es groß.</span>
+  </span>
+);
 
 type Bild = {
   schluessel: string;
@@ -330,7 +341,7 @@ export default function GalerieSeite() {
     <AdminShell
       titel="Galerie"
       eyebrow="Verwaltung"
-      lead="Deine Fotos — hinzufügen, ansehen, herausnehmen."
+      lead={<>Deine Fotos — hinzufügen, ansehen, herausnehmen.<InfoTipp>{HILFE}</InfoTipp></>}
     >
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
