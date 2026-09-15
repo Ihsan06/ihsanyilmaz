@@ -30,11 +30,11 @@ export default function Instagram() {
   if (!beitraege || beitraege.length === 0) return null;
 
   return (
-    <section id="instagram" className="surface-alt py-24">
+    <section id="instagram" className="surface-alt py-16">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Ohne Ueberschrift: die Kacheln sagen selbst, was sie sind. Profil
             und Bilder stehen deshalb buendig an derselben linken Kante. */}
-        <div className="mb-8">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <a
             href={PROFIL} target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-3 no-underline group"
@@ -47,6 +47,11 @@ export default function Instagram() {
               <strong className="text-[var(--fg)] text-sm">@aiy.web</strong>
               <span className="text-[var(--fg-muted)] text-xs">Websites für lokale Betriebe</span>
             </span>
+          </a>
+          <a href={PROFIL} target="_blank" rel="noopener noreferrer"
+            className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm no-underline">
+            <InstaZeichen groesse={18} farbe="currentColor" />
+            @aiy.web folgen
           </a>
         </div>
 
@@ -70,14 +75,6 @@ export default function Instagram() {
               </span>
             </a>
           ))}
-        </div>
-
-        <div className="mt-8">
-          <a href={PROFIL} target="_blank" rel="noopener noreferrer"
-            className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-sm no-underline">
-            <InstaZeichen groesse={18} farbe="currentColor" />
-            @aiy.web folgen
-          </a>
         </div>
       </div>
     </section>

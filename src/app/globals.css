@@ -14,26 +14,31 @@ html, body {
 }
 
 /* ============================================================
-   DESIGN — Terrakotta-Akzent, dezent
+   DESIGN — dunkel, Ozeanblau als Akzent
+   Die Website ist durchgehend dunkel (Wunsch vom 15.09.2026). Der
+   Adminbereich bleibt hell, er setzt unten seine eigenen Werte.
+   --accent   helles Blau fuer Text, Links, Zeichen (lesbar auf dunkel)
+   --accent-2 tieferes Blau fuer Flaechen mit weisser Schrift (Knoepfe, Kacheln)
    ============================================================ */
 
 :root {
-  --bg:#FFFFFF; --fg:#0A0A0A; --fg-muted:#3F3F3F; --fg-subtle:#737373;
-  --surface:#FFFFFF; --surface-2:#F7F7F7; --border:#E6E6E6;
-  --accent:#12557F; --accent-2:#12557F; --accent-fg:#FFFFFF; --accent-soft:rgba(18,85,127,0.12);
+  color-scheme: dark;
+  --bg:#0A0F14; --fg:#F2F5F7; --fg-muted:#B4BFC9; --fg-subtle:#7C8A97;
+  --surface:#111820; --surface-2:#182129; --border:#243039;
+  --accent:#4DA3E0; --accent-2:#1B6FA8; --accent-fg:#FFFFFF; --accent-soft:rgba(77,163,224,0.14);
   --radius:12px;
   --font-display: var(--font-space-grotesk), system-ui, sans-serif;
   --font-body: var(--font-space-grotesk), system-ui, sans-serif;
 }
 
-/* alternating surfaces (white / black) */
+/* zwei Abstufungen von dunkel, im Wechsel */
 .surface-base {
-  --bg:#FFFFFF; --fg:#0A0A0A; --fg-muted:#3F3F3F; --fg-subtle:#737373;
-  --border:#E6E6E6; --surface:#FFFFFF; --surface-2:#F7F7F7;
+  --bg:#0A0F14; --fg:#F2F5F7; --fg-muted:#B4BFC9; --fg-subtle:#7C8A97;
+  --border:#243039; --surface:#111820; --surface-2:#182129;
 }
 .surface-alt {
-  --bg:#F4F6F6; --fg:#0A0A0A; --fg-muted:#3F3F3F; --fg-subtle:#737373;
-  --border:#E6E6E6; --surface:#FFFFFF; --surface-2:#EFF1F1;
+  --bg:#0E151C; --fg:#F2F5F7; --fg-muted:#B4BFC9; --fg-subtle:#7C8A97;
+  --border:#26333E; --surface:#141D26; --surface-2:#1B2630;
 }
 
 /* ============================================================
@@ -59,12 +64,12 @@ html, body {
 /* primary button — soft, rounded */
 .btn-primary {
   display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;
-  background: var(--accent); color: var(--accent-fg);
+  background: var(--accent-2); color: var(--accent-fg);
   border-radius: var(--radius); font-weight:600; border:none;
-  box-shadow:0 1px 2px rgba(10,10,10,0.06);
+  box-shadow:0 1px 2px rgba(0,0,0,0.3);
   transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
 }
-.btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(18,85,127,0.28); }
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(77,163,224,0.35); }
 
 /* ghost / secondary button */
 .btn-ghost {
@@ -80,12 +85,12 @@ html, body {
   background: var(--surface); border:1px solid var(--border); border-radius: var(--radius);
   transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 }
-.card:hover { transform:translateY(-4px); box-shadow:0 14px 32px rgba(10,10,10,0.09); border-color:transparent; }
+.card:hover { transform:translateY(-4px); box-shadow:0 14px 32px rgba(0,0,0,0.45); border-color:rgba(77,163,224,0.4); }
 
 /* icon tile */
 .icon-tile {
   display:inline-flex; align-items:center; justify-content:center;
-  background: var(--accent); color: var(--accent-fg);
+  background: var(--accent-2); color: var(--accent-fg);
   border-radius: var(--radius);
 }
 
@@ -113,9 +118,10 @@ html, body {
 
 /* ============================================================
    ADMINBEREICH — eigenes Thema: Schwarz / Weiß / Ozeanblau
-   Nur hier gültig, die Website bleibt Terrakotta.
+   Nur hier gültig, die Website selbst ist dunkel.
    ============================================================ */
 .admin-theme {
+  color-scheme: light;
   --bg:#F5F7F9; --fg:#0A1622; --fg-muted:#3A4B5C; --fg-subtle:#6B7C8D;
   --surface:#FFFFFF; --surface-2:#EFF3F6; --border:#DCE3E9;
   --accent:#12557F; --accent-2:#12557F; --accent-fg:#FFFFFF;
@@ -152,28 +158,29 @@ html, body {
   background-size:64px 64px; opacity:0.03;
 }
 
-/* Lokaler Bezug: Festung Marienberg (Würzburg) als dezenter Wasserzeichen-Hintergrund.
-   Bild: Wikimedia Commons, CC0 / gemeinfrei — keine Namensnennung erforderlich. */
+/* Hintergrund: abstraktes KI-Motiv (Netz aus Knoten und Datenwelle), selbst
+   gerendert, in den Hausfarben. Leicht abgedunkelt, damit die Karten davor
+   ruhig stehen. */
 .hero-photo {
   position:absolute; inset:0; z-index:0; pointer-events:none;
   background-image:
-    linear-gradient(rgba(244,246,246,0.70), rgba(244,246,246,0.70)),
-    url('/wuerzburg-marienberg.jpg?v=7');
-  background-size:cover; background-position:center 30%; background-repeat:no-repeat;
+    linear-gradient(rgba(10,15,20,0.35), rgba(10,15,20,0.55)),
+    url('/ki-netz.jpg?v=1');
+  background-size:cover; background-position:center; background-repeat:no-repeat;
   background-attachment: scroll, fixed;
 }
 
 /* Hero-Text über dem Foto klar lesbar machen */
-.hero-bg h1 { font-weight:700; text-shadow:0 1px 18px rgba(255,255,255,0.7); }
-.hero-bg .hero-sub { text-shadow:0 1px 14px rgba(255,255,255,0.78); }
+.hero-bg h1 { font-weight:700; text-shadow:0 1px 18px rgba(0,0,0,0.7); }
+.hero-bg .hero-sub { text-shadow:0 1px 14px rgba(0,0,0,0.78); }
 
 /* ============================================================
    PROJEKTE — unterer Bildteil (Stadt/Main) als sticky Hintergrund
    ============================================================ */
 .projekte-bg {
-  position:absolute; inset:0; z-index:0; pointer-events:none;
+  position:absolute; inset:0; z-index:0; pointer-events:none; filter:grayscale(1);
   background-image:
-    linear-gradient(rgba(244,246,246,0.70), rgba(244,246,246,0.70)),
+    linear-gradient(rgba(14,21,28,0.86), rgba(14,21,28,0.86)),
     url('/wuerzburg-lower.jpg?v=1');
   background-size:cover; background-position:center; background-repeat:no-repeat;
   background-attachment: fixed;

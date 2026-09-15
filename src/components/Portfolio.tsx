@@ -36,12 +36,7 @@ export default function Portfolio() {
     <section id="projekte" className="relative surface-alt py-24 overflow-hidden">
       <div className="projekte-bg" aria-hidden="true" />
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-16">
-          <div>
-            <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)]">Projekte</h2>
-          </div>
-          <p className="text-[var(--fg-muted)] max-w-xs text-sm leading-relaxed">Erste Referenzprojekte im Aufbau — für lokale Betriebe und kleine Unternehmen.</p>
-        </div>
+        <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-12">Projekte</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {projects.map(p => (

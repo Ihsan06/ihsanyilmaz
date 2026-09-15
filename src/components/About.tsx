@@ -9,7 +9,6 @@ const highlights = [
 const values = [
   "Keine langen Vertragslaufzeiten",
   "Änderungen und Updates unkompliziert möglich",
-  "Auch nach dem Launch erreichbar",
 ];
 
 export default function About() {

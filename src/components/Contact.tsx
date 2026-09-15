@@ -54,7 +54,7 @@ export default function Contact() {
                 title="Standort – Oberer Mainkai 9, 97070 Würzburg (OpenStreetMap)"
                 src="https://www.openstreetmap.org/export/embed.html?bbox=9.9239%2C49.7879%2C9.9309%2C49.7915&layer=mapnik&marker=49.7897%2C9.9274"
                 className="w-full h-full block"
-                style={{ border: 0, filter: "grayscale(1)" }}
+                style={{ border: 0, filter: "grayscale(1) invert(0.92) contrast(0.9)" }}
                 loading="lazy"
               />
               <a

@@ -30,13 +30,9 @@ export default function Hero() {
       <div className="hero-photo" aria-hidden="true" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 w-full animate-fade-in-up">
-        <div className="text-center mb-10">
-          <span className="eyebrow inline-block mb-3">Leistungen</span>
-          <h2 className="display-h text-4xl md:text-5xl text-[var(--fg)] mb-4">Meine Leistungen</h2>
-          <p className="text-[var(--fg-muted)] text-lg max-w-2xl mx-auto">
-            Alles was Ihr Betrieb online braucht — professionell umgesetzt, zu fairen Preisen.
-          </p>
-        </div>
+        {/* Ohne Ueberschrift: die drei Karten sagen selbst, was angeboten wird.
+            Die Ueberschrift bleibt fuer Vorleser da, sichtbar ist sie nicht. */}
+        <h2 className="sr-only">Leistungen</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {services.map(s => (
