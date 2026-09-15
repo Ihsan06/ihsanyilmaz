@@ -17,7 +17,7 @@ const SEITEN: Seite[] = [
   { pfad: "/admin", titel: "Übersicht", icon: LayoutDashboard },
   { pfad: "/admin/monitoring", titel: "Monitoring", icon: ChartNoAxesColumn },
   {
-    pfad: "/admin/content",
+    pfad: "/admin/instagram",
     titel: "Instagram",
     icon: Camera,
     unter: [

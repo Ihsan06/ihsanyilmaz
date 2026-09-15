@@ -29,7 +29,7 @@ window.admin = (function () {
       symbol: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>' },
     { pfad: '/admin/monitoring', titel: 'Monitoring',
       symbol: '<path d="M5 21v-6M12 21V3M19 21V9" stroke-linecap="round"/>' },
-    { pfad: '/admin/content', titel: 'Instagram',
+    { pfad: '/admin/instagram', titel: 'Instagram',
       symbol: '<rect x="3" y="3" width="18" height="18" rx="4.5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/>',
       unter: [
         { pfad: '/admin/content', titel: 'Content erstellen' },
