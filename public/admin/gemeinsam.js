@@ -56,9 +56,7 @@ window.admin = (function () {
 
   // Die Seitenleiste wird hier gebaut statt in jeder Seite kopiert – sonst
   // laufen vier Dateien auseinander, sobald ein Menuepunkt dazukommt.
-  // Unten in der Leiste steht, was frueher die Fusszeile trug: der Weg zur
-  // Website, die Pflichtseiten, das Abmelden und der Hinweis auf den Ablauf
-  // der Anmeldung. Eine eigene Fusszeile braucht ein Dashboard nicht.
+  // Unten in der Leiste steht nur das Abmelden.
   function kopf() {
     const ziel = document.getElementById('admin-kopf');
     if (!ziel) return;
@@ -106,7 +104,6 @@ window.admin = (function () {
             <span>Abmelden</span>
           </button>
         </form>
-        <span class="admin-rand-hinweis">Die Anmeldung läuft nach 12 Stunden ab.</span>
       </div>
       <!-- Nur der Pfeil, kein Wort: was er tut, zeigt die Leiste selbst im
            naechsten Moment. -->

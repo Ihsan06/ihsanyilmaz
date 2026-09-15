@@ -270,7 +270,7 @@ export default function AdminShell({
         )}
 
         {/* Rechner: Abmelden ganz unten in der Leiste, wie auf den Studio-Seiten */}
-        <div className="hidden lg:flex mt-auto flex-col gap-2 px-3 pt-4 pb-5"
+        <div className="hidden lg:flex mt-auto flex-col px-3 pt-4 pb-5"
           style={{ borderTop: "1px solid rgba(255,255,255,0.09)" }}>
           <button
             onClick={abmelden}
@@ -278,9 +278,6 @@ export default function AdminShell({
           >
             <LogOut size={18} className="shrink-0" /> Abmelden
           </button>
-          <span className="px-3.5 text-[0.72rem] leading-snug" style={{ color: "rgba(255,255,255,0.35)" }}>
-            Die Anmeldung läuft nach 12 Stunden ab.
-          </span>
         </div>
       </aside>
 

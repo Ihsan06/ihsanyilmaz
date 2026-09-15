@@ -40,13 +40,6 @@ type Stand = {
 const FARBE_BESUCHE = "#12557F";
 const FARBE_AUFRUFE = "#4DA3E0";
 
-const STATUS = [
-  { schluessel: "neu", wort: "Neu" },
-  { schluessel: "in_bearbeitung", wort: "In Bearbeitung" },
-  { schluessel: "beantwortet", wort: "Beantwortet" },
-  { schluessel: "archiviert", wort: "Archiviert" },
-];
-
 const ERKLAERUNG = {
   besuche:
     "Ein Besuch ist eine Sitzung, nicht ein Klick: Wer sich vier Seiten ansieht, zählt einmal. " +
@@ -64,9 +57,10 @@ const ERKLAERUNG = {
     "Gezählt wird ohne Cookies, direkt im Browser. Erkannte Bots sind herausgerechnet – deshalb " +
     "liegen diese Zahlen unter den Rohwerten aus dem Cloudflare-Bericht, in denen Suchmaschinen " +
     "und Scanner mitlaufen. Tage ohne Besuch werden als Null gezeichnet.",
-  anfragenStatus:
-    "Gezählt wird auf dem Server, beim tatsächlichen Absenden – nicht im Browser. Der Status ist " +
-    "der, den die Anfrage unter „Anfragen“ gerade hat.",
+  formulare:
+    "Gezählt wird auf dem Server, beim tatsächlichen Absenden – nicht im Browser. Die Website hat " +
+    "ein Formular, das Kontaktformular. „Unbeantwortet“ sind die Anfragen aus dem Zeitraum, die " +
+    "unter „Anfragen“ noch als neu oder in Bearbeitung stehen.",
   seiten:
     "Zählt Seitenaufrufe, nicht Besuche. Die Startseite liegt fast immer vorn, weil die meisten " +
     "dort einsteigen.",
@@ -142,17 +136,6 @@ function Ausfall({ was, fehler }: { was: string; fehler?: string }) {
       <h2>{was} nicht verfügbar</h2>
       <p>{fehler || "Unbekannter Grund."}</p>
     </section>
-  );
-}
-
-// Erklaerungen unter einer Tabelle oder einem Diagramm, als abgesetzter Kasten.
-function Legende({ paare }: { paare: [string, string][] }) {
-  return (
-    <dl className="mon-legende">
-      {paare.map(([wort, text]) => (
-        <div key={wort}><dt>{wort}</dt><dd>{text}</dd></div>
-      ))}
-    </dl>
   );
 }
 
@@ -441,43 +424,46 @@ export default function MonitoringSeite() {
             <Ausfall was="Anfragen" fehler={a.fehler} />
           ) : a && (
             <>
-              <Karte titel="Anfragen nach Status" hinweis={ERKLAERUNG.anfragenStatus}>
+              <Karte titel="Anfragen nach Formular" hinweis={ERKLAERUNG.formulare}>
                 {a.gesamt ? (
                   <div className="mon-tabelle-huelle">
                     <table className="mon-tabelle">
                       <thead>
-                        <tr><th>Status</th><th className="num">Anfragen</th></tr>
+                        <tr><th>Formular</th><th className="num">Abgeschickt</th><th className="num">Unbeantwortet</th></tr>
                       </thead>
                       <tbody>
-                        {STATUS.filter(st => a.status?.[st.schluessel]).map(st => (
-                          <tr key={st.schluessel}>
-                            <td>{st.wort}</td>
-                            <td className="num stark">{zahl(a.status[st.schluessel])}</td>
-                          </tr>
-                        ))}
+                        <tr>
+                          <td>Kontakt</td>
+                          <td className="num stark">{zahl(a.gesamt)}</td>
+                          <td className="num">{zahl((a.status?.neu || 0) + (a.status?.in_bearbeitung || 0))}</td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p className="mon-leer">In diesem Zeitraum ist keine Anfrage eingegangen.</p>
+                  <p className="mon-leer">In diesem Zeitraum wurde kein Formular abgeschickt.</p>
                 )}
               </Karte>
 
               {tageMitAnfragen.length > 0 && (
                 <Karte titel="Anfragen pro Tag">
+                  {/* Beim Drueberfahren steht die Anzahl ueber dem Balken – das
+                      Datum steht ohnehin darunter. */}
                   <div className="mon-balken" role="img" aria-label="Anfragen pro Tag">
                     {tageMitAnfragen.map(z => (
-                      <div key={z.tag} className="mon-balken-spalte" title={`${z.tag}: ${zahl(z.anzahl)}`}>
-                        <div className="mon-balken-wert"
-                             style={{ height: `${Math.round((z.anzahl / hoechsterTag) * 100)}%` }} />
+                      <div key={z.tag} className="mon-balken-spalte">
+                        <div className="mon-balken-flaeche">
+                          <div className="mon-balken-wert"
+                               style={{ height: `${Math.round((z.anzahl / hoechsterTag) * 100)}%` }}>
+                            <span className="mon-balken-blase">
+                              {zahl(z.anzahl)} {z.anzahl === 1 ? "Anfrage" : "Anfragen"}
+                            </span>
+                          </div>
+                        </div>
                         <span className="mon-balken-tag">{kurzDatum(z.tag)}</span>
                       </div>
                     ))}
                   </div>
-                  <Legende paare={[
-                    ["Gezeigt", "nur Tage, an denen etwas ankam."],
-                    ["Höchstwert", `${zahl(hoechsterTag)} an einem Tag.`],
-                  ]} />
                 </Karte>
               )}
             </>
