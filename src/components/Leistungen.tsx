@@ -36,22 +36,22 @@ type Ansicht = { bild: string; handy?: string };
 const ANSICHTEN: Ansicht[][] = [
   [
     { bild: "web-start", handy: "handy-start" },
-    { bild: "web-cafe", handy: "handy-cafe" },
-    { bild: "web-speisekarte", handy: "handy-speisekarte" },
-    { bild: "web-reservierung", handy: "handy-reservierung" },
+    { bild: "web-fahrzeuge", handy: "handy-fahrzeuge" },
     { bild: "web-mietwagen", handy: "handy-mietwagen" },
     { bild: "web-finanzierung", handy: "handy-finanzierung" },
+    { bild: "web-cafe", handy: "handy-cafe" },
+    { bild: "web-speisekarte", handy: "handy-speisekarte" },
   ],
   [
     { bild: "adm-uebersicht" },
-    { bild: "adm-speisekarte" },
     { bild: "adm-belegung" },
     { bild: "adm-monitoring" },
+    { bild: "adm-speisekarte" },
   ],
   [
-    { bild: "ki-messenger" },
     { bild: "ki-content" },
     { bild: "ki-website" },
+    { bild: "ki-messenger" },
   ],
 ];
 
