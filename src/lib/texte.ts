@@ -65,6 +65,18 @@ const DE = {
     ],
     aria: "Beispiel: KI-Antwort, die den Betrieb empfiehlt",
   },
+  demo: {
+    eyebrow: "Demo",
+    titel: "Selbst ausprobieren.",
+    text: "Die Autohaus-Demo ist echt. Website und Verwaltung stehen offen – klicken Sie sich durch.",
+    oeffnen: "Öffnen",
+    eintraege: [
+      { titel: "Website", text: "Fahrzeuge, Mietwagen, Finanzierung, Ankauf." },
+      { titel: "Verwaltung", text: "Übersicht, Besucherzahlen, Belegung, Flotte." },
+      { titel: "Content erstellen", text: "Foto wählen, die KI schreibt den Beitrag." },
+      { titel: "Website ändern", text: "Wunsch eingeben, Vorschlag ansehen." },
+    ],
+  },
   ueber: {
     eyebrow: "Über mich",
     titel1: "Ihr Ansprechpartner",
@@ -184,6 +196,18 @@ const EN: Texte = {
     ],
     aria: "Example: an AI answer recommending the business",
   },
+  demo: {
+    eyebrow: "Demo",
+    titel: "Try it yourself.",
+    text: "The car dealer demo is real. Website and admin area are open – click through.",
+    oeffnen: "Open",
+    eintraege: [
+      { titel: "Website", text: "Vehicles, car rental, financing, trade-in." },
+      { titel: "Admin area", text: "Overview, visitor numbers, bookings, fleet." },
+      { titel: "Create content", text: "Pick a photo, the AI writes the post." },
+      { titel: "Edit website", text: "Type a request, see the suggestion." },
+    ],
+  },
   ueber: {
     eyebrow: "About me",
     titel1: "Your contact",
@@ -300,6 +324,18 @@ const ES: Texte = {
       },
     ],
     aria: "Ejemplo: una respuesta de IA que recomienda el negocio",
+  },
+  demo: {
+    eyebrow: "Demo",
+    titel: "Pruébelo usted mismo.",
+    text: "La demo del concesionario es real. Web y administración están abiertas – haga clic.",
+    oeffnen: "Abrir",
+    eintraege: [
+      { titel: "Web", text: "Vehículos, alquiler, financiación, compra." },
+      { titel: "Administración", text: "Resumen, visitas, reservas, flota." },
+      { titel: "Crear contenido", text: "Elija una foto, la IA escribe la publicación." },
+      { titel: "Editar web", text: "Escriba el cambio, vea la propuesta." },
+    ],
   },
   ueber: {
     eyebrow: "Sobre mí",

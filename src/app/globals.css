@@ -256,6 +256,12 @@ html, body {
   .ansicht, .ansicht.aktiv { transition:none; }
 }
 
+/* ─── Demo zum Ausprobieren ─── */
+.demo-kachel { text-decoration:none; }
+.demo-bild { aspect-ratio:16/10; overflow:hidden; border-bottom:1px solid var(--border); background:#0B1219; }
+.demo-bild img { display:block; width:100%; height:100%; object-fit:cover; object-position:top; transition:transform .5s ease; }
+.demo-kachel:hover .demo-bild img { transform:scale(1.03); }
+
 /* ─── Projekte als scrollbare Zeile ─── */
 .projekt-leiste {
   display:flex; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth;
