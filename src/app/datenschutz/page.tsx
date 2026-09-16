@@ -34,7 +34,12 @@ export default function Datenschutz() {
           </section>
 
           <section>
-            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">5. Empfänger und Auftragsverarbeiter</h2>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">5. Demo-Links per E-Mail</h2>
+            <p>Wenn Sie über das Formular „Demo ansehen“ Ihre E-Mail-Adresse angeben, verarbeite ich diese, um Ihnen die Links zu den Demo-Websites zuzusenden. Gespeichert werden E-Mail-Adresse, Zeitpunkt und gewählte Sprache; die Anfrage erscheint zudem in meiner Anfragenübersicht, damit ich Ihnen auf Wunsch den Verwaltungsbereich persönlich zeigen kann. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (vorvertragliche Maßnahme auf Ihre Anfrage). Der Versand erfolgt über Resend (siehe Abschnitt 4). Einen Newsletter gibt es nicht. Die Daten lösche ich spätestens sechs Monate nach der Anfrage, sofern kein Auftrag zustande kommt.</p>
+          </section>
+
+          <section>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">6. Empfänger und Auftragsverarbeiter</h2>
             <p>Eine Weitergabe Ihrer Daten an Dritte erfolgt nur, soweit dies zur Bereitstellung der Website und zur Bearbeitung Ihrer Anfrage erforderlich ist. Eingesetzte Dienstleister:</p>
             <ul className="mt-2 space-y-1 list-disc list-inside">
               <li>Cloudflare, Inc. (USA) — Hosting und Auslieferung der Website</li>
@@ -46,22 +51,22 @@ export default function Datenschutz() {
           </section>
 
           <section>
-            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">6. Schriftarten</h2>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">7. Schriftarten</h2>
             <p>Diese Website verwendet Schriftarten, die lokal auf dem Server gehostet und direkt von dieser Website ausgeliefert werden. Es findet dabei kein Verbindungsaufbau zu Servern Dritter (z.&nbsp;B. Google Fonts) und keine Übermittlung Ihrer IP-Adresse an Dritte statt.</p>
           </section>
 
           <section>
-            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">7. Cookies und Tracking</h2>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">8. Cookies und Tracking</h2>
             <p>Diese Website verwendet keine Cookies zu Analyse- oder Marketingzwecken und setzt keine Tracking- oder Webanalyse-Dienste ein. Es werden keine Nutzungsprofile erstellt.</p>
           </section>
 
           <section>
-            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">8. SSL-/TLS-Verschlüsselung</h2>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">9. SSL-/TLS-Verschlüsselung</h2>
             <p>Diese Website nutzt aus Sicherheitsgründen eine TLS-Verschlüsselung. Eine verschlüsselte Verbindung erkennen Sie am „https://" und am Schloss-Symbol in Ihrer Browserzeile.</p>
           </section>
 
           <section>
-            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">9. Ihre Rechte</h2>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">10. Ihre Rechte</h2>
             <p>Sie haben im Rahmen der gesetzlichen Vorgaben jederzeit das Recht auf:</p>
             <ul className="mt-2 space-y-1 list-disc list-inside">
               <li>Auskunft über Ihre verarbeiteten Daten (Art. 15 DSGVO)</li>
@@ -75,12 +80,12 @@ export default function Datenschutz() {
           </section>
 
           <section>
-            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">10. Beschwerderecht bei der Aufsichtsbehörde</h2>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">11. Beschwerderecht bei der Aufsichtsbehörde</h2>
             <p>Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Die für mich zuständige Behörde ist das Bayerische Landesamt für Datenschutzaufsicht (BayLDA), Promenade 18, 91522 Ansbach.</p>
           </section>
 
           <section>
-            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">11. Aktualität dieser Datenschutzerklärung</h2>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">12. Aktualität dieser Datenschutzerklärung</h2>
             <p>Diese Datenschutzerklärung wird angepasst, sobald Änderungen der Website oder der rechtlichen Vorgaben dies erforderlich machen.</p>
           </section>
         </div>

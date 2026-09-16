@@ -104,3 +104,17 @@ CREATE TABLE IF NOT EXISTS eingaenge (
   ergebnis  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_eingaenge_zeit ON eingaenge(zeitpunkt);
+
+-- „Demo ansehen“ auf der Startseite: wer die Demo-Links per E-Mail
+-- angefordert hat. Adresse, Zeitpunkt, Sprache und ob der Versand klappte –
+-- keine IP. Dient der Bremse (je Adresse einmal am Tag) und dem Nachhalten.
+CREATE TABLE IF NOT EXISTS demo_zugaenge (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  zeitpunkt TEXT NOT NULL,
+  email     TEXT NOT NULL,
+  sprache   TEXT NOT NULL DEFAULT 'de',
+  versandt  INTEGER NOT NULL DEFAULT 0,
+  fehler    TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_demo_zugaenge_zeit  ON demo_zugaenge(zeitpunkt);
+CREATE INDEX IF NOT EXISTS idx_demo_zugaenge_email ON demo_zugaenge(email);

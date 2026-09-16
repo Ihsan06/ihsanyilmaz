@@ -113,7 +113,7 @@ async function anfrageZahlen(env, von, bis) {
   const seit = tagText(von);
   const okBis = tagText(bis);
 
-  const [nachStatus, verlauf, offen, versuche] = await Promise.all([
+  const [nachStatus, verlauf, offen, versuche, demoAnfragen] = await Promise.all([
     env.DB.prepare(
       `SELECT status, COUNT(*) AS anzahl FROM anfragen
         WHERE substr(erstellt_am, 1, 10) >= ? AND substr(erstellt_am, 1, 10) <= ?
@@ -132,11 +132,18 @@ async function anfrageZahlen(env, von, bis) {
     // Alle Absendeversuche, auch die ohne Anfrage (siehe contact.js).
     // Die Tabelle gibt es erst seit September 2026 – vorher nur "anfragen".
     env.DB.prepare(
-      `SELECT ergebnis, COUNT(*) AS anzahl FROM eingaenge
+      `SELECT formular, ergebnis, COUNT(*) AS anzahl FROM eingaenge
         WHERE substr(zeitpunkt, 1, 10) >= ? AND substr(zeitpunkt, 1, 10) <= ?
-          AND formular = 'kontakt'
-        GROUP BY ergebnis`
-    ).bind(seit, okBis).all().catch(() => ({ results: [] }))
+          AND formular IN ('kontakt', 'demo')
+        GROUP BY formular, ergebnis`
+    ).bind(seit, okBis).all().catch(() => ({ results: [] })),
+    // Demo-Link-Anfragen (functions/api/demo.js) stehen mit dem festen Namen
+    // "Demo-Link" in "anfragen" – so lassen sie sich vom Kontaktformular trennen.
+    env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM anfragen
+        WHERE name = 'Demo-Link'
+          AND substr(erstellt_am, 1, 10) >= ? AND substr(erstellt_am, 1, 10) <= ?`
+    ).bind(seit, okBis).first().catch(() => ({ n: 0 }))
   ]);
 
   const status = {};
@@ -145,15 +152,18 @@ async function anfrageZahlen(env, von, bis) {
 
   // Wie bei Diezmann: je Formular ok / ungueltig / fehler / bot. "ok" kommt
   // aus "anfragen" – die Tabelle reicht weiter zurueck als "eingaenge".
-  const ergebnisse = {};
-  (versuche.results || []).forEach(z => { ergebnisse[z.ergebnis] = z.anzahl; });
+  const ergebnisse = { kontakt: {}, demo: {} };
+  (versuche.results || []).forEach(z => { (ergebnisse[z.formular] ||= {})[z.ergebnis] = z.anzahl; });
+  const demoOk = demoAnfragen?.n || 0;
+  const zeile = (f, ok) => ({
+    ok,
+    ungueltig: ergebnisse[f].ungueltig || 0,
+    fehler: ergebnisse[f].fehler || 0,
+    bot: ergebnisse[f].bot || 0
+  });
   const nachFormular = {
-    kontakt: {
-      ok: gesamt,
-      ungueltig: ergebnisse.ungueltig || 0,
-      fehler: ergebnisse.fehler || 0,
-      bot: ergebnisse.bot || 0
-    }
+    kontakt: zeile('kontakt', gesamt - demoOk),
+    demo: zeile('demo', demoOk)
   };
 
   return {

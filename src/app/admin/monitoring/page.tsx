@@ -21,7 +21,7 @@ type Anfragen = Fehlbar & {
 };
 
 // Anzeigenamen der Formulare – die Website hat bisher eines.
-const NAMEN: Record<string, string> = { kontakt: "Kontakt" };
+const NAMEN: Record<string, string> = { kontakt: "Kontakt", demo: "Demo-Links" };
 type Besucher = Fehlbar & {
   von?: string;
   besuche: number;
