@@ -28,47 +28,54 @@ const esc = s => String(s).replace(/[&<>"']/g, c => (
 const KONTAKT = 'kontakt@ihsan-yilmaz.de';
 const SEITE = 'https://ihsan-yilmaz.de';
 const JE_STUNDE = 30;
-const DEMOS = [
-  { name: 'Autohaus-Demo', url: 'https://autohaus-demo.pages.dev' },
-  { name: 'Gastro-Demo', url: 'https://gastrodemo.pages.dev' },
-];
+const DEMOS = {
+  autohaus: { name: 'Autohaus-Demo', url: 'https://autohaus-demo.pages.dev' },
+  cafe: { name: 'Café-Demo', url: 'https://gastrodemo.pages.dev' },
+};
+const AUSWAHL = { autohaus: ['autohaus'], cafe: ['cafe'], beide: ['autohaus', 'cafe'] };
 
 const TEXTE = {
   de: {
-    betreff: 'Ihre Demo-Links – Autohaus und Café',
+    betreff1: 'Ihr Demo-Link – {name}',
+    betreff2: 'Ihre Demo-Links – Autohaus und Café',
     hallo: 'Guten Tag,',
-    intro: 'hier sind die beiden Demos. Beide Websites sind echt und stehen offen – klicken Sie sich einfach durch.',
-    verwaltung: 'Der Verwaltungsbereich ist nicht öffentlich. Gern zeige ich ihn Ihnen in einem kurzen Gespräch: 20 Minuten per Video oder Telefon, ohne Verpflichtung. Antworten Sie einfach auf diese E-Mail mit einem Terminvorschlag.',
+    intro1: 'hier ist die Demo. Die Website ist echt und steht offen – klicken Sie sich einfach durch.',
+    intro2: 'hier sind die beiden Demos. Beide Websites sind echt und stehen offen – klicken Sie sich einfach durch.',
+    verwaltung: 'Wenn Sie mögen, zeige ich Ihnen gern auch, was dahinter steckt – der Verwaltungsbereich, in dem Speisekarte, Belegung oder Beiträge gepflegt werden. Ein kurzes Gespräch genügt, 20 Minuten per Video oder Telefon, ohne Verpflichtung. Antworten Sie einfach auf diese E-Mail.',
     gruss: 'Viele Grüße',
     fuss: 'Sie erhalten diese E-Mail, weil auf ihsan-yilmaz.de ein Demo-Link für diese Adresse angefordert wurde. Falls nicht: einfach ignorieren, es passiert nichts weiter.',
   },
   en: {
-    betreff: 'Your demo links – car dealer and café',
+    betreff1: 'Your demo link – {name}',
+    betreff2: 'Your demo links – car dealer and café',
     hallo: 'Hello,',
-    intro: 'here are the two demos. Both websites are real and open – just click through.',
-    verwaltung: 'The admin area is not public. I am happy to show it to you in a short call: 20 minutes by video or phone, no obligation. Simply reply to this email with a time that suits you.',
+    intro1: 'here is the demo. The website is real and open – just click through.',
+    intro2: 'here are the two demos. Both websites are real and open – just click through.',
+    verwaltung: 'If you like, I am happy to show you what is behind it as well – the admin area where the menu, bookings or posts are maintained. A short call is enough: 20 minutes by video or phone, no obligation. Simply reply to this email.',
     gruss: 'Best regards',
     fuss: 'You are receiving this email because a demo link was requested for this address on ihsan-yilmaz.de. If that was not you, simply ignore it – nothing else will happen.',
   },
   es: {
-    betreff: 'Sus enlaces a las demos – concesionario y café',
+    betreff1: 'Su enlace a la demo – {name}',
+    betreff2: 'Sus enlaces a las demos – concesionario y café',
     hallo: 'Buenos días,',
-    intro: 'aquí tiene las dos demos. Ambas webs son reales y están abiertas – navegue con toda libertad.',
-    verwaltung: 'El área de administración no es pública. Con gusto se la muestro en una breve conversación: 20 minutos por vídeo o teléfono, sin compromiso. Responda a este correo con una propuesta de fecha.',
+    intro1: 'aquí tiene la demo. La web es real y está abierta – navegue con toda libertad.',
+    intro2: 'aquí tiene las dos demos. Ambas webs son reales y están abiertas – navegue con toda libertad.',
+    verwaltung: 'Si lo desea, con gusto le muestro también lo que hay detrás – el área de administración donde se mantienen la carta, las reservas o las publicaciones. Basta una breve conversación: 20 minutos por vídeo o teléfono, sin compromiso. Responda simplemente a este correo.',
     gruss: 'Un cordial saludo',
     fuss: 'Recibe este correo porque en ihsan-yilmaz.de se solicitó un enlace a la demo para esta dirección. Si no fue usted, simplemente ignórelo – no ocurrirá nada más.',
   },
 };
 
-function mailHtml(t) {
-  const links = DEMOS.map(d =>
+function mailHtml(t, demos) {
+  const links = demos.map(d =>
     `<p style="margin:0 0 12px"><a href="${d.url}" style="display:inline-block;padding:12px 20px;border-radius:999px;background:#1B6FA8;color:#fff;text-decoration:none;font-weight:600">${esc(d.name)} →</a>
      <br><span style="font-size:13px;color:#7C8A97">${esc(d.url)}</span></p>`).join('');
   return `<!doctype html><html><body style="margin:0;background:#F3F6F9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1B2530">
   <div style="max-width:560px;margin:0 auto;padding:32px 20px">
     <div style="background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #E3E9EF">
       <p style="margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#1B6FA8;font-weight:700">AIY · Ihsan Yilmaz</p>
-      <p style="margin:0 0 18px;font-size:16px;line-height:1.6">${esc(t.hallo)}<br>${esc(t.intro)}</p>
+      <p style="margin:0 0 18px;font-size:16px;line-height:1.6">${esc(t.hallo)}<br>${esc(demos.length > 1 ? t.intro2 : t.intro1)}</p>
       ${links}
       <p style="margin:22px 0 0;font-size:16px;line-height:1.6">${esc(t.verwaltung)}</p>
       <p style="margin:26px 0 0;font-size:16px;line-height:1.6">${esc(t.gruss)}<br><strong>Ihsan Yilmaz</strong><br>
@@ -78,8 +85,8 @@ function mailHtml(t) {
   </div></body></html>`;
 }
 
-function mailText(t) {
-  return `${t.hallo}\n${t.intro}\n\n${DEMOS.map(d => `${d.name}: ${d.url}`).join('\n')}\n\n${t.verwaltung}\n\n${t.gruss}\nIhsan Yilmaz\n${SEITE} · ${KONTAKT}\n\n—\n${t.fuss}\n`;
+function mailText(t, demos) {
+  return `${t.hallo}\n${demos.length > 1 ? t.intro2 : t.intro1}\n\n${demos.map(d => `${d.name}: ${d.url}`).join('\n')}\n\n${t.verwaltung}\n\n${t.gruss}\nIhsan Yilmaz\n${SEITE} · ${KONTAKT}\n\n—\n${t.fuss}\n`;
 }
 
 // Jeder Versuch landet in "eingaenge" (Formular "demo") – das Monitoring
@@ -100,7 +107,7 @@ async function resend(env, nachricht) {
 }
 
 // Ihsan Bescheid geben: Mail mit der Adresse, Telegram nur mit dem Hinweis.
-async function benachrichtigen(env, email, sprache, versandt, grund) {
+async function benachrichtigen(env, email, sprache, auswahl, versandt, grund) {
   if (env.RESEND_API_KEY) {
     try {
       await resend(env, {
@@ -109,7 +116,7 @@ async function benachrichtigen(env, email, sprache, versandt, grund) {
         reply_to: email,
         subject: `Demo-Link angefordert: ${email}`,
         html: `<h2 style="margin:0 0 16px">Demo-Link angefordert – ihsan-yilmaz.de</h2>
-          <p><strong>E-Mail:</strong> ${esc(email)}</p><p><strong>Sprache:</strong> ${esc(sprache.toUpperCase())}</p>
+          <p><strong>E-Mail:</strong> ${esc(email)}</p><p><strong>Gewünscht:</strong> ${esc(AUSWAHL[auswahl].map(k => DEMOS[k].name).join(' + '))}</p><p><strong>Sprache:</strong> ${esc(sprache.toUpperCase())}</p>
           <p><strong>Versand an den Besucher:</strong> ${versandt ? 'geklappt' : 'NICHT geklappt – bitte Links persönlich schicken'}${grund ? ` (${esc(grund)})` : ''}</p>
           <p>Die Anfrage steht auch unter <a href="${SEITE}/admin/anfragen">Anfragen</a>.</p>`,
       });
@@ -130,8 +137,10 @@ async function benachrichtigen(env, email, sprache, versandt, grund) {
 export async function onRequestPost({ request, env, waitUntil }) {
   let d;
   try { d = await request.json(); } catch { return json({ ok: false, fehler: 'ungueltig' }, 400); }
-  const { email: roh, sprache: sp, fax } = d || {};
+  const { email: roh, sprache: sp, auswahl: aw, fax } = d || {};
   const sprache = ['de', 'en', 'es'].includes(sp) ? sp : 'de';
+  const auswahl = AUSWAHL[aw] ? aw : 'beide';
+  const demos = AUSWAHL[auswahl].map(k => DEMOS[k]);
 
   // Honeypot: Bots fuellen "fax" aus – stillschweigend ignorieren.
   if (fax) { zaehlen(env, waitUntil, 'bot'); return json({ ok: true }); }
@@ -161,15 +170,15 @@ export async function onRequestPost({ request, env, waitUntil }) {
   if ((stunde?.n || 0) >= JE_STUNDE) { zaehlen(env, waitUntil, 'fehler'); return json({ ok: false, fehler: 'zuViel' }, 429); }
 
   const zeitpunkt = new Date(jetzt).toISOString();
-  const neu = await env.DB.prepare('INSERT INTO demo_zugaenge (zeitpunkt, email, sprache) VALUES (?, ?, ?)')
-    .bind(zeitpunkt, email, sprache).run();
+  const neu = await env.DB.prepare('INSERT INTO demo_zugaenge (zeitpunkt, email, sprache, auswahl) VALUES (?, ?, ?, ?)')
+    .bind(zeitpunkt, email, sprache, auswahl).run();
   const id = neu.meta?.last_row_id;
 
   // Unter „Anfragen“ sichtbar machen – bewusst VOR dem Versand.
   try {
     await env.DB.prepare('INSERT INTO anfragen (name, email, betrieb, nachricht) VALUES (?, ?, ?, ?)')
       .bind('Demo-Link', email, null,
-        `Demo-Links über die Website angefordert (${sprache.toUpperCase()}). Gespräch zum Verwaltungsbereich anbieten.`).run();
+        `Demo-Links über die Website angefordert: ${demos.map(x => x.name).join(' + ')} (${sprache.toUpperCase()}). Gespräch zum Verwaltungsbereich anbieten.`).run();
   } catch { /* Zusatzfunktion – der Versand darf daran nicht scheitern */ }
 
   let versandt = false, grund = '';
@@ -182,9 +191,9 @@ export async function onRequestPost({ request, env, waitUntil }) {
         from: env.MAIL_FROM || 'AIY | Ihsan Yilmaz <onboarding@resend.dev>',
         to: email,
         reply_to: KONTAKT,
-        subject: t.betreff,
-        html: mailHtml(t),
-        text: mailText(t),
+        subject: demos.length > 1 ? t.betreff2 : t.betreff1.replace('{name}', demos[0].name),
+        html: mailHtml(t, demos),
+        text: mailText(t, demos),
       });
       if (r.ok) versandt = true;
       else grund = `Resend ${r.status}: ${(await r.text().catch(() => '')).slice(0, 200)}`;
@@ -196,7 +205,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     .bind(versandt ? 1 : 0, grund || null, id).run().catch(() => {});
   zaehlen(env, waitUntil, versandt ? 'ok' : 'fehler');
 
-  const melden = benachrichtigen(env, email, sprache, versandt, grund);
+  const melden = benachrichtigen(env, email, sprache, auswahl, versandt, grund);
   if (typeof waitUntil === 'function') waitUntil(melden); else await melden;
 
   return versandt ? json({ ok: true }) : json({ ok: false, fehler: 'nichtVersandt' });

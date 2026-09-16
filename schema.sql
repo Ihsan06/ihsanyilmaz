@@ -114,7 +114,8 @@ CREATE TABLE IF NOT EXISTS demo_zugaenge (
   email     TEXT NOT NULL,
   sprache   TEXT NOT NULL DEFAULT 'de',
   versandt  INTEGER NOT NULL DEFAULT 0,
-  fehler    TEXT
+  fehler    TEXT,
+  auswahl   TEXT NOT NULL DEFAULT 'beide'   -- autohaus | cafe | beide
 );
 CREATE INDEX IF NOT EXISTS idx_demo_zugaenge_zeit  ON demo_zugaenge(zeitpunkt);
 CREATE INDEX IF NOT EXISTS idx_demo_zugaenge_email ON demo_zugaenge(email);
