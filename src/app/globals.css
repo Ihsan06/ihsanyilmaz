@@ -153,30 +153,55 @@ html, body {
 .mock-quellen span { font-size:.72rem; padding:4px 10px; border-radius:999px; background:var(--accent-soft); color:var(--accent); }
 
 /* ============================================================
-   GEO — animierter Hintergrund (Bahnen, Impulse, Knoten)
+   GEO — ruhiger Hintergrund: Raster zum Horizont, treibende Lichtflaechen.
+   Die Bewegung sitzt in der Antwort (sie tippt sich), nicht im Hintergrund.
    ============================================================ */
-.geo-netz { position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:.85; }
-.geo-bahn { fill:none; stroke:rgba(77,163,224,.22); stroke-width:1.2; }
-.geo-impuls {
-  fill:none; stroke:#7CC4F5; stroke-width:2.5; stroke-linecap:round;
-  stroke-dasharray: 120 1400; stroke-dashoffset: 1490;
-  animation: geo-lauf 9s linear infinite;
-  filter: drop-shadow(0 0 6px rgba(77,163,224,.9));
-}
-@keyframes geo-lauf { to { stroke-dashoffset: 0; } }
-.geo-knoten { fill:#4DA3E0; animation: geo-puls 5s ease-in-out infinite; }
-@keyframes geo-puls { 0%,100% { opacity:.25; } 50% { opacity:.9; } }
-/* weicher Schein hinter der Antwort */
-.geo-schein {
+.geo-raster {
   position:absolute; inset:0; z-index:0; pointer-events:none;
-  background: radial-gradient(ellipse 40% 55% at 70% 50%, rgba(18,85,127,.45), transparent 70%);
-  animation: geo-atmen 7s ease-in-out infinite;
+  background-image:
+    linear-gradient(rgba(77,163,224,.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(77,163,224,.12) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, black 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, black 20%, transparent 75%);
 }
-@keyframes geo-atmen { 0%,100% { opacity:.7; } 50% { opacity:1; } }
+.geo-licht {
+  position:absolute; z-index:0; pointer-events:none; border-radius:50%;
+  filter: blur(70px); will-change: transform;
+}
+.geo-licht-a {
+  width:640px; height:640px; right:-160px; top:-200px;
+  background: radial-gradient(circle, rgba(18,85,127,.75), rgba(18,85,127,0) 65%);
+  animation: geo-treiben-a 26s ease-in-out infinite alternate;
+}
+.geo-licht-b {
+  width:520px; height:520px; left:-200px; bottom:-240px;
+  background: radial-gradient(circle, rgba(77,163,224,.35), rgba(77,163,224,0) 65%);
+  animation: geo-treiben-b 32s ease-in-out infinite alternate;
+}
+@keyframes geo-treiben-a { to { transform: translate(-120px, 90px) scale(1.15); } }
+@keyframes geo-treiben-b { to { transform: translate(140px, -80px) scale(1.1); } }
+
+/* Schreib-Cursor in der KI-Antwort */
+.mock-cursor {
+  display:inline-block; width:2px; height:1em; margin-left:2px; vertical-align:-0.15em;
+  background: var(--accent); animation: mock-blink 1s steps(2, start) infinite;
+}
+@keyframes mock-blink { to { visibility:hidden; } }
+.mock-quellen { opacity:0; transform:translateY(4px); transition: opacity .5s ease, transform .5s ease; }
+.mock-quellen.sichtbar { opacity:1; transform:none; }
 @media (prefers-reduced-motion: reduce) {
-  .geo-impuls, .geo-knoten, .geo-schein { animation:none; }
-  .geo-impuls { stroke-dasharray:none; opacity:.35; }
+  .geo-licht { animation:none; }
+  .mock-cursor { animation:none; }
+  .mock-quellen { opacity:1; transform:none; transition:none; }
 }
+
+/* Sprachwahl im Kopf: DE · EN · ES */
+.sprachwahl { display:inline-flex; align-items:center; font-size:.78rem; font-weight:600; letter-spacing:.06em; }
+.sprachwahl button { background:none; border:0; padding:2px 4px; cursor:pointer; font:inherit; color:var(--fg-subtle); transition:color .15s ease; }
+.sprachwahl button:hover { color:var(--fg); }
+.sprachwahl button.aktiv { color:var(--fg); }
+.sprachwahl-trenner { color:var(--fg-subtle); padding:0 2px; }
 
 /* ============================================================
    ADMINBEREICH — eigenes Thema: Schwarz / Weiß / Ozeanblau

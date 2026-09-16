@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSprache } from "@/lib/sprache";
 
 // Der Instagram-Abschnitt der Startseite: Profilzeile, ein Raster der
 // letzten Beitraege und der Weg zum Profil.
@@ -17,6 +18,7 @@ type Beitrag = { id: string; bild: string; text: string; weg: string; zeitpunkt:
 const PROFIL = "https://www.instagram.com/aiy.web/";
 
 export default function Instagram() {
+  const { t } = useSprache();
   const [beitraege, setBeitraege] = useState<Beitrag[] | null>(null);
 
   useEffect(() => {
@@ -45,13 +47,13 @@ export default function Instagram() {
             </span>
             <span className="flex flex-col leading-tight">
               <strong className="text-[var(--fg)] text-sm">@aiy.web</strong>
-              <span className="text-[var(--fg-muted)] text-xs">Websites für lokale Betriebe</span>
+              <span className="text-[var(--fg-muted)] text-xs">{t.instagram.unter}</span>
             </span>
           </a>
           <a href={PROFIL} target="_blank" rel="noopener noreferrer"
             className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm no-underline">
             <InstaZeichen groesse={18} farbe="currentColor" />
-            @aiy.web folgen
+            {t.instagram.folgen}
           </a>
         </div>
 
@@ -62,7 +64,7 @@ export default function Instagram() {
               href={b.weg} target="_blank" rel="noopener noreferrer"
               className="relative block overflow-hidden rounded-[10px] group"
               style={{ aspectRatio: "1 / 1", background: "var(--border)" }}
-              title={b.text || "Beitrag auf Instagram ansehen"}
+              title={b.text || t.instagram.ansehen}
             >
               {/* Die Adressen kommen von Instagrams eigenem Auslieferdienst. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -7,10 +7,11 @@ import Portfolio from "@/components/Portfolio";
 import Instagram from "@/components/Instagram";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
+import { SpracheProvider } from "@/lib/sprache";
 
 export default function Home() {
   return (
-    <>
+    <SpracheProvider>
       <Header />
       <main>
         <Hero />
@@ -22,6 +23,6 @@ export default function Home() {
         <Contact />
       </main>
       <Footer />
-    </>
+    </SpracheProvider>
   );
 }
