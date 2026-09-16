@@ -1,21 +1,19 @@
 "use client";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
-import { GeoAnsicht } from "./Geo";
+import { GeoAnsicht, geoDauer } from "./Geo";
 import { LeistungZeile, ANZAHL_ANSICHTEN } from "./Leistungen";
 import { useSprache } from "@/lib/sprache";
 
 // Der Einstieg als Slider ueber vier Kapitel: GEO und die drei Leistungen,
 // jeweils mit Bild. Alle Folien liegen uebereinander in derselben
 // Rasterzelle – so bestimmt die hoechste die Hoehe und nichts springt beim
-// Wechsel. GEO steht 12 Sekunden; bei den Leistungen wechselt alle 6 Sekunden
-// die Ansicht, nach der letzten folgt das naechste Kapitel. Haelt beim
+// Wechsel. Bei GEO laufen mehrere KI-Antworten nacheinander (jede so lange,
+// wie sie zum Tippen braucht); bei den Leistungen wechselt alle 6 Sekunden
+// die Ansicht. Nach dem letzten Schritt folgt das naechste Kapitel. Haelt beim
 // Drueberfahren an. Pfeile oben mittig, die Kapitelreiter unten mittig.
 
-const GEO_DAUER = 12000;
 const ANSICHT_DAUER = 6000;
-// Anzahl Schritte je Kapitel: GEO einer, Leistungen je Ansicht einer.
-const SCHRITTE = [1, ...ANZAHL_ANSICHTEN];
 
 export default function Hero() {
   const { t } = useSprache();
@@ -28,19 +26,22 @@ export default function Hero() {
     ...t.leistungen.eintraege.map(l => l.eyebrow),
   ];
   const anzahl = titel.length;
+  // Anzahl Schritte je Kapitel: GEO je Beispiel einer, Leistungen je Ansicht einer.
+  const SCHRITTE = [t.geo.beispiele.length, ...ANZAHL_ANSICHTEN];
+  const schritte = SCHRITTE[aktiv];
+  const dauer = aktiv === 0 ? geoDauer(t.geo.beispiele[bild % t.geo.beispiele.length]) : ANSICHT_DAUER;
 
   useEffect(() => {
     if (pause) return;
     if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const z = setTimeout(() => {
-      if (bild + 1 < SCHRITTE[aktiv]) setBild(bild + 1);
+      if (bild + 1 < schritte) setBild(bild + 1);
       else { setAktiv((aktiv + 1) % anzahl); setBild(0); }
-    }, aktiv === 0 ? GEO_DAUER : ANSICHT_DAUER);
+    }, dauer);
     return () => clearTimeout(z);
-  }, [aktiv, bild, pause, anzahl]);
+  }, [aktiv, bild, pause, anzahl, dauer, schritte]);
 
   const geheZu = (k: number) => { setAktiv((k + anzahl) % anzahl); setBild(0); };
-  const dauer = aktiv === 0 ? GEO_DAUER : ANSICHT_DAUER;
   // Fortschrittsbalken fuellt pro Schritt den passenden Teil des Kapitels.
   const von = bild / SCHRITTE[aktiv], bis = (bild + 1) / SCHRITTE[aktiv];
 
@@ -54,7 +55,7 @@ export default function Hero() {
         <h1 className="display-h slider-titel text-[var(--fg)] mb-4">{t.geo.titel}</h1>
         <p className="text-[var(--fg-muted)] leading-relaxed">{t.hero.unter}</p>
       </div>
-      <div className="lg:col-span-7"><GeoAnsicht /></div>
+      <div className="lg:col-span-7"><GeoAnsicht beispiel={aktiv === 0 ? bild : 0} aktiv={aktiv === 0} /></div>
     </div>,
     ...t.leistungen.eintraege.map((l, i) => <LeistungZeile key={l.eyebrow} i={i} bild={aktiv === i + 1 ? bild : 0} onBild={setBild} />),
   ];

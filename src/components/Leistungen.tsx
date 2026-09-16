@@ -1,5 +1,5 @@
 "use client";
-import { Globe, LayoutDashboard, Zap, Check } from "lucide-react";
+import { Globe, LayoutDashboard, Zap, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSprache } from "@/lib/sprache";
 
 // Die drei Leistungen fuer den Einstiegs-Slider (Hero.tsx). Jede Leistung hat
@@ -48,7 +48,6 @@ const ANSICHTEN: Ansicht[][] = [
   [
     { bild: "ki-content" },
     { bild: "ki-planen" },
-    { bild: "ki-profil" },
     { bild: "ki-website" },
   ],
 ];
@@ -79,7 +78,7 @@ export function LeistungZeile({ i, bild, onBild }: { i: number; bild: number; on
         </ul>
       </div>
       <div className="lg:col-span-7">
-        <div className="ansicht-buehne">
+        <div className={`ansicht-buehne ${ANSICHTEN[i][bild]?.handy ? "mit-handy" : ""}`}>
           {ANSICHTEN[i].map((a, n) => (
             <div key={a.bild} className={`ansicht ${bild === n ? "aktiv" : ""}`} aria-hidden={bild !== n}>
               <Browser src={`/leistungen/${a.bild}.jpg`} alt={l.ansichten[n]} />
@@ -89,6 +88,11 @@ export function LeistungZeile({ i, bild, onBild }: { i: number; bild: number; on
               )}
             </div>
           ))}
+          {/* Schlichte Pfeile links und rechts auf dem Bild */}
+          <button type="button" className="ansicht-pfeil links" aria-label="Vorherige Ansicht"
+                  onClick={() => onBild((bild - 1 + ANSICHTEN[i].length) % ANSICHTEN[i].length)}><ChevronLeft size={20} /></button>
+          <button type="button" className="ansicht-pfeil rechts" aria-label="Nächste Ansicht"
+                  onClick={() => onBild((bild + 1) % ANSICHTEN[i].length)}><ChevronRight size={20} /></button>
         </div>
         <div className="ansicht-wahl" role="tablist">
           {l.ansichten.map((name, n) => (

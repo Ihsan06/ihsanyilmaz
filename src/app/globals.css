@@ -142,6 +142,9 @@ html, body {
   box-shadow: 0 24px 60px rgba(0,0,0,0.5); padding: 18px 20px 16px; max-width: 560px; margin: 0 auto;
 }
 .mock-kopf { display:flex; align-items:center; gap:8px; font-size:.78rem; color:var(--fg-subtle); margin-bottom:14px; }
+.mock-zaehler { margin-left:auto; display:inline-flex; gap:5px; }
+.mock-zaehler i { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.18); transition:background .3s ease, width .3s ease; }
+.mock-zaehler i.aktiv { width:16px; border-radius:3px; background:var(--accent); }
 .mock-punkt { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.2); }
 .mock-suche {
   margin:0 0 14px; padding:11px 14px; border-radius:999px; background:var(--surface-2);
@@ -207,7 +210,21 @@ html, body {
 .slider-reiter-balken i { display:block; height:100%; width:100%; background:var(--accent); transform-origin:left; animation: slider-fuellen linear forwards; }
 @keyframes slider-fuellen { from { transform:scaleX(var(--von, 0)); } to { transform:scaleX(var(--bis, 1)); } }
 /* Ansichten je Leistung: Bilder uebereinander, darunter die Umschalter */
-.ansicht-buehne { display:grid; padding-bottom:24px; }
+.ansicht-buehne { display:grid; padding-bottom:24px; position:relative; }
+.ansicht-pfeil {
+  position:absolute; top:calc(50% - 12px); transform:translateY(-50%); z-index:3;
+  width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  background:rgba(10,15,20,.55); border:1px solid rgba(255,255,255,.14); color:rgba(255,255,255,.8);
+  backdrop-filter:blur(6px); cursor:pointer; opacity:.7; transition:opacity .2s ease, border-color .2s ease, color .2s ease;
+}
+.ansicht-pfeil.links { left:10px; }
+.ansicht-pfeil.rechts { right:10px; }
+/* Mit Handy daneben: rechter Pfeil links neben dem Handy (w-[24%], -right-3 bzw. md:-right-8) */
+.ansicht-buehne.mit-handy .ansicht-pfeil.rechts { right:calc(24% - 12px + 10px); }
+@media (min-width:768px) { .ansicht-buehne.mit-handy .ansicht-pfeil.rechts { right:calc(24% - 32px + 10px); } }
+.ansicht-pfeil.rechts { transition:opacity .2s ease, border-color .2s ease, color .2s ease, right .35s ease; }
+.ansicht-buehne:hover .ansicht-pfeil { opacity:1; }
+.ansicht-pfeil:hover { border-color:var(--accent); color:#fff; }
 .ansicht { grid-area:1/1; position:relative; opacity:0; visibility:hidden; transition: opacity .5s ease, visibility 0s linear .5s; }
 .ansicht.aktiv { opacity:1; visibility:visible; transition: opacity .5s ease, visibility 0s; }
 .ansicht-wahl { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-top:14px; }
