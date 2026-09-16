@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { GeoAnsicht } from "./Geo";
 import { LeistungZeile, ANZAHL_ANSICHTEN } from "./Leistungen";
 import { useSprache } from "@/lib/sprache";
@@ -46,12 +46,15 @@ export default function Hero() {
 
   const folien = [
     <div key="geo" className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-      <div className="lg:col-span-6">
-        <span className="eyebrow inline-block mb-4">{t.geo.eyebrow}</span>
-        <h1 className="display-h text-4xl md:text-6xl text-[var(--fg)] mb-6">{t.geo.titel}</h1>
-        <p className="hero-sub text-[var(--fg-muted)] text-lg">{t.hero.unter}</p>
+      <div className="lg:col-span-5">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="icon-tile w-10 h-10"><Sparkles size={18} /></span>
+          <span className="eyebrow">{t.geo.eyebrow}</span>
+        </div>
+        <h1 className="display-h slider-titel text-[var(--fg)] mb-4">{t.geo.titel}</h1>
+        <p className="text-[var(--fg-muted)] leading-relaxed">{t.hero.unter}</p>
       </div>
-      <div className="lg:col-span-6"><GeoAnsicht /></div>
+      <div className="lg:col-span-7"><GeoAnsicht /></div>
     </div>,
     ...t.leistungen.eintraege.map((l, i) => <LeistungZeile key={l.eyebrow} i={i} bild={aktiv === i + 1 ? bild : 0} onBild={setBild} />),
   ];

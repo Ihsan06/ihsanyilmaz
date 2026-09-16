@@ -68,7 +68,7 @@ export function LeistungZeile({ i, bild, onBild }: { i: number; bild: number; on
           <span className="icon-tile w-10 h-10"><Icon size={18} /></span>
           <span className="eyebrow">{l.eyebrow}</span>
         </div>
-        <h3 className="display-h text-2xl md:text-3xl text-[var(--fg)] mb-4">{l.titel}</h3>
+        <h3 className="display-h slider-titel text-[var(--fg)] mb-4">{l.titel}</h3>
         <p className="text-[var(--fg-muted)] leading-relaxed mb-6">{l.text}</p>
         <ul className="space-y-2.5">
           {l.punkte.map(p => (

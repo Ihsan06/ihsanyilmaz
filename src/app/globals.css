@@ -218,8 +218,10 @@ html, body {
 .ansicht-wahl button:hover { color:var(--fg); }
 .ansicht-wahl button.aktiv { color:var(--fg); border-color:var(--accent); background:var(--accent-soft); }
 .slider-buehne { display:grid; }
+/* Eine Titelgroesse fuer alle Kapitel (GEO und Leistungen) */
+.slider-titel { font-size:clamp(1.875rem, 3.2vw, 2.75rem); line-height:1.12; }
 .slider-folie {
-  grid-area:1/1; opacity:0; visibility:hidden; transform:translateX(24px);
+  grid-area:1/1; display:grid; align-items:center; opacity:0; visibility:hidden; transform:translateX(24px);
   transition: opacity .6s ease, transform .6s ease, visibility 0s linear .6s;
 }
 .slider-folie.aktiv { opacity:1; visibility:visible; transform:none; transition: opacity .6s ease, transform .6s ease, visibility 0s; }
