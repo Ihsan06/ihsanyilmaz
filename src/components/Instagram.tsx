@@ -36,7 +36,7 @@ export default function Instagram() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Ohne Ueberschrift: die Kacheln sagen selbst, was sie sind. Profil
             und Bilder stehen deshalb buendig an derselben linken Kante. */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-3">
           <a
             href={PROFIL} target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-3 no-underline group"
