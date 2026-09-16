@@ -73,7 +73,7 @@ export default function Hero() {
           {titel.map((name, i) => (
             <button key={name} type="button" role="tab" aria-selected={aktiv === i}
                     className={aktiv === i ? "aktiv" : ""} onClick={() => setAktiv(i)}>
-              <span className="slider-reiter-nr">0{i + 1}</span> {name}
+              {name}
               <span className="slider-reiter-balken" aria-hidden="true">
                 {aktiv === i && <i key={`${aktiv}-${pause}`} style={{ animationDuration: `${DAUER}ms`, animationPlayState: pause ? "paused" : "running" }} />}
               </span>

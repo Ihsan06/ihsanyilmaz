@@ -54,7 +54,7 @@ export function LeistungZeile({ i, h1 = false }: { i: number; h1?: boolean }) {
       <div className="lg:col-span-5">
         <div className="flex items-center gap-3 mb-4">
           <span className="icon-tile w-10 h-10"><Icon size={18} /></span>
-          <span className="eyebrow">0{i + 1} · {l.eyebrow}</span>
+          <span className="eyebrow">{l.eyebrow}</span>
         </div>
         <Titel className={`display-h ${h1 ? "text-3xl md:text-5xl" : "text-2xl md:text-3xl"} text-[var(--fg)] mb-4`}>{l.titel}</Titel>
         <p className="text-[var(--fg-muted)] leading-relaxed mb-6">{l.text}</p>

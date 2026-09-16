@@ -71,7 +71,8 @@ const DE = {
     tags: { web: "Webentwicklung", automatisierung: "Automatisierung" },
     eintraege: [
       { titel: "Autohaus-Website", text: "Fahrzeuge, Anfragen und Werkstatt-Termine auf einer Seite.", tech: ["Next.js", "Cloudflare Pages", "Kontaktformular", "Webshop-Anbindung"] },
-      { titel: "Gastronomie-Website", text: "Speisekarte, Öffnungszeiten und Kontakt — klar aufgebaut.", tech: ["Next.js", "Tailwind CSS", "Cloudflare Pages", "Smarte Speisekarte"] },
+      { titel: "Café-Website", text: "Speisekarte, die der Koch per WhatsApp aktualisiert – Wochenkarte ohne Umweg über die Agentur.", tech: ["Cloudflare Pages", "WhatsApp-Update", "Speisekarte", "Blog"] },
+      { titel: "Planungsbüro-Website", text: "Zweisprachige Seite für ein Architektur- und Planungsbüro – Projekte, Leistungen, internationale Referenzen.", tech: ["Deutsch / Türkisch", "Diashow", "SEO & schema.org"] },
       { titel: "Instagram-Automatisierung", text: "Beiträge im Browser bauen, einplanen — und zur gewählten Zeit geht alles von selbst raus.", tech: ["Cloudflare Worker", "Instagram-API", "Bildbearbeitung", "Zeitplanung"] },
       { titel: "Mietwagen-Buchungstool", text: "Fahrzeug wählen, Zeitraum festlegen, anfragen — Verfügbarkeit live.", tech: ["Next.js", "Buchungskalender", "Verfügbarkeiten", "Online-Anfrage"] },
     ],
@@ -173,7 +174,8 @@ const EN: Texte = {
     tags: { web: "Web development", automatisierung: "Automation" },
     eintraege: [
       { titel: "Car dealer website", text: "Vehicles, enquiries and workshop appointments on one site.", tech: ["Next.js", "Cloudflare Pages", "Contact form", "Shop integration"] },
-      { titel: "Restaurant website", text: "Menu, opening hours and contact — clearly laid out.", tech: ["Next.js", "Tailwind CSS", "Cloudflare Pages", "Smart menu"] },
+      { titel: "Café website", text: "A menu the chef updates via WhatsApp – weekly specials without going through an agency.", tech: ["Cloudflare Pages", "WhatsApp update", "Menu", "Blog"] },
+      { titel: "Planning office website", text: "Bilingual site for an architecture and planning office – projects, services, international references.", tech: ["German / Turkish", "Slideshow", "SEO & schema.org"] },
       { titel: "Instagram automation", text: "Build posts in the browser, schedule them — and at the chosen time everything goes out by itself.", tech: ["Cloudflare Worker", "Instagram API", "Image editing", "Scheduling"] },
       { titel: "Rental car booking tool", text: "Choose a vehicle, set the dates, send a request — availability live.", tech: ["Next.js", "Booking calendar", "Availability", "Online request"] },
     ],
@@ -273,7 +275,8 @@ const ES: Texte = {
     tags: { web: "Desarrollo web", automatisierung: "Automatización" },
     eintraege: [
       { titel: "Web de concesionario", text: "Vehículos, consultas y citas de taller en una sola página.", tech: ["Next.js", "Cloudflare Pages", "Formulario de contacto", "Integración de tienda"] },
-      { titel: "Web de restaurante", text: "Carta, horarios y contacto — con una estructura clara.", tech: ["Next.js", "Tailwind CSS", "Cloudflare Pages", "Carta inteligente"] },
+      { titel: "Web de cafetería", text: "Una carta que el cocinero actualiza por WhatsApp – menú semanal sin pasar por la agencia.", tech: ["Cloudflare Pages", "Actualización por WhatsApp", "Carta", "Blog"] },
+      { titel: "Web de estudio de planificación", text: "Web bilingüe para un estudio de arquitectura y planificación – proyectos, servicios, referencias internacionales.", tech: ["Alemán / Turco", "Presentación", "SEO y schema.org"] },
       { titel: "Automatización de Instagram", text: "Crear publicaciones en el navegador, programarlas — y a la hora elegida todo sale solo.", tech: ["Cloudflare Worker", "API de Instagram", "Edición de imágenes", "Programación"] },
       { titel: "Reserva de coches de alquiler", text: "Elegir vehículo, fijar fechas, solicitar — disponibilidad en tiempo real.", tech: ["Next.js", "Calendario de reservas", "Disponibilidad", "Solicitud en línea"] },
     ],

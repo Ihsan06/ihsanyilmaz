@@ -1,31 +1,49 @@
 "use client";
-import { ArrowRight } from "lucide-react";
+import { useRef } from "react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSprache } from "@/lib/sprache";
 
-// Tag und Status je Projekt – die Texte dazu kommen aus lib/texte.ts.
+// Projekte als eine Zeile zum Wischen/Scrollen: Kacheln rasten ein, die
+// Pfeile schieben um eine Kachel weiter. Tag und Status je Projekt stehen
+// hier, die Texte in lib/texte.ts (gleiche Reihenfolge).
 const META: { tag: "web" | "automatisierung"; status: "online" | "inArbeit" }[] = [
-  { tag: "web", status: "online" },
-  { tag: "web", status: "inArbeit" },
-  { tag: "automatisierung", status: "online" },
-  { tag: "web", status: "inArbeit" },
+  { tag: "web", status: "online" },            // Autohaus
+  { tag: "web", status: "inArbeit" },          // Café
+  { tag: "web", status: "inArbeit" },          // Planungsbuero
+  { tag: "automatisierung", status: "online" },// Instagram
+  { tag: "web", status: "inArbeit" },          // Mietwagen
 ];
 
 export default function Portfolio() {
   const { t } = useSprache();
   const p = t.projekte;
+  const leiste = useRef<HTMLDivElement>(null);
+
+  const schieben = (richtung: 1 | -1) => {
+    const el = leiste.current; if (!el) return;
+    const kachel = el.querySelector<HTMLElement>(".projekt-kachel");
+    el.scrollBy({ left: richtung * ((kachel?.offsetWidth ?? 300) + 16), behavior: "smooth" });
+  };
+
   return (
     <section id="projekte" className="surface-tief py-16">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <h2 className="display-h text-3xl md:text-4xl text-[var(--fg)] mb-8">{p.titel}</h2>
+        <div className="flex items-end justify-between gap-4 mb-8">
+          <h2 className="display-h text-3xl md:text-4xl text-[var(--fg)]">{p.titel}</h2>
+          <div className="flex gap-2">
+            <button type="button" className="slider-pfeil" aria-label="Zurück" onClick={() => schieben(-1)}><ChevronLeft size={18} /></button>
+            <button type="button" className="slider-pfeil" aria-label="Weiter" onClick={() => schieben(1)}><ChevronRight size={18} /></button>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div ref={leiste} className="projekt-leiste">
           {p.eintraege.map((e, i) => (
-            <div key={e.titel} className="card group flex flex-col overflow-hidden">
+            <div key={e.titel} className="projekt-kachel card group flex flex-col overflow-hidden">
               <div className="h-1" style={{ background: "linear-gradient(90deg, var(--accent), var(--accent-2))" }} />
               <div className="flex flex-col flex-1 p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="chip px-2 py-0.5 text-[0.7rem] font-medium" style={{ color: "var(--accent)", background: "var(--accent-soft)" }}>{p.tags[META[i].tag]}</span>
-                  <span className="chip px-2 py-0.5 text-[0.7rem] font-medium">{p.status[META[i].status]}</span>
+                  <span className="chip px-2 py-0.5 text-[0.7rem] font-medium" style={{ color: "var(--accent)", background: "var(--accent-soft)" }}>{p.tags[META[i]?.tag ?? "web"]}</span>
+                  <span className="chip px-2 py-0.5 text-[0.7rem] font-medium">{p.status[META[i]?.status ?? "inArbeit"]}</span>
                 </div>
                 <h3 className="display-h text-base font-semibold text-[var(--fg)] mb-2">{e.titel}</h3>
                 <p className="text-[var(--fg-muted)] text-[0.82rem] leading-relaxed flex-1 mb-3">{e.text}</p>
