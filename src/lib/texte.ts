@@ -6,6 +6,11 @@ export type Sprache = "de" | "en" | "es";
 
 const DE = {
   nav: { leistungen: "Leistungen", ueberMich: "Über mich", projekte: "Projekte", kontakt: "Kontakt", anfragen: "Projekt anfragen" },
+  hero: {
+    eyebrow: "Websites für lokale Betriebe",
+    unter: "Es beginnt mit Ihrer Website – schnell gebaut, von Google und KI verstanden.",
+    knopf: "Leistungen ansehen",
+  },
   leistungen: {
     titel: "Leistungen",
     eintraege: [
@@ -103,6 +108,11 @@ export type Texte = typeof DE;
 
 const EN: Texte = {
   nav: { leistungen: "Services", ueberMich: "About", projekte: "Projects", kontakt: "Contact", anfragen: "Request a project" },
+  hero: {
+    eyebrow: "Websites for local businesses",
+    unter: "It starts with your website – built fast, understood by Google and AI.",
+    knopf: "See services",
+  },
   leistungen: {
     titel: "Services",
     eintraege: [
@@ -198,6 +208,11 @@ const EN: Texte = {
 
 const ES: Texte = {
   nav: { leistungen: "Servicios", ueberMich: "Sobre mí", projekte: "Proyectos", kontakt: "Contacto", anfragen: "Solicitar proyecto" },
+  hero: {
+    eyebrow: "Páginas web para negocios locales",
+    unter: "Todo empieza con su página web – creada rápido, entendida por Google y la IA.",
+    knopf: "Ver servicios",
+  },
   leistungen: {
     titel: "Servicios",
     eintraege: [

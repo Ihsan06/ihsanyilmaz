@@ -31,7 +31,7 @@ function useTippen(voll: string, aktiv: boolean, tempo = 22, pause = 7000) {
   return { text: voll.slice(0, n), fertig: n >= voll.length, laeuft: n > 0 && n < voll.length };
 }
 
-function GeoAnsicht() {
+export function GeoAnsicht() {
   const { t, sprache } = useSprache();
   const g = t.geo;
   // Die Frage erst, die Antwort danach – bei Sprachwechsel von vorn.

@@ -44,7 +44,6 @@ const BILDER = [
 ];
 
 // Eine Leistung: Text und Bild nebeneinander, bei ungerader Nummer gespiegelt.
-// Die erste steht im Einstieg (Hero.tsx) und traegt dort die h1.
 export function LeistungZeile({ i, h1 = false }: { i: number; h1?: boolean }) {
   const { t } = useSprache();
   const l = t.leistungen.eintraege[i];
@@ -72,15 +71,15 @@ export function LeistungZeile({ i, h1 = false }: { i: number; h1?: boolean }) {
   );
 }
 
-// Die weiteren Leistungen unter dem Einstieg.
+// Die drei Leistungen mit Bild.
 export default function Leistungen() {
   const { t } = useSprache();
   return (
-    <section id="leistungen-weitere" className="surface-base pt-20 pb-24">
+    <section id="leistungen" className="surface-base pt-20 pb-24">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <h2 className="sr-only">{t.leistungen.titel}</h2>
         <div className="flex flex-col gap-24 md:gap-32">
-          {t.leistungen.eintraege.slice(1).map((l, k) => <LeistungZeile key={l.eyebrow} i={k + 1} />)}
+          {t.leistungen.eintraege.map((l, i) => <LeistungZeile key={l.eyebrow} i={i} />)}
         </div>
       </div>
     </section>
