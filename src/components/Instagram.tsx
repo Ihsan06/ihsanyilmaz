@@ -41,10 +41,6 @@ export default function Instagram() {
             href={PROFIL} target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-3 no-underline group"
           >
-            <span className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: "var(--accent)" }}>
-              <InstaZeichen groesse={22} farbe="#fff" />
-            </span>
             <span className="flex flex-col leading-tight">
               <strong className="text-[var(--fg)] text-sm">@aiy.web</strong>
               <span className="text-[var(--fg-muted)] text-xs">{t.instagram.unter}</span>
