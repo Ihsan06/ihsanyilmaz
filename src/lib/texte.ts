@@ -26,7 +26,7 @@ const DE = {
         titel: "Alles an einer Stelle.",
         text: "Reservierungen, Speisekarte, Belegung, Besucherzahlen – Sie ändern selbst, ohne Agentur.",
         punkte: ["Anfragen & Reservierungen", "Speisekarte & Belegungsplan", "Besucherzahlen"],
-        ansichten: ["Übersicht", "Belegung", "Monitoring", "Speisekarte"],
+        ansichten: ["Übersicht", "Belegung", "Monitoring", "Speisekarte", "Blog"],
       },
       {
         eyebrow: "KI als Beschleuniger",
@@ -145,7 +145,7 @@ const EN: Texte = {
         titel: "Everything in one place.",
         text: "Reservations, menu, bookings, visitor numbers – you make changes yourself, no agency needed.",
         punkte: ["Enquiries & reservations", "Menu & booking calendar", "Visitor numbers"],
-        ansichten: ["Overview", "Bookings", "Analytics", "Menu"],
+        ansichten: ["Overview", "Bookings", "Analytics", "Menu", "Blog"],
       },
       {
         eyebrow: "AI as an accelerator",
@@ -262,7 +262,7 @@ const ES: Texte = {
         titel: "Todo en un solo lugar.",
         text: "Reservas, carta, ocupación, visitas – usted mismo hace los cambios, sin agencia.",
         punkte: ["Consultas y reservas", "Carta y calendario de reservas", "Número de visitas"],
-        ansichten: ["Resumen", "Reservas", "Estadísticas", "Carta"],
+        ansichten: ["Resumen", "Reservas", "Estadísticas", "Carta", "Blog"],
       },
       {
         eyebrow: "La IA como acelerador",
