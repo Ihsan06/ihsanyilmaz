@@ -65,15 +65,6 @@ const DE = {
     ],
     aria: "Beispiel: KI-Antwort, die den Betrieb empfiehlt",
   },
-  demo: {
-    eyebrow: "Demo",
-    titel: "Selbst ausprobieren.",
-    text: "Die Autohaus-Demo ist echt. Die Website ist offen, den Verwaltungsbereich zeige ich Ihnen gern persönlich.",
-    eintraege: [
-      { titel: "Website", text: "Fahrzeuge, Mietwagen, Finanzierung, Ankauf.", knopf: "Demo öffnen" },
-      { titel: "Verwaltungsbereich", text: "Übersicht, Belegung, Content mit KI, Website ändern.", knopf: "Zugang anfragen" },
-    ],
-  },
   ueber: {
     eyebrow: "Über mich",
     titel1: "Ihr Ansprechpartner",
@@ -193,15 +184,6 @@ const EN: Texte = {
     ],
     aria: "Example: an AI answer recommending the business",
   },
-  demo: {
-    eyebrow: "Demo",
-    titel: "Try it yourself.",
-    text: "The car dealer demo is real. The website is open – I'm happy to show you the admin area personally.",
-    eintraege: [
-      { titel: "Website", text: "Vehicles, car rental, financing, trade-in.", knopf: "Open demo" },
-      { titel: "Admin area", text: "Overview, bookings, AI content, website edits.", knopf: "Request access" },
-    ],
-  },
   ueber: {
     eyebrow: "About me",
     titel1: "Your contact",
@@ -318,15 +300,6 @@ const ES: Texte = {
       },
     ],
     aria: "Ejemplo: una respuesta de IA que recomienda el negocio",
-  },
-  demo: {
-    eyebrow: "Demo",
-    titel: "Pruébelo usted mismo.",
-    text: "La demo del concesionario es real. La web está abierta – el área de administración se la muestro personalmente.",
-    eintraege: [
-      { titel: "Web", text: "Vehículos, alquiler, financiación, compra.", knopf: "Abrir demo" },
-      { titel: "Área de administración", text: "Resumen, reservas, contenido con IA, cambios en la web.", knopf: "Solicitar acceso" },
-    ],
   },
   ueber: {
     eyebrow: "Sobre mí",
