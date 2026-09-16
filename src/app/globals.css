@@ -251,7 +251,7 @@ html, body {
 .hero-photo {
   position:absolute; inset:0; z-index:0; pointer-events:none;
   background-image:
-    linear-gradient(rgba(10,15,20,0.35), rgba(10,15,20,0.55)),
+    linear-gradient(rgba(10,15,20,0.55), rgba(10,15,20,0.7)),
     url('/ki-netz.jpg?v=1');
   background-size:cover; background-position:center; background-repeat:no-repeat;
   background-attachment: scroll, fixed;

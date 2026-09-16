@@ -6,12 +6,6 @@ export type Sprache = "de" | "en" | "es";
 
 const DE = {
   nav: { leistungen: "Leistungen", ueberMich: "Über mich", projekte: "Projekte", kontakt: "Kontakt", anfragen: "Projekt anfragen" },
-  hero: {
-    eyebrow: "Websites für lokale Betriebe",
-    titel1: "Ihre Website.",
-    titel2: "Von der Idee bis online – in Tagen.",
-    knopf: "Leistungen ansehen",
-  },
   leistungen: {
     titel: "Leistungen",
     eintraege: [
@@ -109,12 +103,6 @@ export type Texte = typeof DE;
 
 const EN: Texte = {
   nav: { leistungen: "Services", ueberMich: "About", projekte: "Projects", kontakt: "Contact", anfragen: "Request a project" },
-  hero: {
-    eyebrow: "Websites for local businesses",
-    titel1: "Your website.",
-    titel2: "From idea to online – in days.",
-    knopf: "See services",
-  },
   leistungen: {
     titel: "Services",
     eintraege: [
@@ -210,12 +198,6 @@ const EN: Texte = {
 
 const ES: Texte = {
   nav: { leistungen: "Servicios", ueberMich: "Sobre mí", projekte: "Proyectos", kontakt: "Contacto", anfragen: "Solicitar proyecto" },
-  hero: {
-    eyebrow: "Páginas web para negocios locales",
-    titel1: "Su página web.",
-    titel2: "De la idea a estar en línea – en días.",
-    knopf: "Ver servicios",
-  },
   leistungen: {
     titel: "Servicios",
     eintraege: [
