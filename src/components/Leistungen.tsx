@@ -3,7 +3,7 @@ import { Globe, LayoutDashboard, Zap, Check, ChevronLeft, ChevronRight } from "l
 import { useSprache } from "@/lib/sprache";
 
 // Die drei Leistungen fuer den Einstiegs-Slider (Hero.tsx). Jede Leistung hat
-// mehrere Ansichten – Screenshots aus der eigenen Autohaus-Demo
+// mehrere Ansichten – Screenshots aus der Autohaus-Demo und der Gastro-Demo
 // (public/leistungen/*.jpg), bei Websites jeweils mit Handy daneben.
 // Die Namen der Ansichten stehen in lib/texte.ts (ansichten), gleiche Reihenfolge.
 
@@ -29,28 +29,28 @@ function Handy({ src, alt, className = "" }: { src: string; alt: string; classNa
 const ICONS = [Globe, LayoutDashboard, Zap];
 
 // Bei neuen Screenshots hochzaehlen, sonst zeigt der Browser noch die alten.
-const BILD_STAND = 3;
+const BILD_STAND = 4;
 
 type Ansicht = { bild: string; handy?: string };
 
 const ANSICHTEN: Ansicht[][] = [
   [
     { bild: "web-start", handy: "handy-start" },
-    { bild: "web-fahrzeuge", handy: "handy-fahrzeuge" },
+    { bild: "web-cafe", handy: "handy-cafe" },
+    { bild: "web-speisekarte", handy: "handy-speisekarte" },
+    { bild: "web-reservierung", handy: "handy-reservierung" },
     { bild: "web-mietwagen", handy: "handy-mietwagen" },
     { bild: "web-finanzierung", handy: "handy-finanzierung" },
-    { bild: "web-ankauf" },
   ],
   [
     { bild: "adm-uebersicht" },
-    { bild: "adm-monitoring" },
+    { bild: "adm-speisekarte" },
     { bild: "adm-belegung" },
-    { bild: "adm-flotte" },
-    { bild: "adm-galerie" },
+    { bild: "adm-monitoring" },
   ],
   [
+    { bild: "ki-messenger" },
     { bild: "ki-content" },
-    { bild: "ki-planen" },
     { bild: "ki-website" },
   ],
 ];

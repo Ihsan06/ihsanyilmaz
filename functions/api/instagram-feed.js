@@ -5,13 +5,14 @@
 // nur, was ohnehin jeder auf dem Profil sieht — Bild, Text, Datum, Verweis.
 //
 // Zwischengespeichert wird eine Stunde. Instagram zaehlt Abrufe gegen ein
-// Stundenlimit, und ein Beitrag, der sechzig Minuten spaeter auf der Seite
-// erscheint, faellt niemandem auf.
+// Stundenlimit, und ein Beitrag, der bis zu sechzig Minuten spaeter auf der
+// Seite erscheint, faellt niemandem auf.
 
 const KOPF = {
   'Content-Type': 'application/json; charset=utf-8',
-  // Der Browser darf eine Stunde behalten, Cloudflares Netz sechs.
-  'Cache-Control': 'public, max-age=3600, s-maxage=21600',
+  // Der Browser darf zehn Minuten behalten, Cloudflares Netz eine Stunde –
+  // so steht ein neuer Beitrag spaetestens nach einer Stunde auf der Seite.
+  'Cache-Control': 'public, max-age=600, s-maxage=3600',
 };
 
 const BASIS = 'https://graph.instagram.com';
