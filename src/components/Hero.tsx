@@ -9,6 +9,7 @@ import { useSprache } from "@/lib/sprache";
 // jeweils mit Bild. Alle Folien liegen uebereinander in derselben
 // Rasterzelle – so bestimmt die hoechste die Hoehe und nichts springt beim
 // Wechsel. Laeuft alle 8 Sekunden weiter, haelt beim Drueberfahren an.
+// Pfeile oben mittig, die Kapitelreiter unten mittig.
 
 const DAUER = 8000;
 
@@ -51,7 +52,23 @@ export default function Hero() {
     >
       <div className="hero-photo" aria-hidden="true" />
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 w-full">
-        {/* Kapitelreiter */}
+        <div className="flex items-center justify-center gap-3 mb-8">
+          <button type="button" className="slider-pfeil" aria-label="Zurück"
+                  onClick={() => setAktiv(a => (a - 1 + anzahl) % anzahl)}><ChevronLeft size={18} /></button>
+          <button type="button" className="slider-pfeil" aria-label="Weiter"
+                  onClick={() => setAktiv(a => (a + 1) % anzahl)}><ChevronRight size={18} /></button>
+        </div>
+
+        {/* Folien uebereinander */}
+        <div className="slider-buehne">
+          {folien.map((f, i) => (
+            <div key={i} className={`slider-folie ${aktiv === i ? "aktiv" : ""}`} aria-hidden={aktiv !== i}>
+              {f}
+            </div>
+          ))}
+        </div>
+
+        {/* Kapitelreiter unten, mittig */}
         <div className="slider-reiter" role="tablist" aria-label={t.leistungen.titel}>
           {titel.map((name, i) => (
             <button key={name} type="button" role="tab" aria-selected={aktiv === i}
@@ -64,21 +81,6 @@ export default function Hero() {
           ))}
         </div>
 
-        {/* Folien uebereinander */}
-        <div className="slider-buehne">
-          {folien.map((f, i) => (
-            <div key={i} className={`slider-folie ${aktiv === i ? "aktiv" : ""}`} aria-hidden={aktiv !== i}>
-              {f}
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3 mt-2">
-          <button type="button" className="slider-pfeil" aria-label="Zurück"
-                  onClick={() => setAktiv(a => (a - 1 + anzahl) % anzahl)}><ChevronLeft size={18} /></button>
-          <button type="button" className="slider-pfeil" aria-label="Weiter"
-                  onClick={() => setAktiv(a => (a + 1) % anzahl)}><ChevronRight size={18} /></button>
-        </div>
       </div>
     </section>
   );

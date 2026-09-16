@@ -197,14 +197,14 @@ html, body {
 }
 
 /* ─── Einstieg als Slider ─── */
-.slider-reiter { display:flex; flex-wrap:wrap; gap:6px 22px; margin-bottom:34px; border-bottom:1px solid var(--border); }
+.slider-reiter { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 22px; margin-top:34px; border-top:1px solid var(--border); }
 .slider-reiter button {
   position:relative; background:none; border:0; cursor:pointer; font:inherit;
-  font-size:.86rem; font-weight:600; color:var(--fg-subtle); padding:10px 0 14px; transition:color .2s ease;
+  font-size:.86rem; font-weight:600; color:var(--fg-subtle); padding:14px 0 10px; transition:color .2s ease;
 }
 .slider-reiter button:hover, .slider-reiter button.aktiv { color:var(--fg); }
 .slider-reiter-nr { color:var(--accent); margin-right:4px; font-size:.74rem; }
-.slider-reiter-balken { position:absolute; left:0; right:0; bottom:-1px; height:2px; overflow:hidden; }
+.slider-reiter-balken { position:absolute; left:0; right:0; top:-1px; height:2px; overflow:hidden; }
 .slider-reiter-balken i { display:block; height:100%; width:100%; background:var(--accent); transform-origin:left; animation: slider-fuellen linear forwards; }
 @keyframes slider-fuellen { from { transform:scaleX(0); } to { transform:scaleX(1); } }
 .slider-buehne { display:grid; }
