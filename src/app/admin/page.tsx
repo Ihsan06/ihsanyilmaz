@@ -199,50 +199,45 @@ export default function AdminUebersicht() {
         </div>
       </Abschnitt>
 
-      {/* Alle Bereiche untereinander, auch auf breiten Schirmen. */}
-      <div>
-        <Abschnitt icon={<Inbox size={17} />} titel="Letzte Anfragen" weg="/admin/anfragen" wegText="Alle Anfragen">
-          <div className="mon-block !mb-0 !py-2">
-            {anfragen.length === 0 ? (
-              <p className="mon-leer py-3">Noch keine Anfrage eingegangen.</p>
-            ) : (
-              <ul className="mon-liste">
-                {anfragen.map(x => (
-                  <li key={x.id}>
-                    <span className="mon-liste-name">
-                      <b className="font-semibold text-[var(--fg)]">{x.name}</b>
-                      {x.betrieb && <span className="text-[var(--fg-subtle)]"> · {x.betrieb}</span>}
-                      <span className="block text-[0.74rem] text-[var(--fg-subtle)]">{datum(x.erstellt_am)}</span>
-                    </span>
-                    <span className="chip px-2.5 py-0.5 text-xs font-medium"
-                          style={x.status === "neu" ? { background: "var(--accent)", color: "#fff", borderColor: "transparent" } : undefined}>
-                      {STATUS_WORT[x.status] || x.status}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </Abschnitt>
-
-        <div>
-          <Abschnitt icon={<Euro size={17} />} titel={`Finanzen · ${monat}`} weg="/admin/finanzen" wegText="Zu den Finanzen">
-            <div className="mon-kennzahlen !mb-0">
-              <Kachel titel="Einnahmen" href="/admin/finanzen" wert={stats ? euro(stats.einnahmenCent) : "—"} />
-              <Kachel titel="Ausgaben" href="/admin/finanzen" wert={stats ? euro(stats.ausgabenCent) : "—"} />
-              <Kachel titel="Saldo" href="/admin/finanzen" wert={stats ? euro(stats.saldoCent) : "—"} />
-            </div>
-          </Abschnitt>
-
-          <Abschnitt icon={<Images size={17} />} titel="Galerie & Dokumente" weg="/admin/galerie" wegText="Zur Galerie">
-            <div className="mon-kennzahlen !mb-0">
-              <Kachel titel="Bilder" href="/admin/galerie" wert={s?.ok ? zahl(s.bilder) : "—"}
-                      unter={s?.ok ? `${groesse(s.bytes)} · ${String(s.anteil).replace(".", ",")} % von 9,5 GB` : ""} />
-              <Kachel titel="Dokumente" href="/admin/dokumente" wert={stats ? zahl(stats.dokumente) : "—"} unter="Rechnungen & Belege" />
-            </div>
-          </Abschnitt>
+      <Abschnitt icon={<Euro size={17} />} titel={`Finanzen · ${monat}`} weg="/admin/finanzen" wegText="Zu den Finanzen">
+        <div className="mon-kennzahlen !mb-0">
+          <Kachel titel="Einnahmen" href="/admin/finanzen" wert={stats ? euro(stats.einnahmenCent) : "—"} />
+          <Kachel titel="Ausgaben" href="/admin/finanzen" wert={stats ? euro(stats.ausgabenCent) : "—"} />
+          <Kachel titel="Saldo" href="/admin/finanzen" wert={stats ? euro(stats.saldoCent) : "—"} />
         </div>
-      </div>
+      </Abschnitt>
+
+      <Abschnitt icon={<Images size={17} />} titel="Galerie & Dokumente" weg="/admin/galerie" wegText="Zur Galerie">
+        <div className="mon-kennzahlen !mb-0">
+          <Kachel titel="Bilder" href="/admin/galerie" wert={s?.ok ? zahl(s.bilder) : "—"}
+                  unter={s?.ok ? `${groesse(s.bytes)} · ${String(s.anteil).replace(".", ",")} % von 9,5 GB` : ""} />
+          <Kachel titel="Dokumente" href="/admin/dokumente" wert={stats ? zahl(stats.dokumente) : "—"} unter="Rechnungen & Belege" />
+        </div>
+      </Abschnitt>
+
+      <Abschnitt icon={<Inbox size={17} />} titel="Letzte Anfragen" weg="/admin/anfragen" wegText="Alle Anfragen">
+        <div className="mon-block !mb-0 !py-2">
+          {anfragen.length === 0 ? (
+            <p className="mon-leer py-3">Noch keine Anfrage eingegangen.</p>
+          ) : (
+            <ul className="mon-liste">
+              {anfragen.map(x => (
+                <li key={x.id}>
+                  <span className="mon-liste-name">
+                    <b className="font-semibold text-[var(--fg)]">{x.name}</b>
+                    {x.betrieb && <span className="text-[var(--fg-subtle)]"> · {x.betrieb}</span>}
+                    <span className="block text-[0.74rem] text-[var(--fg-subtle)]">{datum(x.erstellt_am)}</span>
+                  </span>
+                  <span className="chip px-2.5 py-0.5 text-xs font-medium"
+                        style={x.status === "neu" ? { background: "var(--accent)", color: "#fff", borderColor: "transparent" } : undefined}>
+                    {STATUS_WORT[x.status] || x.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Abschnitt>
     </AdminShell>
   );
 }
