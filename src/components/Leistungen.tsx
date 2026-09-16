@@ -12,7 +12,7 @@ function Browser({ src, alt, className = "" }: { src: string; alt: string; class
     <div className={`rahmen-browser ${className}`}>
       <div className="rahmen-browser-leiste"><i /><i /><i /></div>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} loading="lazy" />
+      <img src={src} alt={alt} decoding="async" />
     </div>
   );
 }
@@ -21,12 +21,15 @@ function Handy({ src, alt, className = "" }: { src: string; alt: string; classNa
   return (
     <div className={`rahmen-handy ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} loading="lazy" />
+      <img src={src} alt={alt} decoding="async" />
     </div>
   );
 }
 
 const ICONS = [Globe, LayoutDashboard, Zap];
+
+// Bei neuen Screenshots hochzaehlen, sonst zeigt der Browser noch die alten.
+const BILD_STAND = 3;
 
 type Ansicht = { bild: string; handy?: string };
 
@@ -81,9 +84,9 @@ export function LeistungZeile({ i, bild, onBild }: { i: number; bild: number; on
         <div className={`ansicht-buehne ${ANSICHTEN[i][bild]?.handy ? "mit-handy" : ""}`}>
           {ANSICHTEN[i].map((a, n) => (
             <div key={a.bild} className={`ansicht ${bild === n ? "aktiv" : ""}`} aria-hidden={bild !== n}>
-              <Browser src={`/leistungen/${a.bild}.jpg`} alt={l.ansichten[n]} />
+              <Browser src={`/leistungen/${a.bild}.jpg?v=${BILD_STAND}`} alt={l.ansichten[n]} />
               {a.handy && (
-                <Handy src={`/leistungen/${a.handy}.jpg`} alt={l.ansichten[n]}
+                <Handy src={`/leistungen/${a.handy}.jpg?v=${BILD_STAND}`} alt={l.ansichten[n]}
                        className="absolute -bottom-6 -right-3 md:-right-8 w-[24%]" />
               )}
             </div>

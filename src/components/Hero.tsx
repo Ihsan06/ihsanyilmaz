@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { GeoAnsicht, geoDauer } from "./Geo";
 import { LeistungZeile, ANZAHL_ANSICHTEN } from "./Leistungen";
@@ -11,12 +11,13 @@ import { useSprache } from "@/lib/sprache";
 // Wechsel. Bei GEO laufen mehrere KI-Antworten nacheinander (jede so lange,
 // wie sie zum Tippen braucht); bei den Leistungen wechselt alle 6 Sekunden
 // die Ansicht. Nach dem letzten Schritt folgt das naechste Kapitel. Haelt beim
-// Drueberfahren an. Pfeile oben mittig, die Kapitelreiter unten mittig.
+// Drueberfahren ueber das Bild an und laeuft danach mit der Restzeit weiter.
+// Pfeile oben mittig, die Kapitelreiter unten mittig.
 
 const ANSICHT_DAUER = 6000;
 
 export default function Hero() {
-  const { t } = useSprache();
+  const { t, sprache } = useSprache();
   const [aktiv, setAktiv] = useState(0);
   const [bild, setBild] = useState(0);
   const [pause, setPause] = useState(false);
@@ -31,15 +32,21 @@ export default function Hero() {
   const schritte = SCHRITTE[aktiv];
   const dauer = aktiv === 0 ? geoDauer(t.geo.beispiele[bild % t.geo.beispiele.length]) : ANSICHT_DAUER;
 
+  // Restzeit des laufenden Schritts: beim Anhalten gemerkt, beim neuen Schritt verworfen.
+  const rest = useRef<number | null>(null);
+  useEffect(() => { rest.current = null; }, [aktiv, bild, sprache]);
+
   useEffect(() => {
     if (pause) return;
     if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const laenge = rest.current ?? dauer;
+    const start = Date.now();
     const z = setTimeout(() => {
       if (bild + 1 < schritte) setBild(bild + 1);
       else { setAktiv((aktiv + 1) % anzahl); setBild(0); }
-    }, dauer);
-    return () => clearTimeout(z);
-  }, [aktiv, bild, pause, anzahl, dauer, schritte]);
+    }, laenge);
+    return () => { clearTimeout(z); rest.current = Math.max(0, laenge - (Date.now() - start)); };
+  }, [aktiv, bild, pause, anzahl, dauer, schritte, sprache]);
 
   const geheZu = (k: number) => { setAktiv((k + anzahl) % anzahl); setBild(0); };
   // Fortschrittsbalken fuellt pro Schritt den passenden Teil des Kapitels.
@@ -64,8 +71,6 @@ export default function Hero() {
     <section
       id="leistungen"
       className="hero-bg surface-alt relative min-h-screen flex flex-col justify-center overflow-hidden pt-28 pb-12"
-      onMouseEnter={() => setPause(true)}
-      onMouseLeave={() => setPause(false)}
     >
       <div className="hero-photo" aria-hidden="true" />
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 w-full">
@@ -77,7 +82,7 @@ export default function Hero() {
         </div>
 
         {/* Folien uebereinander */}
-        <div className="slider-buehne">
+        <div className="slider-buehne" onMouseEnter={() => setPause(true)} onMouseLeave={() => setPause(false)}>
           {folien.map((f, i) => (
             <div key={i} className={`slider-folie ${aktiv === i ? "aktiv" : ""}`} aria-hidden={aktiv !== i}>
               {f}
@@ -92,7 +97,7 @@ export default function Hero() {
                     className={aktiv === i ? "aktiv" : ""} onClick={() => geheZu(i)}>
               {name}
               <span className="slider-reiter-balken" aria-hidden="true">
-                {aktiv === i && <i key={`${aktiv}-${bild}-${pause}`} style={{ animationDuration: `${dauer}ms`, animationPlayState: pause ? "paused" : "running", ["--von" as string]: von, ["--bis" as string]: bis }} />}
+                {aktiv === i && <i key={`${aktiv}-${bild}-${sprache}`} style={{ animationDuration: `${dauer}ms`, animationPlayState: pause ? "paused" : "running", ["--von" as string]: von, ["--bis" as string]: bis }} />}
               </span>
             </button>
           ))}

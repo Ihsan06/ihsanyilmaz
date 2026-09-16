@@ -142,6 +142,9 @@ html, body {
   box-shadow: 0 24px 60px rgba(0,0,0,0.5); padding: 18px 20px 16px; max-width: 560px; margin: 0 auto;
 }
 .mock-kopf { display:flex; align-items:center; gap:8px; font-size:.78rem; color:var(--fg-subtle); margin-bottom:14px; }
+.geo-stapel { display:grid; }
+.geo-stapel > * { grid-area:1/1; min-width:0; }
+.geo-platzhalter { visibility:hidden; }
 .mock-zaehler { margin-left:auto; display:inline-flex; gap:5px; }
 .mock-zaehler i { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.18); transition:background .3s ease, width .3s ease; }
 .mock-zaehler i.aktiv { width:16px; border-radius:3px; background:var(--accent); }

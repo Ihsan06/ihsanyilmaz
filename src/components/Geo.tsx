@@ -57,7 +57,19 @@ export function GeoAnsicht({ beispiel = 0, aktiv = true }: { beispiel?: number; 
           {g.beispiele.map((_, n) => <i key={n} className={n === beispiel ? "aktiv" : ""} />)}
         </span>
       </div>
-      <GeoBeispiel key={`${sprache}-${beispiel}-${aktiv}`} b={b} aktiv={aktiv} />
+      {/* Alle Beispiele unsichtbar uebereinander: die Karte ist so hoch wie das
+          laengste, damit beim Wechsel nichts springt. */}
+      <div className="geo-stapel">
+        {g.beispiele.map((x, n) => (
+          <div key={n} className="geo-platzhalter" aria-hidden="true">
+            <p className="mock-suche">{x.frage}</p>
+            <div className="mock-geo"><p><b>{x.name}</b>{x.antwort}</p>
+              <div className="mock-quellen sichtbar">{x.quellen.map(q => <span key={q}>{q}</span>)}</div>
+            </div>
+          </div>
+        ))}
+        <div><GeoBeispiel key={`${sprache}-${beispiel}-${aktiv}`} b={b} aktiv={aktiv} /></div>
+      </div>
     </div>
   );
 }
