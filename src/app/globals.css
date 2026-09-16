@@ -233,6 +233,37 @@ html, body {
 .projekt-kachel:hover { transform:none; }
 @media (min-width: 1024px) { .projekt-kachel { flex-basis: calc((100% - 48px) / 4); } }
 
+/* ─── Fusszeile – nach dem Vorbild autohaus-diezmann.de ─── */
+.fuss { background:#070B10; border-top:1px solid var(--border); padding:48px 0; }
+.fuss-innen {
+  max-width:80rem; margin:0 auto; padding:0 clamp(24px, 4vw, 32px);
+  display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:20px 48px;
+}
+.fuss-marke { display:flex; flex-direction:column; align-items:flex-start; gap:12px; justify-self:start; }
+.fuss-anschrift { color:rgba(255,255,255,.5); font-size:.875rem; line-height:1.7; margin:0; }
+.fuss-anschrift a { color:var(--accent); }
+.fuss-social { display:flex; justify-content:center; gap:14px; justify-self:center; }
+.fuss-social a {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:42px; height:42px; border-radius:50%;
+  color:rgba(255,255,255,.7); border:1px solid rgba(255,255,255,.18);
+  transition: color .2s ease, border-color .2s ease, background .2s ease, transform .2s ease;
+}
+.fuss-social a:hover { color:#fff; border-color:var(--accent); background:var(--accent-2); transform:translateY(-2px); }
+/* sechs Links in zwei Spalten, sonst waere die Spalte hoeher als der Rest */
+.fuss-links { display:grid; grid-template-columns:auto auto; gap:10px 32px; justify-items:end; justify-self:end; }
+.fuss-links a { color:rgba(255,255,255,.5); font-size:.875rem; transition:color .2s ease; }
+.fuss-links a:hover { color:#fff; }
+.fuss-copy {
+  grid-column:1 / -1; text-align:center; color:rgba(255,255,255,.3); font-size:.8rem;
+  margin:12px 0 0; padding-top:20px; border-top:1px solid rgba(255,255,255,.08);
+}
+@media (max-width: 1024px) {
+  .fuss-innen { grid-template-columns:1fr; justify-items:center; text-align:center; gap:20px; }
+  .fuss-marke { align-items:center; justify-self:center; }
+  .fuss-links { justify-items:center; justify-self:center; }
+}
+
 /* Sprachwahl im Kopf: DE · EN · ES */
 .sprachwahl { display:inline-flex; align-items:center; font-size:.78rem; font-weight:600; letter-spacing:.06em; }
 .sprachwahl button { background:none; border:0; padding:2px 4px; cursor:pointer; font:inherit; color:var(--fg-subtle); transition:color .15s ease; }
