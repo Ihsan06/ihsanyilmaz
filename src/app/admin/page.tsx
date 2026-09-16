@@ -199,7 +199,8 @@ export default function AdminUebersicht() {
         </div>
       </Abschnitt>
 
-      <div className="grid gap-9 lg:grid-cols-2">
+      {/* Alle Bereiche untereinander, auch auf breiten Schirmen. */}
+      <div>
         <Abschnitt icon={<Inbox size={17} />} titel="Letzte Anfragen" weg="/admin/anfragen" wegText="Alle Anfragen">
           <div className="mon-block !mb-0 !py-2">
             {anfragen.length === 0 ? (
@@ -224,9 +225,9 @@ export default function AdminUebersicht() {
           </div>
         </Abschnitt>
 
-        <div className="flex flex-col gap-9">
+        <div>
           <Abschnitt icon={<Euro size={17} />} titel={`Finanzen · ${monat}`} weg="/admin/finanzen" wegText="Zu den Finanzen">
-            <div className="mon-kennzahlen !mb-0" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+            <div className="mon-kennzahlen !mb-0">
               <Kachel titel="Einnahmen" href="/admin/finanzen" wert={stats ? euro(stats.einnahmenCent) : "—"} />
               <Kachel titel="Ausgaben" href="/admin/finanzen" wert={stats ? euro(stats.ausgabenCent) : "—"} />
               <Kachel titel="Saldo" href="/admin/finanzen" wert={stats ? euro(stats.saldoCent) : "—"} />
@@ -234,7 +235,7 @@ export default function AdminUebersicht() {
           </Abschnitt>
 
           <Abschnitt icon={<Images size={17} />} titel="Galerie & Dokumente" weg="/admin/galerie" wegText="Zur Galerie">
-            <div className="mon-kennzahlen !mb-0" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
+            <div className="mon-kennzahlen !mb-0">
               <Kachel titel="Bilder" href="/admin/galerie" wert={s?.ok ? zahl(s.bilder) : "—"}
                       unter={s?.ok ? `${groesse(s.bytes)} · ${String(s.anteil).replace(".", ",")} % von 9,5 GB` : ""} />
               <Kachel titel="Dokumente" href="/admin/dokumente" wert={stats ? zahl(stats.dokumente) : "—"} unter="Rechnungen & Belege" />
