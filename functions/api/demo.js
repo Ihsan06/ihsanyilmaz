@@ -41,7 +41,7 @@ const TEXTE = {
     hallo: 'Guten Tag,',
     intro1: 'hier ist die Demo. Die Website ist echt und steht offen – klicken Sie sich einfach durch.',
     intro2: 'hier sind die beiden Demos. Beide Websites sind echt und stehen offen – klicken Sie sich einfach durch.',
-    verwaltung: 'Wenn Sie mögen, zeige ich Ihnen gern auch, was dahinter steckt – der Verwaltungsbereich, in dem Speisekarte, Belegung oder Beiträge gepflegt werden. Ein kurzes Gespräch genügt, 20 Minuten per Video oder Telefon, ohne Verpflichtung. Antworten Sie einfach auf diese E-Mail.',
+    verwaltung: 'Wenn Sie mögen, schalte ich Ihnen gern auch den Verwaltungsbereich frei – dort werden Speisekarte, Belegung oder Beiträge gepflegt. Eine kurze Antwort auf diese E-Mail genügt.',
     gruss: 'Viele Grüße',
     fuss: 'Sie erhalten diese E-Mail, weil auf ihsan-yilmaz.de ein Demo-Link für diese Adresse angefordert wurde. Falls nicht: einfach ignorieren, es passiert nichts weiter.',
   },
@@ -51,7 +51,7 @@ const TEXTE = {
     hallo: 'Hello,',
     intro1: 'here is the demo. The website is real and open – just click through.',
     intro2: 'here are the two demos. Both websites are real and open – just click through.',
-    verwaltung: 'If you like, I am happy to show you what is behind it as well – the admin area where the menu, bookings or posts are maintained. A short call is enough: 20 minutes by video or phone, no obligation. Simply reply to this email.',
+    verwaltung: 'If you like, I am happy to unlock the admin area for you as well – that is where the menu, bookings or posts are maintained. A short reply to this email is all it takes.',
     gruss: 'Best regards',
     fuss: 'You are receiving this email because a demo link was requested for this address on ihsan-yilmaz.de. If that was not you, simply ignore it – nothing else will happen.',
   },
@@ -61,7 +61,7 @@ const TEXTE = {
     hallo: 'Buenos días,',
     intro1: 'aquí tiene la demo. La web es real y está abierta – navegue con toda libertad.',
     intro2: 'aquí tiene las dos demos. Ambas webs son reales y están abiertas – navegue con toda libertad.',
-    verwaltung: 'Si lo desea, con gusto le muestro también lo que hay detrás – el área de administración donde se mantienen la carta, las reservas o las publicaciones. Basta una breve conversación: 20 minutos por vídeo o teléfono, sin compromiso. Responda simplemente a este correo.',
+    verwaltung: 'Si lo desea, con gusto le habilito también el área de administración – allí se mantienen la carta, las reservas o las publicaciones. Basta una breve respuesta a este correo.',
     gruss: 'Un cordial saludo',
     fuss: 'Recibe este correo porque en ihsan-yilmaz.de se solicitó un enlace a la demo para esta dirección. Si no fue usted, simplemente ignórelo – no ocurrirá nada más.',
   },
@@ -74,7 +74,7 @@ function mailHtml(t, demos) {
   return `<!doctype html><html><body style="margin:0;background:#F3F6F9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1B2530">
   <div style="max-width:560px;margin:0 auto;padding:32px 20px">
     <div style="background:#fff;border-radius:14px;padding:32px 28px;border:1px solid #E3E9EF">
-      <p style="margin:0 0 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#1B6FA8;font-weight:700">AIY · Ihsan Yilmaz</p>
+      <img src="${SEITE}/logo/mail-logo.png" width="150" alt="AIY · Ihsan Yilmaz" style="display:block;width:150px;height:auto;margin:0 0 22px">
       <p style="margin:0 0 18px;font-size:16px;line-height:1.6">${esc(t.hallo)}<br>${esc(demos.length > 1 ? t.intro2 : t.intro1)}</p>
       ${links}
       <p style="margin:22px 0 0;font-size:16px;line-height:1.6">${esc(t.verwaltung)}</p>
