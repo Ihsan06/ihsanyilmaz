@@ -2,6 +2,8 @@
 // Benötigte Umgebungsvariablen (im Pages-Projekt setzen):
 //   RESEND_API_KEY       — API-Key aus dem Resend-Dashboard
 //   CONTACT_TO           (optional) — Standard: kontakt@ihsan-yilmaz.de
+//   MAIL_FROM            (optional) — Absender, z. B. "AIY | Ihsan Yilmaz <kontakt@ihsan-yilmaz.de>";
+//                          ohne ihn der Resend-Testabsender, der nur an die eigene Adresse darf
 //   TELEGRAM_BOT_TOKEN   (optional) — Token vom @BotFather; aktiviert Telegram-Benachrichtigung
 //   TELEGRAM_CHAT_ID     (optional) — eigene Chat-ID; nur zusammen mit TELEGRAM_BOT_TOKEN aktiv
 
@@ -114,7 +116,8 @@ export async function onRequestPost({ request, env, waitUntil }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Kontaktformular <onboarding@resend.dev>',
+        // MAIL_FROM = eigener Absender, sobald die Domain bei Resend bestaetigt ist
+        from: env.MAIL_FROM || 'Kontaktformular <onboarding@resend.dev>',
         to,
         reply_to: email,
         subject: `Kontaktanfrage von ${name}${company ? ` (${company})` : ''}`,

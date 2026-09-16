@@ -104,7 +104,7 @@ async function benachrichtigen(env, email, sprache, versandt, grund) {
   if (env.RESEND_API_KEY) {
     try {
       await resend(env, {
-        from: 'Demo-Anfrage <onboarding@resend.dev>',
+        from: env.MAIL_FROM || 'Demo-Anfrage <onboarding@resend.dev>',
         to: env.CONTACT_TO || KONTAKT,
         reply_to: email,
         subject: `Demo-Link angefordert: ${email}`,
