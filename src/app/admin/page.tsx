@@ -121,12 +121,66 @@ function Verlauf({ proTag, von, bis }: { proTag: Tag[]; von: string; bis: string
   );
 }
 
+// Finanzen im Verlauf: Einnahmen und Ausgaben je Monat, die letzten zwoelf.
+// Gleiche Machart wie der Besucherverlauf darueber – ohne Achsen, klein.
+type Buchung = { art: "einnahme" | "ausgabe"; betrag_cent: number; datum: string };
+const FARBE_EIN = "#1d8a52";
+const FARBE_AUS = "#12557F";
+
+function FinanzVerlauf({ buchungen }: { buchungen: Buchung[] }) {
+  const kasten = useRef<HTMLDivElement>(null);
+  const [breite, setBreite] = useState(0);
+  useEffect(() => {
+    const el = kasten.current; if (!el) return;
+    const b = new ResizeObserver(e => setBreite(Math.floor(e[0].contentRect.width)));
+    b.observe(el); return () => b.disconnect();
+  }, []);
+
+  const jetzt = new Date();
+  const monate: { ym: string; ein: number; aus: number }[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(Date.UTC(jetzt.getFullYear(), jetzt.getMonth() - i, 1));
+    monate.push({ ym: d.toISOString().slice(0, 7), ein: 0, aus: 0 });
+  }
+  const nach = new Map(monate.map(m => [m.ym, m]));
+  for (const x of buchungen) {
+    const m = nach.get(x.datum.slice(0, 7)); if (!m) continue;
+    if (x.art === "einnahme") m.ein += x.betrag_cent; else m.aus += x.betrag_cent;
+  }
+
+  const H = 120, oben = 6, unten = 4;
+  const hoechst = Math.max(1, ...monate.map(m => Math.max(m.ein, m.aus)));
+  const x = (i: number) => (i / (monate.length - 1)) * breite;
+  const y = (v: number) => oben + (1 - v / hoechst) * (H - oben - unten);
+  const linie = (f: "ein" | "aus") => monate.map((m, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(m[f]).toFixed(1)}`).join(" ");
+  const flaeche = `${linie("ein")} L${x(monate.length - 1).toFixed(1)},${H} L0,${H} Z`;
+  const monatKurz = (ym: string) =>
+    new Date(ym + "-15T12:00:00Z").toLocaleDateString("de-DE", { month: "short", year: "2-digit" });
+
+  return (
+    <div ref={kasten}>
+      {breite > 0 && (
+        <svg viewBox={`0 0 ${breite} ${H}`} width={breite} height={H} role="img"
+             aria-label="Einnahmen und Ausgaben der letzten zwölf Monate" className="block">
+          <path d={flaeche} fill={FARBE_EIN} opacity="0.10" />
+          <path d={linie("aus")} fill="none" stroke={FARBE_AUS} strokeWidth="2" strokeLinejoin="round" />
+          <path d={linie("ein")} fill="none" stroke={FARBE_EIN} strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      )}
+      <div className="flex justify-between text-[0.72rem] text-[var(--fg-subtle)] mt-1">
+        <span>{monatKurz(monate[0].ym)}</span><span>{monatKurz(monate[monate.length - 1].ym)}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminUebersicht() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [kurz, setKurz] = useState<Kurz | null>(null);
   const [insta, setInsta] = useState<Insta | null>(null);
   const [geplant, setGeplant] = useState<number | null>(null);
   const [anfragen, setAnfragen] = useState<Anfrage[]>([]);
+  const [buchungen, setBuchungen] = useState<Buchung[]>([]);
   const [fehler, setFehler] = useState("");
 
   // Jede Quelle fuer sich – faellt eine aus, steht der Rest trotzdem.
@@ -136,6 +190,7 @@ export default function AdminUebersicht() {
     api("/api/studio/instagram").then(d => setInsta(d as Insta)).catch(() => setInsta(null));
     api("/api/studio/warteschlange").then(d => setGeplant(Array.isArray(d.geplant) ? d.geplant.length : 0)).catch(() => setGeplant(null));
     api("/api/admin/anfragen").then(d => setAnfragen((d.anfragen || []).slice(0, 5))).catch(() => setAnfragen([]));
+    api("/api/admin/finanzen").then(d => setBuchungen(d.transaktionen || [])).catch(() => setBuchungen([]));
   }, []);
 
   const b = kurz?.besucher; const a = kurz?.anfragen; const dv = kurz?.davor; const s = kurz?.speicher;
@@ -205,6 +260,22 @@ export default function AdminUebersicht() {
           <Kachel titel="Ausgaben" href="/admin/finanzen" wert={stats ? euro(stats.ausgabenCent) : "—"} />
           <Kachel titel="Saldo" href="/admin/finanzen" wert={stats ? euro(stats.saldoCent) : "—"} />
         </div>
+        {buchungen.length > 0 && (() => {
+          const jahr = String(new Date().getFullYear());
+          const imJahr = buchungen.filter(x => x.datum.startsWith(jahr));
+          const ein = imJahr.filter(x => x.art === "einnahme").reduce((s, x) => s + x.betrag_cent, 0);
+          const aus = imJahr.filter(x => x.art === "ausgabe").reduce((s, x) => s + x.betrag_cent, 0);
+          return (
+            <div className="mon-block !mb-0 mt-4">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mb-3 text-[0.78rem] text-[var(--fg-subtle)]">
+                <b className="text-[var(--fg)] uppercase tracking-wide text-[0.72rem]">Finanzen im Verlauf</b>
+                <span className="inline-flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FARBE_EIN }} /> {euro(ein)} Einnahmen {jahr}</span>
+                <span className="inline-flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full" style={{ background: FARBE_AUS }} /> {euro(aus)} Ausgaben {jahr}</span>
+              </div>
+              <FinanzVerlauf buchungen={buchungen} />
+            </div>
+          );
+        })()}
       </Abschnitt>
 
       <Abschnitt icon={<Images size={17} />} titel="Galerie & Dokumente" weg="/admin/galerie" wegText="Zur Galerie">
