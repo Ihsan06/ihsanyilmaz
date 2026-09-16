@@ -49,8 +49,8 @@ const ANSICHTEN: Ansicht[][] = [
     { bild: "adm-speisekarte" },
   ],
   [
-    { bild: "ki-content" },
     { bild: "ki-website" },
+    { bild: "ki-content" },
     { bild: "ki-messenger" },
   ],
 ];
