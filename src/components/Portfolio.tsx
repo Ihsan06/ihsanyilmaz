@@ -28,13 +28,7 @@ export default function Portfolio() {
   return (
     <section id="projekte" className="surface-tief py-16">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="relative flex items-end justify-between gap-4 mb-8">
-          <h2 className="display-h text-3xl md:text-4xl text-[var(--fg)]">{p.titel}</h2>
-          <div className="flex gap-2 md:absolute md:left-1/2 md:-translate-x-1/2 md:bottom-0">
-            <button type="button" className="slider-pfeil" aria-label="Zurück" onClick={() => schieben(-1)}><ChevronLeft size={18} /></button>
-            <button type="button" className="slider-pfeil" aria-label="Weiter" onClick={() => schieben(1)}><ChevronRight size={18} /></button>
-          </div>
-        </div>
+        <h2 className="display-h text-3xl md:text-4xl text-[var(--fg)] mb-8">{p.titel}</h2>
 
         <div ref={leiste} className="projekt-leiste">
           {p.eintraege.map((e, i) => (
@@ -55,10 +49,15 @@ export default function Portfolio() {
           ))}
         </div>
 
-        <div className="mt-6">
+        {/* Unten: Anfrage-Link links, Pfeile in derselben Zeile mittig */}
+        <div className="relative mt-6 flex items-center justify-between gap-4">
           <a href="#kontakt" className="inline-flex items-center gap-2 font-medium transition-colors hover:opacity-80" style={{ color: "var(--accent)" }}>
             {p.anfragen} <ArrowRight size={16} />
           </a>
+          <div className="flex gap-2 md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2">
+            <button type="button" className="slider-pfeil" aria-label="Zurück" onClick={() => schieben(-1)}><ChevronLeft size={18} /></button>
+            <button type="button" className="slider-pfeil" aria-label="Weiter" onClick={() => schieben(1)}><ChevronRight size={18} /></button>
+          </div>
         </div>
       </div>
     </section>
