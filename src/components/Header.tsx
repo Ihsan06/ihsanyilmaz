@@ -44,7 +44,7 @@ export default function Header() {
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "backdrop-blur-md border-b border-[var(--border)] shadow-lg" : ""}`}
       style={{ background: scrolled ? "var(--bg)" : "transparent" }}
     >
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <div className="w-full lg:w-[80%] max-w-none mx-auto px-6 lg:px-8">
         {/* Die Marke links, das Menue in der Mitte der Zeile: absolut
             gesetzt, damit es unabhaengig von der Logobreite zentriert steht.
             Rechts die Sprachwahl. */}
