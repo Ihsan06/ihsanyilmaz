@@ -67,8 +67,8 @@ const DE = {
   },
   demo: {
     eyebrow: "Demo",
-    titel: "Demo ansehen.",
-    text: "Zwei echte Beispiele: Autohaus und Café. Die Links kommen per E-Mail – auf Wunsch gern mit einem Blick hinter die Kulissen.",
+    titel: "Demo Zugang.",
+    text: "Zwei Demo-Varianten: Autohaus und Café. Die Links kommen per E-Mail – auf Wunsch gern mit einem Blick in den Verwaltungsbereich.",
     wahl: { autohaus: "Autohaus", cafe: "Café", beide: "Beide" },
     platz: "ihre@e-mail.de",
     knopf: "Links schicken",
@@ -202,8 +202,8 @@ const EN: Texte = {
   },
   demo: {
     eyebrow: "Demo",
-    titel: "See the demo.",
-    text: "Two real examples: a car dealer and a café. The links arrive by email – and, if you like, a look behind the scenes.",
+    titel: "Demo access.",
+    text: "Two demo variants: a car dealer and a café. The links arrive by email – and, if you like, a look into the admin area.",
     wahl: { autohaus: "Car dealer", cafe: "Café", beide: "Both" },
     platz: "your@email.com",
     knopf: "Send links",
@@ -335,8 +335,8 @@ const ES: Texte = {
   },
   demo: {
     eyebrow: "Demo",
-    titel: "Ver la demo.",
-    text: "Dos ejemplos reales: un concesionario y un café. Los enlaces llegan por correo – y, si lo desea, un vistazo entre bastidores.",
+    titel: "Acceso a la demo.",
+    text: "Dos variantes de demo: un concesionario y un café. Los enlaces llegan por correo – y, si lo desea, un vistazo al área de administración.",
     wahl: { autohaus: "Concesionario", cafe: "Café", beide: "Ambos" },
     platz: "su@correo.es",
     knopf: "Enviar enlaces",
