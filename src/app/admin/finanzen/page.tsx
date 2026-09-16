@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import AdminShell, { api, euro, datum } from "@/components/admin/AdminShell";
 
@@ -84,6 +84,135 @@ function inCent(eingabe: string): number | null {
   return Math.round(zahl * 100);
 }
 
+// ─── Verlauf: Einnahmen und Ausgaben je Monat, die letzten zwoelf ───
+// Dieselbe Machart wie "Besucher im Verlauf" im Monitoring: zwei Linien,
+// runde Achsenschritte, Faden mit Blase beim Drueberfahren.
+const FARBE_EIN = "#1d8a52";
+const FARBE_AUS = "#12557F";
+
+function runderSchritt(roh: number) {
+  if (roh <= 1) return 1;
+  const zehner = Math.pow(10, Math.floor(Math.log10(roh)));
+  const rest = roh / zehner;
+  const gewaehlt = rest <= 1 ? 1 : rest <= 2 ? 2 : rest <= 2.5 ? 2.5 : rest <= 5 ? 5 : 10;
+  return Math.max(1, Math.round(gewaehlt * zehner));
+}
+
+const monatKurz = (ym: string) =>
+  new Date(ym + "-15T12:00:00Z").toLocaleDateString("de-DE", { month: "short", year: "2-digit" });
+const monatLang = (ym: string) =>
+  new Date(ym + "-15T12:00:00Z").toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+
+function Verlauf({ alle }: { alle: Transaktion[] }) {
+  const kasten = useRef<HTMLDivElement>(null);
+  const [breite, setBreite] = useState(0);
+  const [zeiger, setZeiger] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = kasten.current;
+    if (!el) return;
+    const b = new ResizeObserver(e => setBreite(Math.max(280, Math.floor(e[0].contentRect.width))));
+    b.observe(el);
+    return () => b.disconnect();
+  }, []);
+
+  // Zwoelf Monate bis heute, Monate ohne Buchung als Null – sonst wirken
+  // Luecken wie Einbrueche.
+  const punkte = useMemo(() => {
+    const jetzt = new Date();
+    const monate: { ym: string; ein: number; aus: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(Date.UTC(jetzt.getFullYear(), jetzt.getMonth() - i, 1));
+      monate.push({ ym: d.toISOString().slice(0, 7), ein: 0, aus: 0 });
+    }
+    const nach = new Map(monate.map(m => [m.ym, m]));
+    for (const t of alle) {
+      const m = nach.get(t.datum.slice(0, 7));
+      if (!m) continue;
+      if (t.art === "einnahme") m.ein += t.betrag_cent; else m.aus += t.betrag_cent;
+    }
+    return monate;
+  }, [alle]);
+
+  const hoehe = 250;
+  const rand = { oben: 14, rechts: 14, unten: 26, links: 64 };
+  const zeichenBreite = breite - rand.links - rand.rechts;
+  const zeichenHoehe = hoehe - rand.oben - rand.unten;
+  const stufen = 4;
+  const hoechstEuro = Math.max(1, ...punkte.map(p => Math.max(p.ein, p.aus))) / 100;
+  const schritt = runderSchritt(hoechstEuro / stufen);
+  const obergrenze = schritt * stufen * 100;
+  const letzter = punkte.length - 1;
+
+  const x = (i: number) => rand.links + (i / letzter) * zeichenBreite;
+  const y = (cent: number) => rand.oben + zeichenHoehe - (cent / obergrenze) * zeichenHoehe;
+  const linie = (f: "ein" | "aus") =>
+    punkte.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p[f]).toFixed(1)}`).join(" ");
+
+  const zeigen = (e: React.PointerEvent<SVGRectElement>) => {
+    const kiste = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
+    const anteil = (e.clientX - kiste.left - rand.links) / zeichenBreite;
+    setZeiger(Math.max(0, Math.min(letzter, Math.round(anteil * letzter))));
+  };
+  const p = zeiger != null ? punkte[zeiger] : null;
+
+  return (
+    <section className="mon-block">
+      <h2>Verlauf · letzte 12 Monate</h2>
+      <div className="viz-legende">
+        <span><i style={{ background: FARBE_EIN }} />Einnahmen</span>
+        <span><i style={{ background: FARBE_AUS }} />Ausgaben</span>
+      </div>
+      <div className="viz" ref={kasten} onPointerLeave={() => setZeiger(null)}>
+        {breite > 0 && (
+          <svg className="viz-svg" viewBox={`0 0 ${breite} ${hoehe}`} width={breite} height={hoehe} role="img"
+               aria-label="Einnahmen und Ausgaben je Monat">
+            {Array.from({ length: stufen + 1 }, (_, k) => {
+              const yy = y(schritt * k * 100);
+              return (
+                <g key={k}>
+                  <line className="viz-raster" x1={rand.links} y1={yy} x2={breite - rand.rechts} y2={yy} />
+                  <text className="viz-achse" x={rand.links - 8} y={yy + 4} textAnchor="end">
+                    {(schritt * k).toLocaleString("de-DE")} €
+                  </text>
+                </g>
+              );
+            })}
+            {punkte.map((pt, i) => (
+              <text key={pt.ym} className="viz-achse" x={x(i)} y={hoehe - 8}
+                    textAnchor={i === 0 ? "start" : i === letzter ? "end" : "middle"}>
+                {monatKurz(pt.ym)}
+              </text>
+            ))}
+            <path className="viz-linie" d={linie("aus")} stroke={FARBE_AUS} />
+            <path className="viz-linie" d={linie("ein")} stroke={FARBE_EIN} />
+            <circle className="viz-ende" cx={x(letzter)} cy={y(punkte[letzter].aus)} r="4" fill={FARBE_AUS} />
+            <circle className="viz-ende" cx={x(letzter)} cy={y(punkte[letzter].ein)} r="4" fill={FARBE_EIN} />
+            {p && zeiger != null && (
+              <>
+                <line className="viz-faden" x1={x(zeiger)} x2={x(zeiger)} y1={rand.oben} y2={rand.oben + zeichenHoehe} />
+                <circle className="viz-treffer" cx={x(zeiger)} cy={y(p.aus)} r="5" fill={FARBE_AUS} />
+                <circle className="viz-treffer" cx={x(zeiger)} cy={y(p.ein)} r="5" fill={FARBE_EIN} />
+              </>
+            )}
+            <rect x={rand.links} y={rand.oben} width={Math.max(0, zeichenBreite)} height={zeichenHoehe}
+                  fill="transparent" onPointerMove={zeigen} onPointerDown={zeigen} />
+          </svg>
+        )}
+        {p && zeiger != null && (
+          <div className={`viz-blase ${x(zeiger) / breite > 0.6 ? "links" : ""}`}
+               style={{ left: `${(x(zeiger) / breite) * 100}%` }}>
+            <p className="viz-blase-tag">{monatLang(p.ym)}</p>
+            <p className="viz-blase-zeile"><i style={{ background: FARBE_EIN }} /><b>{euro(p.ein)}</b> Einnahmen</p>
+            <p className="viz-blase-zeile"><i style={{ background: FARBE_AUS }} /><b>{euro(p.aus)}</b> Ausgaben</p>
+            <p className="viz-blase-zeile" style={{ color: "rgba(255,255,255,.7)" }}>Saldo {euro(p.ein - p.aus)}</p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function FinanzenSeite() {
   const [alle, setAlle] = useState<Transaktion[]>([]);
   const [neu, setNeu] = useState(LEER);
@@ -163,6 +292,8 @@ export default function FinanzenSeite() {
           </div>
         </div>
       </div>
+
+      {!laedt && alle.length > 0 && <Verlauf alle={alle} />}
 
       <button onClick={() => setFormOffen(o => !o)} className="btn-primary px-5 py-2.5 text-sm mb-6">
         <Plus size={16} /> Neuer Eintrag
