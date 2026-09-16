@@ -141,19 +141,23 @@ export async function onRequestPost({ request, env, waitUntil }) {
     zaehlen(env, waitUntil, 'ungueltig');
     return json({ ok: false, fehler: 'ungueltig' }, 400);
   }
-  if (!env.DB) { zaehlen(env, waitUntil, 'fehler'); return json({ ok: false, fehler: 'nichtVersandt' }, 500); }
+  // Bewusst kein 5xx: davor schiebt Cloudflare eine eigene Fehlerseite, und
+  // die Seite koennte die Antwort nicht mehr lesen.
+  if (!env.DB) { zaehlen(env, waitUntil, 'fehler'); return json({ ok: false, fehler: 'nichtVersandt' }); }
 
   // Bremsen – erst nachsehen, dann schreiben.
   const jetzt = Date.now();
-  const [stunde, gleiche] = await Promise.all([
+  const [stunde, letzte] = await Promise.all([
     env.DB.prepare('SELECT COUNT(*) AS n FROM demo_zugaenge WHERE zeitpunkt > ?')
       .bind(new Date(jetzt - 3600e3).toISOString()).first(),
-    env.DB.prepare('SELECT COUNT(*) AS n FROM demo_zugaenge WHERE email = ? AND versandt = 1 AND zeitpunkt > ?')
+    env.DB.prepare('SELECT versandt FROM demo_zugaenge WHERE email = ? AND zeitpunkt > ? ORDER BY id DESC LIMIT 1')
       .bind(email, new Date(jetzt - 86400e3).toISOString()).first(),
   ]);
-  // Schon unterwegs: nicht noch einmal schicken – schuetzt auch fremde
-  // Adressen davor, mehrfach angeschrieben zu werden.
-  if ((gleiche?.n || 0) > 0) return json({ ok: true, bereits: true });
+  // Dieselbe Adresse innerhalb eines Tages: nichts Neues anlegen. War die
+  // Mail unterwegs, ist sie es noch – das schuetzt auch fremde Adressen
+  // davor, mehrfach angeschrieben zu werden. Scheiterte der Versand, bleibt
+  // es bei der einen Anfrage, die Ihsan schon hat.
+  if (letzte) return letzte.versandt ? json({ ok: true, bereits: true }) : json({ ok: false, fehler: 'nichtVersandt' });
   if ((stunde?.n || 0) >= JE_STUNDE) { zaehlen(env, waitUntil, 'fehler'); return json({ ok: false, fehler: 'zuViel' }, 429); }
 
   const zeitpunkt = new Date(jetzt).toISOString();
@@ -195,5 +199,5 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const melden = benachrichtigen(env, email, sprache, versandt, grund);
   if (typeof waitUntil === 'function') waitUntil(melden); else await melden;
 
-  return versandt ? json({ ok: true }) : json({ ok: false, fehler: 'nichtVersandt' }, 502);
+  return versandt ? json({ ok: true }) : json({ ok: false, fehler: 'nichtVersandt' });
 }
