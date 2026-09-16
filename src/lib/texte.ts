@@ -68,13 +68,10 @@ const DE = {
   demo: {
     eyebrow: "Demo",
     titel: "Selbst ausprobieren.",
-    text: "Die Autohaus-Demo ist echt. Website und Verwaltung stehen offen – klicken Sie sich durch.",
-    oeffnen: "Öffnen",
+    text: "Die Autohaus-Demo ist echt. Die Website ist offen, den Verwaltungsbereich zeige ich Ihnen gern persönlich.",
     eintraege: [
-      { titel: "Website", text: "Fahrzeuge, Mietwagen, Finanzierung, Ankauf." },
-      { titel: "Verwaltung", text: "Übersicht, Besucherzahlen, Belegung, Flotte." },
-      { titel: "Content erstellen", text: "Foto wählen, die KI schreibt den Beitrag." },
-      { titel: "Website ändern", text: "Wunsch eingeben, Vorschlag ansehen." },
+      { titel: "Website", text: "Fahrzeuge, Mietwagen, Finanzierung, Ankauf.", knopf: "Demo öffnen" },
+      { titel: "Verwaltungsbereich", text: "Übersicht, Belegung, Content mit KI, Website ändern.", knopf: "Zugang anfragen" },
     ],
   },
   ueber: {
@@ -199,13 +196,10 @@ const EN: Texte = {
   demo: {
     eyebrow: "Demo",
     titel: "Try it yourself.",
-    text: "The car dealer demo is real. Website and admin area are open – click through.",
-    oeffnen: "Open",
+    text: "The car dealer demo is real. The website is open – I'm happy to show you the admin area personally.",
     eintraege: [
-      { titel: "Website", text: "Vehicles, car rental, financing, trade-in." },
-      { titel: "Admin area", text: "Overview, visitor numbers, bookings, fleet." },
-      { titel: "Create content", text: "Pick a photo, the AI writes the post." },
-      { titel: "Edit website", text: "Type a request, see the suggestion." },
+      { titel: "Website", text: "Vehicles, car rental, financing, trade-in.", knopf: "Open demo" },
+      { titel: "Admin area", text: "Overview, bookings, AI content, website edits.", knopf: "Request access" },
     ],
   },
   ueber: {
@@ -328,13 +322,10 @@ const ES: Texte = {
   demo: {
     eyebrow: "Demo",
     titel: "Pruébelo usted mismo.",
-    text: "La demo del concesionario es real. Web y administración están abiertas – haga clic.",
-    oeffnen: "Abrir",
+    text: "La demo del concesionario es real. La web está abierta – el área de administración se la muestro personalmente.",
     eintraege: [
-      { titel: "Web", text: "Vehículos, alquiler, financiación, compra." },
-      { titel: "Administración", text: "Resumen, visitas, reservas, flota." },
-      { titel: "Crear contenido", text: "Elija una foto, la IA escribe la publicación." },
-      { titel: "Editar web", text: "Escriba el cambio, vea la propuesta." },
+      { titel: "Web", text: "Vehículos, alquiler, financiación, compra.", knopf: "Abrir demo" },
+      { titel: "Área de administración", text: "Resumen, reservas, contenido con IA, cambios en la web.", knopf: "Solicitar acceso" },
     ],
   },
   ueber: {

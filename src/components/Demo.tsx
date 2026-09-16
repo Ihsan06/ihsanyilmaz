@@ -1,17 +1,15 @@
 "use client";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ArrowRight } from "lucide-react";
 import { useSprache } from "@/lib/sprache";
 
-// Die Autohaus-Demo zum Selbst-Ausprobieren: vier Einstiege als Kacheln mit
-// Bild, jede oeffnet die Demo in einem neuen Tab. Die Bilder sind dieselben
-// Screenshots wie im Slider (public/leistungen).
+// Die Autohaus-Demo zum Ausprobieren. Die Website ist offen verlinkt. Den
+// Verwaltungsbereich gibt es nur auf Anfrage: er hat in der Demo kein Passwort,
+// Fremde koennten dort Daten aendern und KI-Aufrufe ausloesen. Deshalb fuehrt
+// diese Kachel zum Kontaktformular und der Link geht persoenlich raus.
 
-const DEMO = "https://autohaus-demo.pages.dev";
 const EINSTIEGE = [
-  { href: `${DEMO}/`, bild: "web-start" },
-  { href: `${DEMO}/admin/`, bild: "adm-uebersicht" },
-  { href: `${DEMO}/admin/content.html`, bild: "ki-content" },
-  { href: `${DEMO}/admin/website.html`, bild: "ki-website" },
+  { href: "https://autohaus-demo.pages.dev/", bild: "web-start", extern: true },
+  { href: "#kontakt", bild: "adm-uebersicht", extern: false },
 ];
 
 export default function Demo() {
@@ -26,23 +24,30 @@ export default function Demo() {
           <p className="text-[var(--fg-muted)] text-lg leading-relaxed">{d.text}</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {d.eintraege.map((e, i) => (
-            <a key={e.titel} href={EINSTIEGE[i].href} target="_blank" rel="noopener noreferrer"
-               className="card demo-kachel group flex flex-col overflow-hidden">
-              <div className="demo-bild">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/leistungen/${EINSTIEGE[i].bild}.jpg?v=3`} alt={e.titel} loading="lazy" />
-              </div>
-              <div className="flex flex-col flex-1 p-4">
-                <h3 className="display-h text-base font-semibold text-[var(--fg)] mb-1">{e.titel}</h3>
-                <p className="text-[var(--fg-muted)] text-[0.82rem] leading-relaxed flex-1 mb-3">{e.text}</p>
-                <span className="inline-flex items-center gap-1 text-sm font-medium" style={{ color: "var(--accent)" }}>
-                  {d.oeffnen} <ArrowUpRight size={15} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </span>
-              </div>
-            </a>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {d.eintraege.map((e, i) => {
+            const x = EINSTIEGE[i];
+            const Pfeil = x.extern ? ArrowUpRight : ArrowRight;
+            return (
+              <a key={e.titel} href={x.href}
+                 {...(x.extern ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                 className="card demo-kachel group flex flex-col overflow-hidden">
+                <div className="demo-bild">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/leistungen/${x.bild}.jpg?v=3`} alt={e.titel} loading="lazy" />
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 p-5">
+                  <div>
+                    <h3 className="display-h text-lg font-semibold text-[var(--fg)] mb-1">{e.titel}</h3>
+                    <p className="text-[var(--fg-muted)] text-sm leading-relaxed">{e.text}</p>
+                  </div>
+                  <span className={`${x.extern ? "btn-primary" : "demo-knopf-zweit"} self-start sm:self-auto shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 px-4 py-2 text-sm`}>
+                    {e.knopf} <Pfeil size={15} />
+                  </span>
+                </div>
+              </a>
+            );
+          })}
         </div>
       </div>
     </section>
