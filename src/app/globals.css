@@ -196,6 +196,33 @@ html, body {
   .mock-quellen { opacity:1; transform:none; transition:none; }
 }
 
+/* ─── Einstieg als Slider ─── */
+.slider-reiter { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 22px; margin-top:34px; border-top:1px solid var(--border); }
+.slider-reiter button {
+  position:relative; background:none; border:0; cursor:pointer; font:inherit;
+  font-size:.86rem; font-weight:600; color:var(--fg-subtle); padding:14px 0 10px; transition:color .2s ease;
+}
+.slider-reiter button:hover, .slider-reiter button.aktiv { color:var(--fg); }
+.slider-reiter-nr { color:var(--accent); margin-right:4px; font-size:.74rem; }
+.slider-reiter-balken { position:absolute; left:0; right:0; top:-1px; height:2px; overflow:hidden; }
+.slider-reiter-balken i { display:block; height:100%; width:100%; background:var(--accent); transform-origin:left; animation: slider-fuellen linear forwards; }
+@keyframes slider-fuellen { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+.slider-buehne { display:grid; }
+.slider-folie {
+  grid-area:1/1; opacity:0; visibility:hidden; transform:translateX(24px);
+  transition: opacity .6s ease, transform .6s ease, visibility 0s linear .6s;
+}
+.slider-folie.aktiv { opacity:1; visibility:visible; transform:none; transition: opacity .6s ease, transform .6s ease, visibility 0s; }
+.slider-pfeil {
+  width:38px; height:38px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--border); background:rgba(10,15,20,.5); color:var(--fg); cursor:pointer; transition:border-color .2s ease;
+}
+.slider-pfeil:hover { border-color:var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .slider-folie, .slider-folie.aktiv { transition:none; transform:none; }
+  .slider-reiter-balken i { animation:none; }
+}
+
 /* Sprachwahl im Kopf: DE · EN · ES */
 .sprachwahl { display:inline-flex; align-items:center; font-size:.78rem; font-weight:600; letter-spacing:.06em; }
 .sprachwahl button { background:none; border:0; padding:2px 4px; cursor:pointer; font:inherit; color:var(--fg-subtle); transition:color .15s ease; }
