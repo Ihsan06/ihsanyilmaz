@@ -205,7 +205,18 @@ html, body {
 .slider-reiter button:hover, .slider-reiter button.aktiv { color:var(--fg); }
 .slider-reiter-balken { position:absolute; left:0; right:0; top:-1px; height:2px; overflow:hidden; }
 .slider-reiter-balken i { display:block; height:100%; width:100%; background:var(--accent); transform-origin:left; animation: slider-fuellen linear forwards; }
-@keyframes slider-fuellen { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+@keyframes slider-fuellen { from { transform:scaleX(var(--von, 0)); } to { transform:scaleX(var(--bis, 1)); } }
+/* Ansichten je Leistung: Bilder uebereinander, darunter die Umschalter */
+.ansicht-buehne { display:grid; padding-bottom:24px; }
+.ansicht { grid-area:1/1; position:relative; opacity:0; visibility:hidden; transition: opacity .5s ease, visibility 0s linear .5s; }
+.ansicht.aktiv { opacity:1; visibility:visible; transition: opacity .5s ease, visibility 0s; }
+.ansicht-wahl { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-top:14px; }
+.ansicht-wahl button {
+  font:inherit; font-size:.75rem; font-weight:600; padding:5px 12px; border-radius:9999px; cursor:pointer;
+  background:rgba(10,15,20,.55); border:1px solid var(--border); color:var(--fg-subtle); transition: color .2s ease, border-color .2s ease, background .2s ease;
+}
+.ansicht-wahl button:hover { color:var(--fg); }
+.ansicht-wahl button.aktiv { color:var(--fg); border-color:var(--accent); background:var(--accent-soft); }
 .slider-buehne { display:grid; }
 .slider-folie {
   grid-area:1/1; opacity:0; visibility:hidden; transform:translateX(24px);
@@ -220,6 +231,7 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .slider-folie, .slider-folie.aktiv { transition:none; transform:none; }
   .slider-reiter-balken i { animation:none; }
+  .ansicht, .ansicht.aktiv { transition:none; }
 }
 
 /* ─── Projekte als scrollbare Zeile ─── */

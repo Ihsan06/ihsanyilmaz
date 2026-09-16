@@ -2,9 +2,10 @@
 import { Globe, LayoutDashboard, Zap, Check } from "lucide-react";
 import { useSprache } from "@/lib/sprache";
 
-// Die drei Leistungen mit Bild: Screenshots aus der eigenen Autohaus-Demo
-// (public/leistungen/*.jpg). GEO steht in einem eigenen Abschnitt (Geo.tsx).
-// Texte kommen aus lib/texte.ts – kurz: Ueberschrift, zwei Saetze, drei Punkte.
+// Die drei Leistungen fuer den Einstiegs-Slider (Hero.tsx). Jede Leistung hat
+// mehrere Ansichten – Screenshots aus der eigenen Autohaus-Demo
+// (public/leistungen/*.jpg), bei Websites jeweils mit Handy daneben.
+// Die Namen der Ansichten stehen in lib/texte.ts (ansichten), gleiche Reihenfolge.
 
 function Browser({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
   return (
@@ -27,28 +28,39 @@ function Handy({ src, alt, className = "" }: { src: string; alt: string; classNa
 
 const ICONS = [Globe, LayoutDashboard, Zap];
 
-const BILDER = [
-  (alt: string[]) => (
-    <div className="relative">
-      <Browser src="/leistungen/website.jpg" alt={alt[0]} />
-      <Handy src="/leistungen/handy.jpg" alt={alt[1]} className="absolute -bottom-6 -right-3 md:-right-8 w-[28%]" />
-    </div>
-  ),
-  (alt: string[]) => (
-    <div className="relative">
-      <Browser src="/leistungen/verwaltung.jpg" alt={alt[0]} />
-      <Browser src="/leistungen/belegung.jpg" alt={alt[1]} className="absolute -bottom-8 -left-3 md:-left-10 w-[62%] shadow-2xl" />
-    </div>
-  ),
-  (alt: string[]) => <Browser src="/leistungen/instagram.jpg" alt={alt[0]} />,
+type Ansicht = { bild: string; handy?: string };
+
+const ANSICHTEN: Ansicht[][] = [
+  [
+    { bild: "web-start", handy: "handy-start" },
+    { bild: "web-fahrzeuge", handy: "handy-fahrzeuge" },
+    { bild: "web-mietwagen", handy: "handy-mietwagen" },
+    { bild: "web-finanzierung", handy: "handy-finanzierung" },
+    { bild: "web-ankauf" },
+  ],
+  [
+    { bild: "adm-uebersicht" },
+    { bild: "adm-monitoring" },
+    { bild: "adm-belegung" },
+    { bild: "adm-flotte" },
+    { bild: "adm-galerie" },
+  ],
+  [
+    { bild: "ki-content" },
+    { bild: "ki-planen" },
+    { bild: "ki-profil" },
+    { bild: "ki-website" },
+  ],
 ];
 
-// Eine Leistung: Text und Bild nebeneinander, bei ungerader Nummer gespiegelt.
-export function LeistungZeile({ i, h1 = false }: { i: number; h1?: boolean }) {
+export const ANZAHL_ANSICHTEN = ANSICHTEN.map(a => a.length);
+
+// Eine Leistung: Text und Bilder nebeneinander, bei ungerader Nummer gespiegelt.
+// Unter dem Bild die Ansichten zum Umschalten.
+export function LeistungZeile({ i, bild, onBild }: { i: number; bild: number; onBild: (n: number) => void }) {
   const { t } = useSprache();
   const l = t.leistungen.eintraege[i];
   const Icon = ICONS[i];
-  const Titel = h1 ? "h1" : "h3";
   return (
     <article className={`grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center ${i % 2 ? "lg:[&>*:first-child]:order-2" : ""}`}>
       <div className="lg:col-span-5">
@@ -56,7 +68,7 @@ export function LeistungZeile({ i, h1 = false }: { i: number; h1?: boolean }) {
           <span className="icon-tile w-10 h-10"><Icon size={18} /></span>
           <span className="eyebrow">{l.eyebrow}</span>
         </div>
-        <Titel className={`display-h ${h1 ? "text-3xl md:text-5xl" : "text-2xl md:text-3xl"} text-[var(--fg)] mb-4`}>{l.titel}</Titel>
+        <h3 className="display-h text-2xl md:text-3xl text-[var(--fg)] mb-4">{l.titel}</h3>
         <p className="text-[var(--fg-muted)] leading-relaxed mb-6">{l.text}</p>
         <ul className="space-y-2.5">
           {l.punkte.map(p => (
@@ -66,22 +78,27 @@ export function LeistungZeile({ i, h1 = false }: { i: number; h1?: boolean }) {
           ))}
         </ul>
       </div>
-      <div className="lg:col-span-7 pb-8">{BILDER[i](l.alt)}</div>
-    </article>
-  );
-}
-
-// Die drei Leistungen mit Bild.
-export default function Leistungen() {
-  const { t } = useSprache();
-  return (
-    <section id="leistungen" className="surface-base pt-20 pb-24">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <h2 className="sr-only">{t.leistungen.titel}</h2>
-        <div className="flex flex-col gap-24 md:gap-32">
-          {t.leistungen.eintraege.map((l, i) => <LeistungZeile key={l.eyebrow} i={i} />)}
+      <div className="lg:col-span-7">
+        <div className="ansicht-buehne">
+          {ANSICHTEN[i].map((a, n) => (
+            <div key={a.bild} className={`ansicht ${bild === n ? "aktiv" : ""}`} aria-hidden={bild !== n}>
+              <Browser src={`/leistungen/${a.bild}.jpg`} alt={l.ansichten[n]} />
+              {a.handy && (
+                <Handy src={`/leistungen/${a.handy}.jpg`} alt={l.ansichten[n]}
+                       className="absolute -bottom-6 -right-3 md:-right-8 w-[24%]" />
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="ansicht-wahl" role="tablist">
+          {l.ansichten.map((name, n) => (
+            <button key={name} type="button" role="tab" aria-selected={bild === n}
+                    className={bild === n ? "aktiv" : ""} onClick={() => onBild(n)}>
+              {name}
+            </button>
+          ))}
         </div>
       </div>
-    </section>
+    </article>
   );
 }
