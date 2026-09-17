@@ -102,3 +102,26 @@ CREATE TABLE IF NOT EXISTS studio_warteschlange (
   gepostet_am  TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_warteschlange_faellig ON studio_warteschlange(status, zeitpunkt);
+
+-- ── Entwürfe für Instagram ──
+-- Ein Entwurf ist ein Bauplan, kein fertiges Ergebnis – anders als ein
+-- Eintrag in studio_warteschlange. Gespeichert werden die Bilder und alles,
+-- was im Baukasten eingestellt war: Ausschnitt je Bild, Titel, Angaben,
+-- Logo, Stellen im Bild, der Text. Beim Oeffnen steht der Baukasten wieder
+-- genau so da. Zugeschnitten wird erst beim Posten oder Einplanen.
+CREATE TABLE IF NOT EXISTS studio_entwuerfe (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  format       TEXT NOT NULL DEFAULT 'beitrag',   -- beitrag | story
+  quelle       TEXT NOT NULL DEFAULT 'galerie',   -- galerie
+  titel        TEXT,
+  titel_fest   INTEGER NOT NULL DEFAULT 0,        -- 1 = von Hand umbenannt
+  text         TEXT,                              -- Beschreibung samt Hashtags
+  bilder       TEXT NOT NULL DEFAULT '[]',        -- JSON-Liste der Bilder in Reihenfolge
+  fahrzeug_id  TEXT,
+  zustand      TEXT NOT NULL DEFAULT '{}',        -- JSON: Einstellungen des Baukastens
+  verwendet    TEXT,                              -- gepostet | geplant
+  verwendet_am TEXT,
+  angelegt     TEXT NOT NULL,
+  geaendert    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_studio_entwuerfe_geaendert ON studio_entwuerfe (geaendert DESC);

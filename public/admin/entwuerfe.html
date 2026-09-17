@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de" class="admin">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Entwürfe | AIY | Ihsan Yilmaz</title>
+  <link rel="icon" type="image/svg+xml" href="/admin/icon.svg" />
+  <link rel="stylesheet" href="/css/fonts.css?v=3" />
+  <link rel="stylesheet" href="/css/style.css?v=229" />
+  <link rel="stylesheet" href="/css/admin.css?v=307" />
+  <script>
+    /* Muss im Kopf stehen, nicht in gemeinsam.js: das laeuft erst am Ende
+       der Seite, und bis dahin waere die Leiste offen gezeichnet. */
+    try { if (localStorage.getItem('adm-leiste') === 'zu') document.documentElement.classList.add('leiste-zu'); } catch (e) {}
+  </script>
+</head>
+<body class="admin">
+
+  <header class="admin-kopf" id="admin-kopf"></header>
+
+  <main class="admin-inhalt">
+    <div class="container">
+      <div class="admin-titel">
+        <p class="admin-eyebrow">Instagram</p>
+        <h1>Entwürfe</h1>
+      </div>
+
+      <div class="mon-kennzahlen" id="ew-zahlen"></div>
+
+      <section class="admin-karte mon-block">
+        <div class="ueb-kopf">
+          <h2 class="ig-titel">
+            <svg class="ig-zeichen" viewBox="0 0 24 24" width="19" height="19" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 4.5A1.5 1.5 0 0 1 6.5 3h8.8L19 6.7v12.8a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5z"/>
+              <path d="M8.5 3v4.5h6V3M8.5 21v-6.5h7V21"/>
+            </svg>
+            Gespeichert <span class="plan-anzahl" id="ew-anzahl"></span></h2>
+          <span class="plan-kopf-rechts">
+            <nav class="mf-reiter sm-reiter" role="tablist" aria-label="Welche Entwürfe">
+              <button type="button" role="tab" data-filter="" aria-selected="true">Alle</button>
+              <button type="button" role="tab" data-filter="beitrag" aria-selected="false">Beiträge</button>
+              <button type="button" role="tab" data-filter="story" aria-selected="false">Stories</button>
+            </nav>
+            <select id="ew-sortierung" class="plan-sortierung" aria-label="Sortierung">
+              <option value="geaendert">Zuletzt bearbeitet</option>
+              <option value="angelegt">Zuletzt angelegt</option>
+              <option value="alt">Älteste zuerst</option>
+              <option value="name">Nach Name</option>
+            </select>
+          </span>
+        </div>
+        <div id="ew-liste" aria-live="polite"><p class="mon-laedt">Wird geladen …</p></div>
+      </section>
+
+    </div>
+  </main>
+
+  <script src="/admin/marke.js?v=2"></script>
+  <script src="/admin/gemeinsam.js?v=36"></script>
+  <script src="/admin/entwuerfe.js?v=1"></script>
+</body>
+</html>

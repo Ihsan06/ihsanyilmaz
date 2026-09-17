@@ -3823,3 +3823,105 @@ html.leiste-zu .admin-unter { display: none; }
 .stil-dreh-null:hover:not(:disabled) { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
 .stil-dreh-null:disabled { opacity: .4; cursor: default; }
 
+/* ─── Entwürfe ─────────────────────────────────────────────────────────
+   Im Baukasten: der Verweis oben rechts und die Zeile, die sagt, welcher
+   Entwurf gerade offen ist. Auf der Seite /admin/entwuerfe: dieselben Karten
+   wie unter Content planen, dazu Name, Herkunft und Kopie. */
+.sm-entwurf-link { display: inline-flex; align-items: center; gap: 6px; }
+.sm-entwurf-link svg { flex: none; }
+.sm-entwurf-link b {
+  min-width: 20px; padding: 1px 6px; border-radius: 999px; text-align: center;
+  font-size: .72rem; font-weight: 700; line-height: 1.5;
+  background: var(--gold, #093552); color: #fff; font-variant-numeric: tabular-nums;
+}
+.sm-entwurf-link b[hidden] { display: none; }
+
+.sm-entwurf-lage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+  margin: 0 0 16px; padding: 11px 14px; border-radius: 12px;
+  background: var(--off, #eff3f7); border: 1px solid var(--border);
+  font-size: .86rem; color: var(--text);
+}
+.sm-entwurf-lage[hidden] { display: none; }
+.sm-entwurf-lage > svg { flex: none; color: var(--gold, #093552); }
+.sm-entwurf-name b { font-weight: 700; }
+.sm-entwurf-zeit { color: var(--muted); font-size: .8rem; }
+.sm-entwurf-marke, .ew-marke {
+  display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px;
+  font-size: .72rem; font-weight: 700; letter-spacing: .02em;
+  background: #e6f2eb; color: #1d6a42; white-space: nowrap;
+}
+.sm-entwurf-los {
+  margin-left: auto; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--white, #fff);
+  font: inherit; font-size: .78rem; font-weight: 600; color: var(--text); text-decoration: none;
+}
+.sm-entwurf-los:hover { border-color: var(--gold, #093552); color: var(--gold, #093552); }
+@media (max-width: 640px) { .sm-entwurf-los { margin-left: 0; } }
+
+/* Die Seite */
+.ew-bilder {
+  padding: 0; border: 0; background: none; font: inherit; color: inherit;
+  /* Feste Breite fuer den Stapel aus bis zu drei Bildern: sonst stuende der
+     Text bei zwei Bildern weiter links als bei drei, und die Karten
+     untereinander liefen nicht buendig. */
+  width: 290px; min-height: 184px; justify-content: flex-start;
+}
+.ew-bilder:focus-visible { outline: 2px solid var(--gold, #093552); outline-offset: 4px; border-radius: 16px; }
+.ew-ohne-bild {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  width: 184px; height: 184px; border-radius: 14px; border: 1.5px dashed var(--border);
+  background: var(--off, #eff3f7); color: var(--muted); font-size: .78rem; text-align: center; padding: 12px;
+}
+.ew-format {
+  display: inline-flex; padding: 2px 9px; border-radius: 999px;
+  font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  background: #e3edf5; color: var(--gold, #093552);
+}
+.ew-format.story { background: #ece8f4; color: #5b4a8a; }
+
+.ew-name-zeile { display: flex; align-items: center; gap: 10px; margin: 2px 0 0; }
+.ew-name {
+  flex: 1; min-width: 0; margin: 0 0 0 -9px; padding: 5px 8px;
+  border: 1px solid transparent; border-radius: 8px; background: transparent;
+  font-family: 'Playfair Display', Georgia, serif; font-size: 1.22rem; font-weight: 700;
+  color: var(--text); text-overflow: ellipsis;
+}
+.ew-name:hover { border-color: var(--border); }
+.ew-name:focus { outline: none; border-color: var(--gold, #093552); background: var(--white, #fff); }
+.ew-name-stand { flex: none; font-size: .76rem; color: #1d8a52; }
+
+.ew-text {
+  margin: 0; font-size: .86rem; line-height: 1.55; color: var(--text); white-space: pre-line;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ew-text-leer { color: var(--muted); font-style: italic; }
+.ew-fakten { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--muted); }
+
+.ew-leer {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  padding: 18px 4px 8px; max-width: 60ch; font-size: .9rem; color: var(--muted);
+}
+.ew-leer b { color: var(--text); font-size: 1rem; }
+.ew-leer .btn-klein { margin-top: 6px; text-decoration: none; }
+
+@media (max-width: 720px) {
+  .ew-bilder { width: 222px; min-height: 138px; }
+  .ew-ohne-bild { width: 138px; height: 138px; }
+  .plan-kopf-rechts { flex-wrap: wrap; }
+}
+/* Kompakter Entwurf-Knopf: Diskette und ein Wort, gleich hoch wie Teilen und
+   Planen, aber leiser. Nach dem Speichern kurz gruen. */
+.btn-klein.sm-entwurf-knopf {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 15px; font-size: .82rem;
+  background: var(--white, #fff); color: var(--carbon, #071A2B); border: 1px solid var(--border);
+}
+.btn-klein.sm-entwurf-knopf:hover:not(:disabled) { border-color: var(--carbon, #071A2B); background: var(--white, #fff); color: var(--carbon, #071A2B); }
+.btn-klein.sm-entwurf-knopf svg { flex: none; }
+.btn-klein.sm-entwurf-knopf.gespeichert { color: #1d8a52; border-color: #9fd3b4; background: #eef8f2; }
+.sm-entwurf-link {
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border);
+  font-size: .8rem; font-weight: 600; color: var(--text); text-decoration: none; background: var(--white, #fff);
+}
+.sm-entwurf-link:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }

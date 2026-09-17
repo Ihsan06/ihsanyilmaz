@@ -181,6 +181,15 @@
     bearbeitungId = 0;
   }
 
+  // ?entwurf=<Nr>: ein gespeicherter Entwurf als Ausgangslage. Anders als beim
+  // Bearbeiten eines geplanten Beitrags kommt hier alles zurueck, was
+  // eingestellt war – Bilder, Ausschnitte, Titel, Angaben, Logo –, weil ein
+  // Entwurf den Bauplan speichert und nicht das fertige Bild. Speichern
+  // schreibt danach in denselben Entwurf zurueck. (Aus dem Diezmann-Baukasten.)
+  let entwurfId = Number(new URLSearchParams(location.search).get('entwurf')) || 0;
+  // Der geladene Entwurf, bis er einmal in den Baukasten gesetzt wurde.
+  let entwurf = null;
+
   // Die vollen Fahrzeugdaten (Ausstattung, km, Erstzulassung) stehen nicht im
   // Gedaechtnis, sondern nur im Bestand – deshalb einmal nachladen und merken.
   let fahrzeuge = null;
@@ -334,6 +343,7 @@
           </svg>
           <span>Beitrag teilen</span></button>
         ${planKnopf()}
+        ${entwurfKnopf()}
         <span class="sm-meldung"></span>
       </div>`;
 
@@ -394,6 +404,7 @@
       if (teilenKnopf) teilenKnopf.addEventListener('click', () => teilen(feld, ziel, teilenKnopf));
       veroeffentlichenVerdrahten(feld, fuss, ziel);
       planFensterVerdrahten(feld, fuss, ziel);
+      entwurfVerdrahten(feld, fuss);
     } catch (err) {
       ziel.innerHTML = `<div class="gd-fehler"><b>Bilder konnten nicht geladen werden.</b>
         <span>${schuetzen(err.message)}</span></div>`;
@@ -495,6 +506,308 @@
   // Stellen liegengeblieben.
   // Der Planen-Knopf stand zweimal im Markup – einmal davon mit fest
   // verdrahtetem "Beitrag planen", auch wenn gerade eine Story gebaut wurde.
+  // ─── Entwuerfe ──────────────────────────────────────────────────────
+  //
+  // Ein Entwurf haelt den Bauplan fest, nicht das Ergebnis: die Bilder in
+  // ihrer Reihenfolge und alles, was im Baukasten eingestellt war.
+  // Zugeschnitten wird erst beim Posten oder Einplanen – deshalb laesst sich
+  // ein Entwurf spaeter ohne Verlust weiterbearbeiten. Die Uebersicht steht
+  // unter /admin/entwuerfe.
+
+  const ENTWURF_SYMBOL = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+      stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M5 4.5A1.5 1.5 0 0 1 6.5 3h8.8L19 6.7v12.8a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5z"/>
+      <path d="M8.5 3v4.5h6V3M8.5 21v-6.5h7V21"/>
+    </svg>`;
+
+  // Kompakt: Diskette und ein Wort. Was genau passiert, sagt der Tooltip –
+  // "Als Entwurf speichern" war der laengste Knopf in der Reihe.
+  function entwurfKnopf() {
+    const wort = entwurfId ? 'Entwurf speichern' : 'Als Entwurf speichern';
+    return `<button type="button" class="btn-klein sm-leise sm-entwurf-knopf" data-entwurf
+        title="${wort}" aria-label="${wort}">
+      ${ENTWURF_SYMBOL}<span>Entwurf</span></button>`;
+  }
+
+  function entwurfKnopfBeschriften(wort) {
+    document.querySelectorAll('[data-entwurf]').forEach(k => {
+      k.title = wort;
+      k.setAttribute('aria-label', wort);
+    });
+  }
+
+  const amWortEnde = (text, hoechstens) => {
+    const s = String(text || '').trim();
+    if (s.length <= hoechstens) return s;
+    const schnitt = s.slice(0, hoechstens);
+    const leer = schnitt.lastIndexOf(' ');
+    return (leer > hoechstens * 0.6 ? schnitt.slice(0, leer) : schnitt).replace(/[\s,.;:–-]+$/, '') + ' …';
+  };
+
+  // Alles einsammeln, was den Baukasten gerade ausmacht. Ausschnitte und
+  // Texte je Bild nur fuer die gewaehlten Bilder – der Rest waere Ballast.
+  function entwurfSammeln(feld) {
+    const wege = auswahlVon(feld).slice(0, 10);
+    const kopie = feld.querySelector('[data-kopie]');
+    const text = kopie ? kopie.innerText.replace(/ /g, ' ').replace(/\s+$/, '') : '';
+    const zeileFeld = feld.querySelector('[data-zeile-feld]');
+    const labelFeld = feld.querySelector('[data-label-text]');
+    const haken = wahl => { const e = feld.querySelector(wahl); return e ? e.checked : null; };
+    const schriftKnopf = feld.querySelector('[data-schrift-an]');
+    const aiyKnopf = feld.querySelector('[data-aiy-an]');
+
+    const stand = {}, texte = {};
+    wege.forEach(u => {
+      if (bildStand.has(u)) stand[u] = bildStand.get(u);
+      if (bildTexte.has(u)) texte[u] = bildTexte.get(u);
+    });
+
+    let themaTitel = '';
+    if (wkThema) {
+      const th = window.beitragText.werkstattThemen().find(x => x.id === wkThema)
+        || ((vorrat && vorrat.kategorien) || []).find(k => k.id === wkThema);
+      themaTitel = th ? th.titel : '';
+    }
+
+    const zustand = {
+      zeile: zeileFeld ? zeileFeld.textContent : '',
+      label: labelFeld ? labelFeld.value : '',
+      schalter: {
+        zeile: haken('[data-zeile-an]'),
+        angaben: haken('[data-label-an]'),
+        logo: haken('[data-logo-an]'),
+        schrift: schriftKnopf ? schriftKnopf.getAttribute('aria-pressed') === 'true' : null,
+        aiy: aiyKnopf ? aiyKnopf.getAttribute('aria-pressed') === 'true' : null
+      },
+      stellen: {
+        zeile: posVon(feld.querySelector('.igs-zeile'), gemerkt.zeile),
+        angaben: posVon(feld.querySelector('.igv-label'), gemerkt.angaben),
+        logo: posVon(feld.querySelector('.igv-marke'), gemerkt.logo)
+      },
+      stand, texte,
+      ohneLogo: wege.filter(u => ohneLogo.has(u)),
+      thema: wkThema,
+      themaTitel,
+      variante: wkVariante,
+      eigen: wkEigen
+    };
+
+    // Der Name in der Liste: die Titelueberschrift, wenn es eine gibt – sonst
+    // der Anfang der Beschreibung oder das Thema.
+    const erste = s => String(s || '').split('\n').map(x => x.trim()).find(Boolean) || '';
+    const titel = amWortEnde(erste(zustand.zeile) || erste(text) || themaTitel
+      || (format === 'story' ? 'Story' : 'Beitrag'), 70);
+
+    return {
+      format: format === 'story' ? 'story' : 'beitrag',
+      quelle: 'galerie',
+      titel, text, bilder: wege, fahrzeug_id: null, zustand
+    };
+  }
+
+  function entwurfVerdrahten(feld, ort) {
+    const knopf = ort.querySelector('[data-entwurf]');
+    if (!knopf) return;
+    knopf.addEventListener('click', async () => {
+      const daten = entwurfSammeln(feld);
+      if (!daten.bilder.length && !daten.text.trim() && !daten.zustand.zeile.trim()) {
+        knopfText(knopf, 'Noch nichts zum Speichern');
+        return;
+      }
+      knopf.disabled = true;
+      knopfText(knopf, 'Entwurf wird gespeichert …');
+      try {
+        const schicken = id => fetch('/api/studio/entwuerfe', {
+          method: id ? 'PUT' : 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(id ? { id, ...daten } : daten)
+        });
+        const vorherId = entwurfId;
+        let a = await schicken(entwurfId);
+        // Inzwischen auf der Entwurfsseite geloescht: dann eben als neuer.
+        if (a.status === 404 && entwurfId) a = await schicken(0);
+        let d = null;
+        try { d = JSON.parse(await a.text()); } catch {
+          throw new Error('Keine Antwort vom Server – bitte noch einmal speichern.');
+        }
+        if (!d || !d.ok) throw new Error((d && d.fehler) || 'HTTP ' + a.status);
+
+        entwurfGesetzt(d.entwurf);
+        if (d.entwurf.id !== vorherId) entwurfZahlHolen();   // ein neuer ist dazugekommen
+        const zeile = knopf.parentElement && knopf.parentElement.querySelector('.sm-meldung');
+        if (zeile) {
+          zeile.innerHTML = `Entwurf gespeichert ✓ ·
+            <a href="/admin/entwuerfe">zu den Entwürfen ↗</a>`;
+        }
+        // Kurz ein Haken im Knopf – dann wieder die Diskette.
+        knopf.classList.add('gespeichert');
+        setTimeout(() => knopf.classList.remove('gespeichert'), 1800);
+      } catch (err) {
+        console.error('Entwurf speichern:', err);
+        knopfText(knopf, 'Ging nicht: ' + err.message);
+      } finally {
+        knopf.disabled = false;
+      }
+    });
+  }
+
+  // Ab jetzt gehoert der Baukasten zu diesem Entwurf: die Adresse traegt ihn
+  // (ein Neuladen oeffnet ihn wieder), der Knopf speichert in ihn zurueck.
+  function entwurfGesetzt(e) {
+    entwurfId = e.id;
+    const url = new URL(location.href);
+    url.searchParams.delete('bearbeiten');
+    url.searchParams.set('entwurf', String(e.id));
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+    entwurfKnopfBeschriften('Entwurf speichern');
+    entwurfLageZeigen(e);
+  }
+
+  // Der Baukasten arbeitet weiter, gehoert aber keinem Entwurf mehr: der
+  // naechste Druck auf Speichern legt einen neuen an. So wird aus einem
+  // Entwurf eine Vorlage, ohne ihn zu veraendern.
+  function entwurfLoesen() {
+    if (!entwurfId) return;
+    entwurfId = 0;
+    const url = new URL(location.href);
+    url.searchParams.delete('entwurf');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+    entwurfKnopfBeschriften('Als Entwurf speichern');
+    entwurfLageZeigen(null);
+  }
+
+  function entwurfLageZeigen(e) {
+    const ziel = document.getElementById('sm-entwurf-lage');
+    if (!ziel) return;
+    if (!e || !entwurfId) { ziel.hidden = true; ziel.innerHTML = ''; return; }
+    ziel.hidden = false;
+    ziel.innerHTML = `
+      ${ENTWURF_SYMBOL.replace('width="15" height="15"', 'width="16" height="16"')}
+      <span class="sm-entwurf-name">Entwurf <b>${schuetzen(e.titel || 'ohne Namen')}</b></span>
+      <span class="sm-entwurf-zeit">gespeichert ${schuetzen(wann(e.geaendert))}</span>
+      ${e.verwendet ? `<span class="sm-entwurf-marke">schon ${
+        e.verwendet === 'geplant' ? 'eingeplant' : 'gepostet'}</span>` : ''}
+      <button type="button" class="sm-entwurf-los" data-entwurf-los
+              title="Der Entwurf bleibt, wie er ist – Speichern legt einen neuen an.">
+        Als neuen Entwurf weiterarbeiten</button>`;
+    ziel.querySelector('[data-entwurf-los]').addEventListener('click', entwurfLoesen);
+  }
+
+  function entwurfFehlt(grund) {
+    entwurfId = 0;
+    const url = new URL(location.href);
+    url.searchParams.delete('entwurf');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+    const ziel = document.getElementById('sm-entwurf-lage');
+    if (!ziel) return;
+    ziel.hidden = false;
+    ziel.innerHTML = `<span class="sm-entwurf-name">${schuetzen(grund || 'Der Entwurf ließ sich nicht laden.')}</span>
+      <a class="sm-entwurf-los" href="/admin/entwuerfe">Zu den Entwürfen</a>`;
+  }
+
+  // Den gespeicherten Zustand zurueck in den Baukasten. Laeuft VOR dem ersten
+  // Zeichnen: Schalter, Stellen, Ausschnitte und Auswahl muessen stehen, bevor
+  // der Baukasten sie liest. Die Texte folgen danach in felderAusEntwurf().
+  function entwurfUebernehmen(e) {
+    const z = e.zustand || {};
+    entwurf = e;
+    entwurfId = e.id;
+    format = e.format === 'story' ? 'story' : 'beitrag';
+    quelle = 'galerie';
+
+    // Nur fuer diese Sitzung – gemerkt (localStorage) wird erst, wenn man
+    // selbst etwas umstellt. Sonst veraenderte das Oeffnen eines alten
+    // Entwurfs die Vorgaben fuer jeden neuen Beitrag.
+    const s = z.schalter || {};
+    Object.keys(schalter).forEach(k => { if (typeof s[k] === 'boolean') schalter[k] = s[k]; });
+    const st = z.stellen || {};
+    Object.keys(gemerkt).forEach(k => {
+      if (typeof st[k] === 'string' && /^[a-z]+-[a-z]+$/.test(st[k])) gemerkt[k] = st[k];
+    });
+
+    bildStand.clear();
+    ohneLogo.clear();
+    Object.entries(z.stand || {}).forEach(([u, b]) => {
+      if (!b || typeof b !== 'object') return;
+      bildStand.set(u, { z: Math.max(100, Number(b.z) || 100), x: Number(b.x) || 0, y: Number(b.y) || 0 });
+    });
+    entwurfTexteSetzen(z);
+    (z.ohneLogo || []).forEach(u => ohneLogo.add(String(u)));
+
+    wkThema = z.thema || null;
+    wkVariante = Number(z.variante) || 0;
+    wkEigen = z.eigen || null;
+    wkAuswahl.clear();
+    (Array.isArray(e.bilder) ? e.bilder : []).forEach(u => wkAuswahl.add(u));
+
+    reiterZeichnen();
+    entwurfLageZeigen(e);
+  }
+
+  function entwurfTexteSetzen(z) {
+    bildTexte.clear();
+    Object.entries(z.texte || {}).forEach(([u, tx]) => {
+      if (!tx || typeof tx !== 'object') return;
+      bildTexte.set(u, { titel: String(tx.titel || ''), label: String(tx.label || '') });
+    });
+  }
+
+  // Die Textfelder nach dem Zeichnen. Die Texte je Bild werden vorher noch
+  // einmal gesetzt: beim ersten Zeichnen der Vorschau standen die Felder
+  // leer, und der Baukasten hat diese Leere fuer das gezeigte Bild gemerkt.
+  function felderAusEntwurf(feld, e) {
+    const z = e.zustand || {};
+    entwurfTexteSetzen(z);
+    gezeigt = null;   // die Eingaben unten sollen keinem Bild zugeschrieben werden
+
+    const zeileFeld = feld.querySelector('[data-zeile-feld]');
+    if (zeileFeld && typeof z.zeile === 'string') {
+      zeileFeld.textContent = z.zeile;
+      zeileFeld.dispatchEvent(new Event('input'));
+    }
+    const labelFeld = feld.querySelector('[data-label-text]');
+    if (labelFeld && typeof z.label === 'string') {
+      labelFeld.value = z.label;
+      labelFeld.dispatchEvent(new Event('input'));
+    }
+    const kopie = feld.querySelector('[data-kopie]');
+    if (kopie && e.text) {
+      kopie.textContent = e.text;
+      vorschauText(feld, e.text);
+    }
+    vorschauBild(feld);
+    reiheZeichnen(feld);
+    markeAbgleichen(feld);
+  }
+
+  // Gepostet oder eingeplant: der Entwurf bleibt als Vorlage, traegt es aber.
+  function entwurfVerwendet(wie) {
+    if (!entwurfId) return;
+    fetch('/api/studio/entwuerfe', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: entwurfId, aktion: 'verwendet', wie })
+    }).catch(() => {});
+    const marke = document.querySelector('#sm-entwurf-lage .sm-entwurf-marke');
+    const wort = 'schon ' + (wie === 'geplant' ? 'eingeplant' : 'gepostet');
+    if (marke) marke.textContent = wort;
+    else document.querySelector('#sm-entwurf-lage .sm-entwurf-zeit')
+      ?.insertAdjacentHTML('afterend', `<span class="sm-entwurf-marke">${wort}</span>`);
+  }
+
+  // Die Zahl am Verweis oben rechts: wie viele Entwuerfe warten.
+  async function entwurfZahlHolen() {
+    const ziel = document.getElementById('sm-entwurf-zahl');
+    if (!ziel) return;
+    try {
+      const a = await fetch('/api/studio/entwuerfe', { credentials: 'same-origin' });
+      const d = await a.json();
+      const n = d && d.ok ? (d.entwuerfe || []).length : 0;
+      ziel.textContent = n ? String(n) : '';
+      ziel.hidden = !n;
+    } catch { /* dann ohne Zahl */ }
+  }
+
   function planKnopf() {
     return `<button type="button" class="btn-klein" data-planen>
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
@@ -567,6 +880,7 @@
       alsGepostetMerken(feld.dataset.fahrzeug || '', story ? 'story' : 'neuzugang');
       alsBenutztMerken(wege);
       alteBearbeitungWegraeumen();
+      entwurfVerwendet('gepostet');
       const wort = story ? (pakete.length > 1 ? `${pakete.length} Stories stehen ✓` : 'Story steht ✓')
         : 'Beitrag steht ✓';
       knopfText(knopf, wort);
@@ -673,6 +987,7 @@
 
       alsBenutztMerken(wege);
       alteBearbeitungWegraeumen();
+      entwurfVerwendet('geplant');
       const schoen = new Date(wann).toLocaleString('de-DE',
         { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
       knopfText(knopf, pakete.length > 1 ? `${pakete.length} Stories eingeplant ✓` : 'Eingeplant ✓');
@@ -762,6 +1077,9 @@
 
   function nachPostenZuruecksetzen() {
     frischNachPosten = true;
+    // Der Baukasten faengt leer an – was jetzt entsteht, ist ein neuer Beitrag
+    // und soll den Entwurf, aus dem der alte kam, nicht ueberschreiben.
+    entwurfLoesen();
     wkAuswahl.clear();
     bildTexte.clear();
     bildStand.clear();
@@ -2589,6 +2907,20 @@
     // aus dem kleineren Vorrat kaeme und beim naechsten Klick springt.
     await saetzeHolen();
 
+    if (entwurfId) {
+      try {
+        const a = await fetch('/api/studio/entwuerfe?id=' + entwurfId, { credentials: 'same-origin' });
+        const d = await a.json();
+        if (d && d.ok && d.entwurf) {
+          entwurfUebernehmen(d.entwurf);
+          bearbeitungId = 0;       // beides zugleich waere ein Widerspruch
+        } else {
+          entwurfFehlt(d && d.fehler);
+        }
+      } catch { entwurfFehlt(); }
+    }
+    entwurfZahlHolen();
+
     if (bearbeitungId) {
       try {
         const a = await fetch('/api/studio/warteschlange', { credentials: 'same-origin' });
@@ -2793,7 +3125,7 @@
 
         <div class="sm-logo-zeile">
           <label class="sm-label-an">
-            <input type="checkbox" data-logo-an checked />
+            <input type="checkbox" data-logo-an ${schalter.logo === false ? '' : 'checked'} />
             <span>Logo</span>
           </label>
           <button type="button" class="sm-schrift" data-aiy-an
@@ -2834,6 +3166,7 @@
               </svg>
               <span>Beitrag teilen</span></button>
             ${planKnopf()}
+            ${entwurfKnopf()}
             <span class="sm-meldung"></span>
           </div>
         </div>
@@ -3627,6 +3960,7 @@
     if (t) t.addEventListener('click', () => teilen(feld, ziel, t, [...wkAuswahl]));
     veroeffentlichenVerdrahten(feld, fuss, ziel, () => [...wkAuswahl]);
     planFensterVerdrahten(feld, fuss, ziel, () => [...wkAuswahl]);
+    entwurfVerdrahten(feld, fuss);
 
     feld.dataset.fahrzeug = '';
     // Ein Eintrag aus der Warteschlange als Ausgangslage: seine Bilder als
@@ -3637,6 +3971,12 @@
       const kopie = feld.querySelector('[data-kopie]');
       if (kopie) kopie.textContent = bearbeitung.text || '';
       bearbeitung = null;
+    }
+    // Ein Entwurf: Bilder und Zustand stehen schon (entwurfUebernehmen), hier
+    // kommen noch die Texte in die Felder.
+    if (entwurf) {
+      felderAusEntwurf(feld, entwurf);
+      entwurf = null;
     }
     // Zum Anfang ein Bild, damit die Vorschau nicht leer bleibt.
     // Nach dem Posten faengt man mit leerer Auswahl an – sonst haengt am

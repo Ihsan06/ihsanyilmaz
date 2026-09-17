@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/admin/icon.svg" />
   <link rel="stylesheet" href="/css/fonts.css?v=3" />
   <link rel="stylesheet" href="/css/style.css?v=229" />
-  <link rel="stylesheet" href="/css/admin.css?v=305" />
+  <link rel="stylesheet" href="/css/admin.css?v=307" />
   <script>
     /* Muss im Kopf stehen, nicht in gemeinsam.js: das laeuft erst am Ende
        der Seite, und bis dahin waere die Leiste offen gezeichnet. */
@@ -39,7 +39,17 @@
             <button type="button" role="tab" data-art="beitrag" aria-selected="true">Beiträge</button>
             <button type="button" role="tab" data-art="story" aria-selected="false">Stories</button>
           </nav>
+          <a class="sm-entwurf-link" href="/admin/entwuerfe" title="Gespeicherte Entwürfe">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                 stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 4.5A1.5 1.5 0 0 1 6.5 3h8.8L19 6.7v12.8a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5z"/>
+              <path d="M8.5 3v4.5h6V3M8.5 21v-6.5h7V21"/>
+            </svg>
+            Entwürfe <b id="sm-entwurf-zahl" hidden></b></a>
         </div>
+
+        <!-- Steht nur da, wenn gerade ein gespeicherter Entwurf offen ist. -->
+        <div class="sm-entwurf-lage" id="sm-entwurf-lage" role="status" hidden></div>
 
         <!-- Zwei Reiter, eine Quelle: Beitraege wie Stories entstehen aus den
              eigenen Fotos der Galerie – die Quelle steht fest und muss nicht
@@ -54,10 +64,10 @@
   </main>
 
   <script src="/admin/marke.js?v=2"></script>
-  <script src="/admin/gemeinsam.js?v=35"></script>
+  <script src="/admin/gemeinsam.js?v=36"></script>
   <script src="/admin/beitrag-text.js?v=25"></script>
   <script src="/admin/beitrag-stil.js?v=14"></script>
   <script src="/admin/beitrag-schau.js?v=17"></script>
-  <script src="/admin/social-media.js?v=228"></script>
+  <script src="/admin/social-media.js?v=230"></script>
 </body>
 </html>
