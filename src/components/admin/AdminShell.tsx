@@ -274,7 +274,7 @@ export default function AdminShell({
           style={{ borderTop: "1px solid rgba(255,255,255,0.09)" }}>
           <button
             onClick={abmelden}
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-[9px] text-sm font-medium"
+            className="flex items-center justify-center gap-3 px-3.5 py-2.5 rounded-[9px] text-sm font-medium"
           >
             <LogOut size={18} className="shrink-0" /> Abmelden
           </button>

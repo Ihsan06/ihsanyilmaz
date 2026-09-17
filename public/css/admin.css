@@ -139,6 +139,10 @@ html.leiste-zu .admin-klapp svg { transform: rotate(180deg); }
 .admin-abmelden svg { width: 15px; height: 15px; flex: none; }
 .admin-abmelden:hover { color: #fff; }
 .admin-abmelden:hover span { text-decoration: underline; }
+/* Auf dem Rechner steht Abmelden mittig unten in der Leiste */
+@media (min-width: 941px) {
+  .admin-rand form { display: flex; justify-content: center; }
+}
 
 /* Auf schmalen Schirmen wird die Leiste zum Kopfblock: Marke und Abmelden
    oben, die Bereiche als Zeile darunter. Pflichtseiten und Hinweis treten
