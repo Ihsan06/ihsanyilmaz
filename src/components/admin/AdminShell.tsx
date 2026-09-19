@@ -22,8 +22,8 @@ const SEITEN: Seite[] = [
     icon: Camera,
     unter: [
       { pfad: "/admin/content", titel: "Content erstellen" },
-      { pfad: "/admin/entwuerfe", titel: "Entwürfe" },
       { pfad: "/admin/planen", titel: "Content planen" },
+      { pfad: "/admin/entwuerfe", titel: "Entwürfe" },
     ],
   },
   {
