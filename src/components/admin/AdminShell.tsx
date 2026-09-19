@@ -16,6 +16,7 @@ type Seite = {
 const SEITEN: Seite[] = [
   { pfad: "/admin", titel: "Übersicht", icon: LayoutDashboard },
   { pfad: "/admin/monitoring", titel: "Monitoring", icon: ChartNoAxesColumn },
+  { pfad: "/admin/galerie", titel: "Galerie", icon: Images },
   {
     pfad: "/admin/instagram",
     titel: "Instagram",
@@ -36,7 +37,6 @@ const SEITEN: Seite[] = [
       { pfad: "/admin/finanzen/steuer", titel: "Steuer" },
     ],
   },
-  { pfad: "/admin/galerie", titel: "Galerie", icon: Images },
   { pfad: "/admin/dokumente", titel: "Dokumente", icon: FolderOpen },
   { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
 ];
