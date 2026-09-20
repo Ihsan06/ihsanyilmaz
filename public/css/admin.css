@@ -66,12 +66,17 @@ body.admin { background: var(--off, #F5F7F9); min-height: 100vh; }
    linken Rand, der Inhalt bekommt die uebrige Breite. Kopf- und Fusszeile
    im Stil der Website gibt es hier nicht mehr – was die Fusszeile trug,
    steht jetzt unten in der Leiste. */
+/* overflow: hidden, nicht auto. Beim Aufklappen stehen die Woerter schon in
+   der Leiste, waehrend sie noch 68 px schmal ist – mit "auto" legte der
+   Browser dafuer fuer den Moment der Bewegung zwei Scrollbalken an und nahm
+   sie danach wieder weg. Das war das helle Aufblitzen am Rand der dunklen
+   Leiste. Gescrollt wird jetzt in der Bereichsliste, siehe .admin-nav. */
 .admin-kopf {
   position: fixed; top: 0; left: 0; bottom: 0; width: 236px; z-index: 60;
   background: var(--carbon, #071A2B); color: #fff;
   display: flex; flex-direction: column; gap: 26px;
   padding: 24px 0 14px;
-  overflow-y: auto;
+  overflow: hidden;
   transition: width .18s ease;
 }
 /* Schwung ueber dem Wort, genau wie die Wortmarke im Website-Header (.logo). */
@@ -82,7 +87,33 @@ body.admin { background: var(--off, #F5F7F9); min-height: 100vh; }
 .admin-marke-wort b { font-size: 1.24rem; font-weight: 800; letter-spacing: -.01em; color: #fff; font-style: normal; }
 .admin-marke-wort i { font-size: .6rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.6); font-style: normal; }
 
-.admin-nav { display: flex; flex-direction: column; gap: 4px; padding: 0 14px; }
+/* Die Bereichsliste nimmt den freien Platz und scrollt notfalls in sich:
+   Bei einem niedrigen Fenster rutschte Abmelden sonst unter den
+   Bildschirmrand, und man musste die ganze Leiste schieben, um sich
+   abzumelden. Jetzt steht es immer unten. */
+.admin-nav {
+  display: flex; flex-direction: column; gap: 4px; padding: 0 14px;
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  /* Ein heller Balken in der dunklen Leiste faellt auf – also ein duenner,
+     der zur Leiste passt. */
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.22) transparent;
+  overscroll-behavior: contain;
+}
+.admin-nav::-webkit-scrollbar { width: 6px; }
+.admin-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border-radius: 999px; }
+/* Derselbe weiche Rand wie quer am Telefon, nur unten: Er steht nur da,
+   solange wirklich noch etwas kommt (Klasse aus gemeinsam.js). */
+@media (min-width: 941px) {
+  .admin-nav.mehr-unten {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  }
+}
+/* Beim Auf- und Zuklappen ist die Leiste fuer einen Moment schmaler als ihre
+   Woerter. Umbrechen duerfen sie dabei nicht – sonst waechst die Liste
+   mitten in der Bewegung in die Hoehe und ruckelt. Abgeschnitten wandern
+   sie einfach hinter den Rand. */
+.admin-marke-wort b, .admin-marke-wort i, .admin-nav a span, .admin-unter a { white-space: nowrap; }
 .admin-nav a {
   display: flex; align-items: center; gap: 12px;
   color: rgba(255,255,255,.72); text-decoration: none;
@@ -102,10 +133,12 @@ body.admin { background: var(--off, #F5F7F9); min-height: 100vh; }
 }
 .admin-rand-hinweis { color: rgba(255,255,255,.3); font-size: .72rem; line-height: 1.5; }
 
-/* Der Klapp-Knopf am Fuss der Leiste. */
+/* Der Klapp-Knopf am Fuss der Leiste. Das Minus oben zieht ihn in die
+   Luecke der Leiste (gap: 26px) hinein: Zwischen Abmelden und ihm standen
+   sonst 38 px Leere – Platz, der oben in der Bereichsliste fehlte. */
 .admin-klapp {
   display: flex; align-items: center; justify-content: center;
-  margin: 12px 14px 0; padding: 9px 0;
+  margin: -16px 14px 0; padding: 8px 0;
   border: 0; border-radius: 9px; background: none; cursor: pointer;
   color: rgba(255,255,255,.5); font: inherit;
   transition: var(--transition, .2s ease);

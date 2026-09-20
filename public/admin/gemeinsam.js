@@ -127,14 +127,30 @@ window.admin = (function () {
   // bei "Uebersicht" an, auch wenn man auf der letzten Seite steht.
   function wischen(nav) {
     if (!nav) return;
-    const pruefen = () => nav.classList.toggle('am-ende',
-      nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 2);
+    const pruefen = () => {
+      nav.classList.toggle('am-ende',
+        nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 2);
+      // Senkrecht dasselbe Versprechen: Passt die Liste bei einem niedrigen
+      // Fenster nicht mehr ganz hinein, sagt der weiche untere Rand, dass da
+      // noch etwas kommt – sonst sieht der letzte Punkt abgeschnitten aus.
+      nav.classList.toggle('mehr-unten',
+        nav.scrollTop + nav.clientHeight < nav.scrollHeight - 2);
+    };
     nav.addEventListener('scroll', pruefen, { passive: true });
     window.addEventListener('resize', pruefen);
 
     const hier = nav.querySelector('a.active');
     if (hier && nav.scrollWidth > nav.clientWidth) {
       nav.scrollLeft = Math.max(0, hier.offsetLeft - 16);
+    }
+    // Senkrecht dasselbe: Bei einem kleinen Fenster scrollt die Bereichs-
+    // liste in sich, damit Abmelden unten stehen bleibt – dann soll die
+    // Seite, auf der man steht, auch im Bild sein.
+    if (hier && nav.scrollHeight > nav.clientHeight) {
+      const weg = hier.getBoundingClientRect().top - nav.getBoundingClientRect().top;
+      if (weg < 0 || weg > nav.clientHeight - hier.offsetHeight) {
+        nav.scrollTop = Math.max(0, nav.scrollTop + weg - 12);
+      }
     }
     pruefen();
   }
