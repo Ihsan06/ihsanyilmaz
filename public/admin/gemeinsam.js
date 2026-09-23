@@ -48,7 +48,9 @@ window.admin = (function () {
     { pfad: '/admin/dokumente', titel: 'Dokumente',
       symbol: '<path d="M3 7.5V18a1.8 1.8 0 0 0 1.8 1.8h14.4A1.8 1.8 0 0 0 21 18v-7.5a1.8 1.8 0 0 0-1.8-1.8h-7.4L10 6H4.8A1.8 1.8 0 0 0 3 7.8z" stroke-linejoin="round"/>' },
     { pfad: '/admin/anfragen', titel: 'Anfragen',
-      symbol: '<path d="M3 13.5h4.6l1.7 2.8h5.4l1.7-2.8H21" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.2 5.6 3 13.5V18a1.8 1.8 0 0 0 1.8 1.8h14.4A1.8 1.8 0 0 0 21 18v-4.5l-2.2-7.9A1.8 1.8 0 0 0 17.1 4H6.9a1.8 1.8 0 0 0-1.7 1.6z" stroke-linejoin="round"/>' }
+      symbol: '<path d="M3 13.5h4.6l1.7 2.8h5.4l1.7-2.8H21" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.2 5.6 3 13.5V18a1.8 1.8 0 0 0 1.8 1.8h14.4A1.8 1.8 0 0 0 21 18v-4.5l-2.2-7.9A1.8 1.8 0 0 0 17.1 4H6.9a1.8 1.8 0 0 0-1.7 1.6z" stroke-linejoin="round"/>' },
+    { pfad: '/admin/akquise', titel: 'Akquise',
+      symbol: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.8"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><path d="M12 12l6.3-6.3" stroke-linecap="round"/>' }
   ];
 
   // Die Bildmarke: das Delta-Monogramm des AIY-Logos, als Pfad eingebettet

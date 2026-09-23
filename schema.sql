@@ -119,3 +119,59 @@ CREATE TABLE IF NOT EXISTS demo_zugaenge (
 );
 CREATE INDEX IF NOT EXISTS idx_demo_zugaenge_zeit  ON demo_zugaenge(zeitpunkt);
 CREATE INDEX IF NOT EXISTS idx_demo_zugaenge_email ON demo_zugaenge(email);
+
+-- Akquise: Autohaeuser und Werkstaetten aus OpenStreetMap, deren Website
+-- automatisch geprueft und bewertet wird. Ziel: etablierte Betriebe mit
+-- schwacher Website finden. Kontakt spaeter per Brief oder Besuch.
+CREATE TABLE IF NOT EXISTS akquise_betriebe (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  quelle TEXT NOT NULL DEFAULT 'osm',            -- osm | manuell
+  quelle_id TEXT,                                 -- z. B. node/123456 oder way/98765
+  name TEXT NOT NULL,
+  art TEXT,                                       -- car | car_repair
+  marken TEXT,                                    -- aus OSM brand, kommasepariert
+  strasse TEXT, plz TEXT, ort TEXT,
+  lat REAL, lng REAL,
+  telefon TEXT, email TEXT,
+  website TEXT,                                   -- normalisiert (Schema ergänzt), NULL wenn keine
+  oeffnungszeiten TEXT,
+  region TEXT,                                    -- Bezeichnung des Suchlaufs
+  status TEXT NOT NULL DEFAULT 'neu',             -- neu | beobachten | brief | kontakt | kunde | aus
+  notiz TEXT,
+  score_website INTEGER,                          -- Schwäche der Website 0–100 (hoch = schlecht)
+  score_betrieb INTEGER,                          -- Stärke des Betriebs 0–100
+  prioritaet INTEGER,                             -- round(0.6*score_website + 0.4*score_betrieb)
+  geprueft_am TEXT,
+  angelegt TEXT NOT NULL DEFAULT (datetime('now')),
+  geaendert TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_akq_quelle ON akquise_betriebe(quelle, quelle_id);
+CREATE INDEX IF NOT EXISTS idx_akq_prio ON akquise_betriebe(prioritaet DESC);
+
+-- Jede Pruefung einzeln, damit sich Veraenderungen ueber die Zeit sehen lassen.
+CREATE TABLE IF NOT EXISTS akquise_pruefungen (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  betrieb_id INTEGER NOT NULL,
+  zeitpunkt TEXT NOT NULL DEFAULT (datetime('now')),
+  erreichbar INTEGER, https INTEGER, viewport INTEGER,
+  cms TEXT, baukasten TEXT, jquery TEXT, copyright_jahr INTEGER,
+  impressum INTEGER, datenschutz INTEGER, schema_org INTEGER,
+  fahrzeuge_eigen INTEGER, boersen_link INTEGER,
+  psi_leistung INTEGER, psi_lcp REAL, psi_cls REAL,
+  wayback_erster TEXT, wayback_letzter TEXT, wayback_anzahl INTEGER,
+  titel TEXT, generator TEXT, antwort_ms INTEGER, groesse_kb INTEGER,
+  signale TEXT,                                   -- JSON: [{code, text, punkte, seite:'website'|'betrieb'}]
+  fehler TEXT,
+  roh TEXT                                        -- JSON mit allem, was sonst nicht in Spalten passt
+);
+CREATE INDEX IF NOT EXISTS idx_akq_pruef ON akquise_pruefungen(betrieb_id, zeitpunkt DESC);
+
+-- Suchlaeufe: was wann in welcher Region gesucht wurde.
+CREATE TABLE IF NOT EXISTS akquise_laeufe (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  art TEXT NOT NULL,                              -- suche
+  region TEXT, parameter TEXT,
+  gefunden INTEGER, neu INTEGER,
+  fehler TEXT,
+  zeitpunkt TEXT NOT NULL DEFAULT (datetime('now'))
+);
