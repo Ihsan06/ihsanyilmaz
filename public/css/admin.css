@@ -1950,6 +1950,9 @@ a.admin-karte h2 { color: var(--text); }
    Profilbild im Story-Kopf – das fiel bisher nicht auf, weil es beim ersten
    Zeichnen ohnehin entfernt wurde. */
 .igv-bild .igv-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Die Vorschau setzt dem Foto seine echten Masse (breiter als der Kasten bei
+   Querfotos) – die allgemeine Bildbremse darf hier nicht greifen. */
+.igv-bild .igv-foto { max-width: none; max-height: none; }
 .igv-leer { font-size: .78rem; color: var(--muted); }
 .igv-play {
   position: relative; z-index: 1; width: 46px; height: 46px; border-radius: 50%;
@@ -2095,6 +2098,52 @@ a.admin-karte h2 { color: var(--text); }
   backdrop-filter: blur(4px);
 }
 .igv-werkzeug[hidden] { display: none; }
+/* Der Knopf fuer die Randfuellung kommt als zweite Zeile dazu, sobald es
+   Rand gibt – deshalb darf die Leiste umbrechen. */
+.igv-werkzeug { flex-wrap: wrap; border-radius: 20px; }
+/* Zoomstufe als Zahl – sonst raet man beim Schieben. Feste Breite mit
+   Ziffern gleicher Laufweite, damit die Leiste beim Zaehlen nicht zappelt. */
+.igv-unten { flex: 1 1 100%; display: flex; align-items: center; gap: 7px; }
+.igv-unten:not(:has(> :not([hidden]))) { display: none; }
+
+.igv-prozent {
+  flex: none; text-align: center; min-width: 3.5em;
+  border-radius: 999px; padding: 5px 8px;
+  background: rgba(255,255,255,.16); color: #fff;
+  font-size: .72rem; font-weight: 700; line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+/* Ab 100 % abwaerts entsteht Rand – dann traegt die Zahl den vollen Ton,
+   weil ab da die Randfuellung mitredet. */
+.igv-prozent.igv-prozent-rand { background: rgba(255,255,255,.9); color: #262626; }
+
+/* Zweite Zeile: Randfuellung und Uebernehmen teilen sie sich, wenn beide da
+   sind – allein nimmt jedes die volle Breite. */
+.igv-fuer-alle {
+  flex: 0 1 auto; white-space: nowrap; display: flex; align-items: center; justify-content: center;
+  gap: 6px; cursor: pointer; border-radius: 999px;
+  background: rgba(255,255,255,.16); color: #fff;
+  font-size: .72rem; font-weight: 600; line-height: 1.2; padding: 5px 10px;
+}
+.igv-fuer-alle:hover { background: rgba(255,255,255,.26); }
+.igv-fuer-alle[hidden] { display: none; }
+.igv-fuer-alle input { margin: 0; accent-color: #fff; width: 13px; height: 13px; }
+
+.igv-grund-knopf {
+  flex: 1 1 auto; min-width: 0; white-space: nowrap; border: 0; cursor: pointer; border-radius: 999px;
+  background: rgba(255,255,255,.9); color: #262626; font: inherit;
+  font-size: .72rem; font-weight: 600; line-height: 1.2; padding: 5px 10px;
+}
+.igv-grund-knopf::before { content: "Rand: "; font-weight: 400; color: #666; }
+.igv-grund-knopf:hover { background: #fff; }
+.igv-grund-knopf[hidden] { display: none; }
+/* Dasselbe Foto unscharf hinter dem herausgezoomten Bild. Etwas groesser als
+   der Kasten, damit der Weichzeichner keinen hellen Saum am Rand laesst. */
+.igv-bild .igv-weich {
+  position: absolute; left: -8%; top: -8%; width: 116%; height: 116%;
+  object-fit: cover; filter: blur(14px) brightness(.65); pointer-events: none;
+}
+.igv-bild .igv-weich[hidden] { display: none; }
 .igv-werkzeug input[type="range"] { flex: 1 1 auto; min-width: 0; accent-color: #fff; }
 .igv-mitte {
   flex: none; cursor: pointer; width: 24px; height: 24px;

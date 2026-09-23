@@ -729,7 +729,12 @@
     ohneLogo.clear();
     Object.entries(z.stand || {}).forEach(([u, b]) => {
       if (!b || typeof b !== 'object') return;
-      bildStand.set(u, { z: Math.max(100, Number(b.z) || 100), x: Number(b.x) || 0, y: Number(b.y) || 0 });
+      bildStand.set(u, {
+        z: Math.max(ZOOM_MIN, Number(b.z) || 100),
+        x: Number(b.x) || 0,
+        y: Number(b.y) || 0,
+        hg: GRUENDE.some(g => g[0] === b.hg) ? b.hg : 'weich'
+      });
     });
     entwurfTexteSetzen(z);
     (z.ohneLogo || []).forEach(u => ohneLogo.add(String(u)));
@@ -1641,14 +1646,37 @@
   //
   // x und y sind Anteile der Rahmenbreite bzw. -hoehe, keine Pixel. Nur so
   // laesst sich dieselbe Verschiebung auf ein 1080er Bild uebertragen.
+  //
+  // z unter 100 heisst: das Bild fuellt den Rahmen nicht mehr, es bleibt
+  // Rand. Ein Querfoto in einer 9:16-Story war sonst immer nur ein
+  // Ausschnitt. hg sagt, womit der Rand gefuellt wird: 'weich' (dasselbe
+  // Foto unscharf dahinter, wie es Instagram selbst macht), 'dunkel' oder
+  // 'weiss'.
   const bildStand = new Map();
+  const standVon = u => bildStand.get(u) || { z: 100, x: 0, y: 0, hg: 'weich' };
+  const GRUENDE = [['weich', 'Unscharf'], ['dunkel', 'Dunkel'], ['weiss', 'Weiß']];
+  const ZOOM_MIN = 30;
+
+  // Fuer "Für alle Bilder" muessen wir die Grenzen auch von Bildern kennen,
+  // die gerade gar nicht im Rahmen stehen. In die Grenze geht nur das
+  // Seitenverhaeltnis ein (siehe grenzeAus) – deshalb taugt jede Fassung des
+  // Bildes als Quelle, auch die kleine aus der Kachel. Die Bilder liegen nach
+  // dem Zeichnen der Kacheln ohnehin im Zwischenspeicher des Browsers; ein
+  // neues Image() kostet dann nichts.
+  const bildMasse = new Map();
+  const masseHolen = u => new Promise(fertig => {
+    if (bildMasse.has(u)) return fertig(bildMasse.get(u));
+    const i = new Image();
+    i.onload = () => { const m = { w: i.naturalWidth, h: i.naturalHeight }; bildMasse.set(u, m); fertig(m); };
+    i.onerror = () => { bildMasse.set(u, null); fertig(null); };
+    i.src = u;
+  });
 
   // Titel und Text gehoeren zum einzelnen Bild, nicht zum Beitrag: bei
   // mehreren Stories bekommt jede ihre eigene Aussage. Geschluesselt wie
   // bildStand ueber die Bildadresse.
   const bildTexte = new Map();
   const texteVon = u => bildTexte.get(u) || { titel: '', label: '' };
-  const standVon = u => bildStand.get(u) || { z: 100, x: 0, y: 0 };
 
 
   function vorschauBild(feld) {
@@ -1666,7 +1694,7 @@
     // Nur das Vorschaufoto wegraeumen, nicht jedes Bild im Kasten: im
     // Story-Kopf steckt auch das Profilbild. Mit dem alten 'img' verschwand es
     // beim ersten Zeichnen und kam nie wieder.
-    kasten.querySelectorAll('.igv-foto, .igv-pfeil, .igv-punkte').forEach(e => e.remove());
+    kasten.querySelectorAll('.igv-foto, .igv-weich, .igv-pfeil, .igv-punkte').forEach(e => e.remove());
     if (!gewaehlt.length) {
       zaehler.hidden = true;
       if (stift) stift.hidden = true;
@@ -1680,6 +1708,25 @@
     bild.alt = '';
     bild.draggable = false;
     kasten.prepend(bild);
+
+    // Dahinter dasselbe Foto noch einmal, fuellend und unscharf: zu sehen nur,
+    // wenn herausgezoomt ist und 'weich' gewaehlt. Vor dem Foto eingehaengt,
+    // damit es darunter liegt.
+    const weich = document.createElement('img');
+    weich.className = 'igv-weich';
+    weich.alt = '';
+    weich.hidden = true;
+    weich.draggable = false;
+    kasten.prepend(weich);
+    const grundKnopf = v.querySelector('[data-grund]');
+    const prozent = v.querySelector('[data-prozent]');
+    const alleZeile = v.querySelector('[data-alle-zeile]');
+    const alleHaken = v.querySelector('[data-alle]');
+    if (regler) regler.min = ZOOM_MIN;
+    // Uebernehmen lohnt erst ab dem zweiten Bild. Der Haken selbst ueberlebt
+    // das Neuzeichnen (er steht in der Werkzeugleiste, die bleibt) – nur
+    // seine Sichtbarkeit haengt an der Auswahl.
+    if (alleZeile) alleZeile.hidden = gewaehlt.length < 2;
 
     const punkte = document.createElement('div');
     punkte.className = 'igv-punkte';
@@ -1698,16 +1745,54 @@
     // zurueck auf das erste Bild, obwohl man gerade das dritte ansah.
     const lauf = { gewaehlt, i: Math.max(0, gewaehlt.indexOf(gezeigt)), bild };
     kasten.__lauf = lauf;
+    // Erst mit geladenem Bild sind seine Masse bekannt – dann noch einmal
+    // setzen, sonst steht es bis zum naechsten Anfassen in Rahmenmassen.
+    bild.onload = () => lauf.anwenden && lauf.anwenden();
 
     const anwenden = () => {
       const st = standVon(lauf.gewaehlt[lauf.i]);
-      lauf.bild.style.transform = `translate(${st.x * 100}%, ${st.y * 100}%) scale(${st.z / 100})`;
+      // Das <img> bekommt die Masse des fuellend eingepassten Fotos, nicht die
+      // des Rahmens. Solange es den Rahmen hatte (mit object-fit: cover),
+      // schnitt der Browser ein Querfoto erst auf Hochformat und verkleinerte
+      // dann diesen Ausschnitt – beim Herauszoomen stand ein schmaler
+      // Streifen da, wo im gerechneten Bild (zuschneiden) das ganze Foto als
+      // Band liegt. Mit den echten Massen zeigt die Vorschau dasselbe wie
+      // die Datei. Die Verschiebung ist ein Anteil der Rahmenmasse und wird
+      // auf die des Bildes umgerechnet, weil translate() in Prozenten des
+      // Elements rechnet.
+      const iw = lauf.bild.naturalWidth, ih = lauf.bild.naturalHeight;
+      const H = kasten.classList.contains('igv-hoch') ? 16 / 9 : 5 / 4;
+      let rw = 1, rh = 1;
+      if (iw && ih) { const m = Math.max(1 / iw, H / ih); rw = iw * m; rh = ih * m / H; }
+      Object.assign(lauf.bild.style, {
+        left: '50%', top: '50%', width: `${rw * 100}%`, height: `${rh * 100}%`,
+        transform: `translate(${-50 + st.x / rw * 100}%, ${-50 + st.y / rh * 100}%) scale(${st.z / 100})`
+      });
       if (regler) regler.value = st.z;
+      // Unter 100 % bleibt Rand. Der sieht hier so aus, wie er spaeter ins
+      // Bild gerechnet wird (siehe grundMalen) – sonst waere die Vorschau
+      // wieder eine Behauptung.
+      const rand = st.z < 100;
+      weich.hidden = !(rand && st.hg === 'weich');
+      kasten.style.background = rand && st.hg === 'weiss' ? '#fff'
+        : (rand && st.hg === 'dunkel' ? '#1c1c1c' : '');
+      if (grundKnopf) {
+        grundKnopf.hidden = !rand;
+        grundKnopf.textContent = (GRUENDE.find(x => x[0] === st.hg) || GRUENDE[0])[1];
+      }
+      // Ohne Zahl raet man beim Schieben. 100 % ist die Marke, an der das Bild
+      // den Rahmen gerade noch fuellt – darunter wird sie hervorgehoben, denn
+      // ab da entsteht Rand.
+      if (prozent) {
+        prozent.textContent = st.z + '\u2009%';
+        prozent.classList.toggle('igv-prozent-rand', rand);
+      }
     };
 
     const zeigen = () => {
       lauf.i = (lauf.i + lauf.gewaehlt.length) % lauf.gewaehlt.length;
       lauf.bild.src = lauf.gewaehlt[lauf.i];
+      weich.src = lauf.gewaehlt[lauf.i];
       zaehler.textContent = `${lauf.i + 1}/${lauf.gewaehlt.length}`;
       punkte.querySelectorAll('span').forEach((p, n) => p.classList.toggle('hier', n === lauf.i));
       anwenden();
@@ -1722,20 +1807,73 @@
       const st = standVon(lauf.gewaehlt[lauf.i]);
       // Beim Herauszoomen kann eine fruehere Verschiebung ploetzlich zu weit
       // sein – dann rutschte leere Flaeche herein. Also mitziehen.
-      const z = Math.max(100, Number(regler.value));
+      const z = Math.max(ZOOM_MIN, Number(regler.value));
       const g = grenze(lauf.bild, z);
       bildStand.set(lauf.gewaehlt[lauf.i], {
+        ...st,
         z,
         x: Math.max(-g.x, Math.min(g.x, st.x)),
         y: Math.max(-g.y, Math.min(g.y, st.y))
       });
       anwenden();
+      alleUebernehmen();
     };
+    // Zoom und Randfuellung auf alle gewaehlten Bilder uebertragen. Die
+    // Verschiebung bleibt bewusst je Bild: auf dem einen Foto steht das Motiv
+    // links, auf dem naechsten rechts – ein gemeinsamer Versatz waere dort
+    // falsch. Sie wird nur an die neue Zoomstufe angepasst, damit kein Rand
+    // hereinrutscht, wo keiner sein soll.
+    // Bewusst synchron: liest den Stand und schreibt ihn im selben Zug. Mit
+    // einem await dazwischen (fuers Nachladen der Bildmasse) konnte ein
+    // frueher Lauf nach einem spaeteren fertig werden und dessen Zoomstufe
+    // wieder ueberschreiben – ein Bild von vieren blieb dann auf 100 %.
+    // Die Masse kommt deshalb nur aus dem Gedaechtnis; was noch fehlt, holt
+    // massenLaden() nach und zieht das Ergebnis hinterher.
+    const alleUebernehmen = () => {
+      if (!alleHaken || !alleHaken.checked) return;
+      const jetzt = lauf.gewaehlt[lauf.i];
+      const st = standVon(jetzt);
+      const H = kasten.classList.contains('igv-hoch') ? 16 / 9 : 5 / 4;
+      lauf.gewaehlt.forEach(u => {
+        if (u === jetzt) return;
+        const alt = standVon(u);
+        const m = bildMasse.get(u);
+        const g = grenzeAus(m && m.w, m && m.h, H, st.z);
+        bildStand.set(u, {
+          z: st.z, hg: st.hg,
+          x: Math.max(-g.x, Math.min(g.x, alt.x)),
+          y: Math.max(-g.y, Math.min(g.y, alt.y))
+        });
+      });
+    };
+    const massenLaden = async () => {
+      await Promise.all(lauf.gewaehlt.map(masseHolen));
+      alleUebernehmen();
+    };
+    lauf.alleUebernehmen = alleUebernehmen;
+    // Frisch angehakt wird sofort uebernommen – sonst muesste man den Regler
+    // erst noch einmal anfassen, damit etwas passiert.
+    if (alleHaken) alleHaken.onchange = () => { alleUebernehmen(); massenLaden(); };
+    // Der Haken ueberlebt das Neuzeichnen. Kommt danach ein Bild zur Auswahl
+    // dazu, kennen wir dessen Masse noch nicht – also gleich nachholen.
+    if (alleHaken && alleHaken.checked && gewaehlt.length > 1) massenLaden();
+
     const weg = v.querySelector('[data-zoom-weg]');
     if (weg) weg.onclick = e => {
       e.stopPropagation();
-      bildStand.set(lauf.gewaehlt[lauf.i], { z: 100, x: 0, y: 0 });
+      const st = standVon(lauf.gewaehlt[lauf.i]);
+      bildStand.set(lauf.gewaehlt[lauf.i], { z: 100, x: 0, y: 0, hg: st.hg });
       anwenden();
+      alleUebernehmen();
+    };
+    // Ein Druck, naechste Fuellung: drei Moeglichkeiten brauchen kein Menue.
+    if (grundKnopf) grundKnopf.onclick = e => {
+      e.stopPropagation();
+      const st = standVon(lauf.gewaehlt[lauf.i]);
+      const n = GRUENDE.findIndex(x => x[0] === st.hg);
+      bildStand.set(lauf.gewaehlt[lauf.i], { ...st, hg: GRUENDE[(n + 1) % GRUENDE.length][0] });
+      anwenden();
+      alleUebernehmen();
     };
 
     // Bearbeiten: Stift an, dann laesst sich das Bild schieben und der
@@ -1863,8 +2001,8 @@
   // Schneidet ein Bild genau so zu, wie es in der Vorschau steht – 4:5 beim
   // Beitrag, 9:16 beim Reel. Damit ist das, was rausgeht, dasselbe, was man
   // gesehen hat; Instagram schneidet an einem fertigen 4:5-Bild nichts mehr.
-  // Beim Herauszoomen bleiben Raender: die werden weiss gefuellt, nicht
-  // verwaschen – ein Autohaus braucht keinen Weichzeichner.
+  // Beim Herauszoomen bleibt Rand. Der wird gefuellt, wie es der Stand sagt
+  // (grundMalen): unscharf mit demselben Foto, dunkel oder weiss.
   // Das Label wird ins Bild gerechnet, nicht darübergelegt: was Instagram
   // bekommt, ist eine fertige Datei. Gezeichnet wird auf derselben Flaeche,
   // auf der ohnehin zugeschnitten wird – ein zusaetzlicher Schritt entsteht
@@ -2117,6 +2255,41 @@
     g.textBaseline = 'alphabetic';
   }
 
+  // Fuellt die Flaeche hinter einem Bild, das den Rahmen nicht deckt.
+  // 'weich' ist das, was Instagram beim Hochladen eines Querfotos selbst
+  // macht: dasselbe Foto fuellend dahinter, weichgezeichnet, abgedunkelt –
+  // das Motiv steht dann vor seinen eigenen Farben statt vor einer Wand.
+  // Canvas-Filter gibt es nicht ueberall (Safari): dort wird das Foto stark
+  // verkleinert und wieder hochgezogen, das verwischt genauso.
+  function grundMalen(g, bild, breite, hoehe, art) {
+    if (art === 'weiss') return;                       // liegt schon (fillRect oben)
+    if (art === 'dunkel') { g.fillStyle = '#1c1c1c'; g.fillRect(0, 0, breite, hoehe); return; }
+    const deckend = Math.max(breite / bild.width, hoehe / bild.height);
+    const bw = bild.width * deckend, bh = bild.height * deckend;
+    const x = (breite - bw) / 2, y = (hoehe - bh) / 2;
+    g.save();
+    if ('filter' in g) {
+      g.filter = 'blur(28px)';
+      // Der Weichzeichner zieht am Bildrand Transparenz herein – deshalb
+      // etwas ueber den Rahmen hinaus zeichnen.
+      g.drawImage(bild, x - 60, y - 60, bw + 120, bh + 120);
+    } else {
+      const f = 24;
+      const k = document.createElement('canvas');
+      k.width = Math.max(1, Math.round(breite / f));
+      k.height = Math.max(1, Math.round(hoehe / f));
+      const kg = k.getContext('2d');
+      kg.imageSmoothingEnabled = true;
+      kg.drawImage(bild, x / f, y / f, bw / f, bh / f);
+      g.imageSmoothingEnabled = true;
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(k, 0, 0, breite, hoehe);
+    }
+    g.restore();
+    g.fillStyle = 'rgba(0,0,0,.35)';
+    g.fillRect(0, 0, breite, hoehe);
+  }
+
   async function zuschneiden(quelle, stand, hoch, label, logo, story, stelle, schrift, aiy) {
     return new Promise((fertig, schief) => {
       const bild = new Image();
@@ -2141,6 +2314,7 @@
         const deckend = Math.max(breite / bild.width, hoehe / bild.height);
         const m = deckend * (stand.z / 100);
         const bw = bild.width * m, bh = bild.height * m;
+        if (bw < breite - 1 || bh < hoehe - 1) grundMalen(g, bild, breite, hoehe, stand.hg);
         g.drawImage(bild,
           (breite - bw) / 2 + (stand.x || 0) * breite,
           (hoehe - bh) / 2 + (stand.y || 0) * hoehe,
@@ -2539,13 +2713,27 @@
   // Wie weit sich ein Bild schieben laesst, haengt nicht nur am Zoom, sondern
   // vor allem am Ueberstand: ein Querformat im Hochformat ragt seitlich weit
   // hinaus, auch ohne Zoom – und dieser Teil des Bildes laesst sich hereinholen.
-  // Nur der Zoom schafft Spielraum: bei hundert Prozent sitzt das Bild genau
-  // im Rahmen und laesst sich nicht bewegen. Der seitliche Ueberstand eines
-  // Querformats im Hochformat bleibt bewusst gesperrt – wer dort etwas anderes
-  // sehen will, zoomt hinein.
+  // Wie weit darf das Bild wandern, ohne dass Rand hereinrutscht (Zoom ueber
+  // 100) bzw. ohne dass es aus dem Rahmen laeuft (Zoom darunter)? Je Achse
+  // getrennt: ein Querfoto in der Story steht bei 60 % seitlich noch ueber
+  // und hat oben und unten Luft – beides ist halb so gross wie der Unterschied
+  // zwischen Bild und Rahmen.
+  // H ist die Rahmenhoehe als Vielfaches der Rahmenbreite (5/4 beim Beitrag,
+  // 16/9 bei Story und Reel). Ohne Bildmasse bleibt die alte, vorsichtige
+  // Schaetzung – sie laesst nie Rand herein, schoepft ihn nur nicht aus.
+  function grenzeAus(iw, ih, H, z) {
+    if (!iw || !ih) { const g = Math.max(0, (z / 100 - 1) / 2); return { x: g, y: g }; }
+    const m = Math.max(1 / iw, H / ih) * z / 100;
+    return { x: Math.abs(iw * m - 1) / 2, y: Math.abs(ih * m - H) / 2 / H };
+  }
+
   function grenze(bild, z) {
-    const g = Math.max(0, (z / 100 - 1) / 2);
-    return { x: g, y: g };
+    const kasten = bild.closest('.igv-bild');
+    const H = kasten && kasten.classList.contains('igv-hoch') ? 16 / 9 : 5 / 4;
+    if (bild.naturalWidth && bild.naturalHeight && bild.src) {
+      bildMasse.set(bild.src, { w: bild.naturalWidth, h: bild.naturalHeight });
+    }
+    return grenzeAus(bild.naturalWidth, bild.naturalHeight, H, z);
   }
 
 

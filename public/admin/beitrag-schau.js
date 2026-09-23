@@ -112,13 +112,29 @@ window.beitragSchau = (function () {
             <button type="button" data-schub="1,0" aria-label="nach rechts">▶</button>
             <button type="button" data-schub="0,-1" aria-label="nach unten">▼</button>
           </span>
-          <input type="range" min="100" max="260" value="100" step="1" data-zoom aria-label="Zoom" />
+          <!-- Unter 100 % zeigt das Bild mehr, laesst aber Rand – ein Querfoto
+               fuellt kein Hochformat. Womit der Rand gefuellt wird, stellt der
+               Knopf darunter um; er erscheint erst, wenn es Rand gibt. -->
+          <input type="range" min="30" max="260" value="100" step="1" data-zoom aria-label="Zoom" />
           <button type="button" class="igv-mitte" data-zoom-weg title="Zurücksetzen" aria-label="Zurücksetzen">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
               <path d="M3 10a9 9 0 1 1 2.6 6.4" stroke-linecap="round"/>
               <polyline points="3 4 3 10 9 10" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
+          <!-- Zweite Zeile als eigener Kasten. Ohne ihn sprang die Zahl in
+               die Reglerzeile hoch, sobald der Rand-Knopf ueber 100 % ver-
+               schwand – sie steht jetzt fest links, der Knopf daneben.
+               Der Haken erscheint erst ab dem zweiten Bild: bei einem gibt
+               es nichts zu uebernehmen. -->
+          <div class="igv-unten">
+            <output class="igv-prozent" data-prozent title="Zoomstufe">100&thinsp;%</output>
+            <button type="button" class="igv-grund-knopf" data-grund hidden
+                    title="Womit der Rand um das Bild gefüllt wird">Unscharf</button>
+            <label class="igv-fuer-alle" data-alle-zeile hidden>
+              <input type="checkbox" data-alle /> <span>Für alle Bilder</span>
+            </label>
+          </div>
         </div>
       </div>`;
   }
