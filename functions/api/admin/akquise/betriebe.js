@@ -35,7 +35,9 @@ const LISTE = `SELECT b.*,
 
 export const onRequestGet = nurAngemeldet(async ({ request, env }) => {
   const q = new URL(request.url).searchParams;
-  const wo = [q.get('papierkorb') === '1' ? 'b.geloescht IS NOT NULL' : 'b.geloescht IS NULL'];
+  // Zusammengefuehrte Dubletten sind auch geloescht, gehoeren aber nicht in
+  // den Papierkorb – wiederherstellen waere dort falsch.
+  const wo = [q.get('papierkorb') === '1' ? 'b.geloescht IS NOT NULL AND b.zusammengefuehrt_in IS NULL' : 'b.geloescht IS NULL'];
   const werte = [];
 
   const suche = (q.get('suche') || '').trim().slice(0, 80);

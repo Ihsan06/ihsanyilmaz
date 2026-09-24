@@ -6,14 +6,16 @@
 //               google_bewertung, google_anzahl, google_stand (Momentaufnahme
 //               – Google erlaubt kein dauerhaftes Kopieren, nur die Place-ID).
 //               websiteUri: Boerse/Social → als Website mit Kategorie
-//               nur_boerse (keine Analyse); sonst Abruf und Verifikation
-//               (Ort/PLZ/Telefon/Name im HTML) und normale Pruefung.
-//               Nicht verifizierbar → trotzdem uebernehmen, Signal sagt es.
+//               nur_boerse (keine Analyse); sonst uebernehmen und normal
+//               pruefen. Keine eigene Verifikation mehr: Google kennt die
+//               Website aus dem Unternehmensprofil, das der Betrieb selbst
+//               pflegt – der Abgleich mit dem HTML hat nur Fehlalarme erzeugt.
+//               Nur eine von Hand eingetragene Website bleibt stehen.
 //               Kein Treffer → { ok:true, gefunden:false }; google_stand wird
 //               trotzdem gesetzt, damit der Sammellauf nicht ewig wiederholt.
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
 import {
-  betriebPruefen, websiteAbrufen, websiteNormalisieren, websiteVerifizieren, istBoersenSeite, hostVon, hostErlaubt,
+  betriebPruefen, websiteNormalisieren, istBoersenSeite, hostVon, hostErlaubt,
   nameWoerter, umlautfrei, betriebLaden, istMehrfach, letztePruefungLaden, pruefungSpeichern,
   pruefungNeuBewerten, pruefAntwort,
 } from '../../../_lib/akquise.js';
@@ -21,7 +23,6 @@ import {
 const PLACES_URL = 'https://places.googleapis.com/v1/places:searchText';
 const FELDER = 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.businessStatus';
 const PLACES_TIMEOUT_MS = 10_000;
-const VERIFIKATION_TIMEOUT_MS = 8_000;
 const NICHT_EINGERICHTET = 'Google Places nicht eingerichtet: PLACES_KEY in Cloudflare hinterlegen.';
 
 // GET ?test=1 macht eine echte Abfrage mit einem festen Betrieb. Ohne das
@@ -106,15 +107,27 @@ async function placesSuchen(env, betrieb) {
   }
 }
 
-// Ist das wirklich unser Betrieb? Ein Wort des Namens (ohne Gattungswoerter
-// wie "Autohaus") muss im Google-Namen stehen; hat der Name nur solche
-// Woerter, muss wenigstens PLZ oder Ort in der Adresse stehen.
+// Ist das wirklich unser Betrieb? Ein unterscheidendes Wort des Namens (nicht
+// "Autohaus", "Kfz" …) muss im Google-Namen stehen; nur wenn der Name gar
+// keins hat, reicht PLZ oder Ort in der Adresse.
+// Kurze Woerter ("NU", "3R", "1a") und Kuerzel mit Punkten ("A.M.T." → amt)
+// zaehlen mit, muessen aber als ganzes Wort stehen – "nu" steckt sonst in
+// "Neumann". Ohne sie fiel "3R-Kfz Werkstatt" auf die PLZ zurueck und bekam
+// den Eintrag des Nachbarbetriebs.
 const GATTUNG = new Set(['autohaus', 'auto', 'autos', 'autoservice', 'autocenter', 'werkstatt', 'kfz', 'service', 'automobile', 'fahrzeuge', 'garage', 'meisterbetrieb', 'autohandel', 'automobil', 'zentrum', 'center']);
+export function kennwoerter(name) {
+  const klein = umlautfrei(String(name || '').toLowerCase());
+  const kuerzel = (klein.match(/\b(?:[a-z]\.){2,}[a-z]?\.?/g) || []).map(k => k.replace(/\./g, ''));
+  return [...new Set([...nameWoerter(name), ...kuerzel])].filter(w => w.length >= 2 && !GATTUNG.has(w));
+}
+const wortIn = (wort, text) => (wort.length <= 3
+  ? new RegExp(`(^|[^a-z0-9])${wort}([^a-z0-9]|$)`).test(text) || text.replace(/[^a-z0-9]/g, '').startsWith(wort) && wort.length === 3
+  : text.includes(wort));
 export function placeTrifft(betrieb, place) {
   const gName = umlautfrei(String(place?.displayName?.text || '').toLowerCase());
   const gAdresse = umlautfrei(String(place?.formattedAddress || '').toLowerCase());
-  const woerter = nameWoerter(betrieb.name).filter(w => w.length >= 3 && !GATTUNG.has(w));
-  if (woerter.length) return woerter.some(w => gName.includes(w));
+  const woerter = kennwoerter(betrieb.name);
+  if (woerter.length) return woerter.some(w => wortIn(w, gName));
   const plz = String(betrieb.plz || '');
   const ort = umlautfrei(String(betrieb.ort || '').toLowerCase());
   return (plz && gAdresse.includes(plz)) || (ort.length >= 3 && gAdresse.includes(ort));
@@ -155,23 +168,19 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   };
   Object.assign(betrieb, google);
 
-  // Website von Google: uebernehmen, wenn noch keine da ist, die vorhandene
-  // nur geraten war oder nur auf eine Boerse zeigt und Google eine eigene
-  // kennt. Gleicher Host wie die geratene → bestaetigt. Adressen, die die
-  // Function nicht abrufen duerfte (IP, localhost), werden gar nicht erst
-  // gespeichert.
+  // Website von Google gilt: sie ersetzt eine geratene, eine aus OSM (die
+  // ist oft veraltet) und eine Boersen-Seite, wenn Google eine eigene kennt.
+  // Stehen bleibt nur, was der Nutzer selbst eingetragen oder bestaetigt hat.
+  // Adressen, die die Function nicht abrufen duerfte (IP, localhost), werden
+  // gar nicht erst gespeichert.
   let websiteGoogle = websiteNormalisieren(place.websiteUri);
   if (websiteGoogle && !hostErlaubt(websiteGoogle)) websiteGoogle = null;
   let websiteNeu = null;
   let quelleNeu = null;
-  if (websiteGoogle) {
-    if (!betrieb.website) { websiteNeu = websiteGoogle; quelleNeu = 'google'; }
-    else if (betrieb.website_quelle === 'vermutet') {
-      if (hostVon(betrieb.website) === hostVon(websiteGoogle)) quelleNeu = 'bestaetigt';
-      else { websiteNeu = websiteGoogle; quelleNeu = 'google'; }
-    } else if (istBoersenSeite(betrieb.website) && !istBoersenSeite(websiteGoogle)) {
-      websiteNeu = websiteGoogle; quelleNeu = 'google';
-    }
+  const vomNutzer = betrieb.website_quelle === 'manuell' || betrieb.website_quelle === 'bestaetigt';
+  if (websiteGoogle && !vomNutzer && !(istBoersenSeite(websiteGoogle) && betrieb.website && !istBoersenSeite(betrieb.website))) {
+    if (betrieb.website && hostVon(betrieb.website) === hostVon(websiteGoogle)) quelleNeu = 'google';
+    else { websiteNeu = websiteGoogle; quelleNeu = 'google'; }
   }
 
   const felder = ['google_place_id = ?', 'google_bewertung = ?', 'google_anzahl = ?', 'google_stand = ?'];
@@ -187,17 +196,11 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     website_uebernommen: !!websiteNeu,
   };
 
-  // Neue Website (eigene Domain): Abruf mit Verifikation, dann normale
-  // Pruefung mit diesem Abruf. Boerse: keine Analyse, Bewertung steht fest.
+  // Neue Website: normal pruefen. Boerse: keine Analyse, Bewertung steht fest.
   if (websiteNeu) {
-    let abruf = null;
-    if (!istBoersenSeite(websiteNeu)) {
-      try { abruf = await websiteAbrufen(websiteNeu, { timeoutMs: VERIFIKATION_TIMEOUT_MS }); } catch { abruf = null; }
-      if (abruf?.erreichbar) extra.verifiziert = websiteVerifizieren(abruf.html, betrieb);
-    }
     let ergebnis;
     try {
-      ergebnis = await betriebPruefen(betrieb, { mehrfach, abruf });
+      ergebnis = await betriebPruefen(betrieb, { mehrfach });
     } catch (e) {
       return json({ ok: false, error: `Prüfung fehlgeschlagen: ${String(e?.message || e).slice(0, 200)}` });
     }

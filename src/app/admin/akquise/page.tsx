@@ -147,11 +147,19 @@ function host(url: string | null) {
 }
 const istBoerse = (url: string | null) => !!url && BOERSEN_RE.test(host(url));
 
+// Websites von Google gelten ohne Rueckfrage – die frueheren Hinweise
+// "von Google (nicht verifiziert)" stehen noch in alten Pruefungen und
+// werden hier ausgeblendet.
+const AUSGEBLENDET = new Set(["website_google", "website_google_offen"]);
 function signaleLesen(roh: Signal[] | string | null | undefined): Signal[] {
-  if (Array.isArray(roh)) return roh;
-  if (typeof roh === "string") { try { const p = JSON.parse(roh); return Array.isArray(p) ? p : []; } catch { return []; } }
-  return [];
+  let liste: Signal[] = [];
+  if (Array.isArray(roh)) liste = roh;
+  else if (typeof roh === "string") { try { const p = JSON.parse(roh); liste = Array.isArray(p) ? p : []; } catch { liste = []; } }
+  return liste.filter(x => !AUSGEBLENDET.has(x.code));
 }
+
+type DublettenBetrieb = { id: number; name: string; ort: string | null; plz: string | null; art: string | null; website: string | null };
+type DublettenGruppe = { ids: number[]; haupt: number; sicher: boolean; grund: string; betriebe: DublettenBetrieb[] };
 
 function zeitAlt(wert: string | null, tage: number) {
   if (!wert) return true;
@@ -513,7 +521,8 @@ function MehrfachWahl({ label, optionen, wert, onChange }: {
 function QuelleBadge({ b, bestaetigen, verwerfen }: { b: Betrieb; bestaetigen: (b: Betrieb) => void; verwerfen: (b: Betrieb) => void }) {
   const q = b.website_quelle;
   if (!b.website || !q) return null;
-  const offen = q === "vermutet" || q === "google";
+  // Nur geratene Websites brauchen eine Bestaetigung; Google gilt.
+  const offen = q === "vermutet";
   return (
     <span className={`akq-quelle ${q}`}>
       {QUELLE_LABEL[q] || q}
@@ -570,6 +579,12 @@ function AkquiseCockpit() {
   const ladeStand = useCallback(() =>
     api("/api/admin/akquise/stand").then(d => setStand(d as Stand)).catch(() => setStand(null)), []);
 
+  const [dubletten, setDubletten] = useState<DublettenGruppe[] | null>(null);
+  const [dublettenOffen, setDublettenOffen] = useState(false);
+  const [fuehrtZusammen, setFuehrtZusammen] = useState(false);
+  const ladeDubletten = useCallback(() =>
+    api("/api/admin/akquise/dubletten").then(d => setDubletten((d.gruppen || []) as DublettenGruppe[])).catch(() => setDubletten(null)), []);
+
   const ladeListe = useCallback((papierkorb: boolean) =>
     api(`/api/admin/akquise/betriebe${papierkorb ? "?papierkorb=1" : ""}`)
       .then(d => setBetriebe((d.betriebe || []).map((b: Betrieb) => ({ ...b, signale: signaleLesen(b.signale) }))))
@@ -588,6 +603,20 @@ function AkquiseCockpit() {
     ladeListe(filter.papierkorb);
     ladeStand();
   }, [filter.papierkorb, ladeListe, ladeStand]);
+  useEffect(() => { ladeDubletten(); }, [ladeDubletten]);
+
+  // gruppen: bestimmte Gruppen; ohne: alle sicheren.
+  const zusammenfuehren = async (gruppen?: number[][]) => {
+    setFuehrtZusammen(true); setFehler("");
+    try {
+      await api("/api/admin/akquise/dubletten", { method: "POST", body: JSON.stringify(gruppen ? { gruppen } : {}) });
+      await Promise.all([ladeListe(filter.papierkorb), ladeStand(), ladeDubletten()]);
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : "Zusammenführen ging nicht.");
+    } finally {
+      setFuehrtZusammen(false);
+    }
+  };
 
   const setzeFilter = (aenderung: Partial<Filter>) => setFilter(f => ({ ...f, ...aenderung }));
   const papierkorbSchalten = (an: boolean) => { setBetriebe(null); setzeFilter({ papierkorb: an }); };
@@ -742,6 +771,7 @@ function AkquiseCockpit() {
     await Promise.all([arbeiter(), arbeiter()]);
     setLauf(null);
     ladeStand();
+    if (art === "google") ladeDubletten();
   };
   const allePruefen = () => sammellauf("pruefen", (betriebe || []).filter(brauchtPruefung), b => pruefen(b, mitPsi));
   const alleGoogle = () => sammellauf("google", (betriebe || []).filter(brauchtGoogle), googleSuchen);
@@ -1011,11 +1041,48 @@ function AkquiseCockpit() {
                       className="akq-knopf" title="Eine Testabfrage bei Google Places">
                 Verbindung testen
               </button>
+              {!!dubletten?.length && (
+                <button onClick={() => setDublettenOffen(o => !o)} className="akq-knopf"
+                        title="Betriebe, die mehrfach in der Liste stehen">
+                  Doppelte ({dubletten.length})
+                </button>
+              )}
             </>
           )}
         </div>
         {googleTest && (
           <p className={googleTest.ok === false ? "akq-google-hinweis" : "akq-hinweis mt-2"}>{googleTest.text}</p>
+        )}
+        {dublettenOffen && dubletten && (
+          <div className="akq-dubletten">
+            <div className="akq-dubletten-kopf">
+              <span>
+                {dubletten.length} Gruppen. „Bleibt“ ist der Eintrag, in den die anderen übergehen – Notiz, Stern und
+                Briefe gehen mit. „Prüfen“: die Namen passen nicht zusammen, eher hat Google falsch zugeordnet.
+              </span>
+              {dubletten.some(g => g.sicher) && (
+                <button onClick={() => zusammenfuehren()} disabled={fuehrtZusammen} className="btn-primary px-4 py-2 text-sm">
+                  {fuehrtZusammen ? "Wird zusammengeführt …" : `Alle sicheren zusammenführen (${dubletten.filter(g => g.sicher).length})`}
+                </button>
+              )}
+            </div>
+            <ul>
+              {dubletten.map(g => (
+                <li key={g.ids.join("-")} className={g.sicher ? "" : "pruefen"}>
+                  <div className="akq-dubletten-namen">
+                    {g.betriebe.map(b => (
+                      <span key={b.id}>
+                        <b>{b.name}</b>{b.id === g.haupt && <em>bleibt</em>}
+                        <small>{[b.art === "car" ? "Autohaus" : "Werkstatt", b.ort, host(b.website)].filter(Boolean).join(" · ")}</small>
+                      </span>
+                    ))}
+                  </div>
+                  <span className="akq-hinweis">{g.sicher ? g.grund : `Prüfen · ${g.grund}`}</span>
+                  <button onClick={() => zusammenfuehren([g.ids])} disabled={fuehrtZusammen} className="akq-knopf">Zusammenführen</button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {googleEingerichtet === false && (
           <p className="akq-google-hinweis">

@@ -609,6 +609,20 @@ html, body {
 .akq-hinweis { font-size:.82rem; color:var(--fg-subtle); font-variant-numeric:tabular-nums; }
 .akq-fortschritt { font-size:.9rem; font-weight:700; color:var(--fg); font-variant-numeric:tabular-nums; }
 .akq-google-hinweis { margin:12px 0 0; font-size:.82rem; color:#b45309; line-height:1.5; }
+/* Doppelte Betriebe: je Gruppe eine Zeile, Namen untereinander. */
+.akq-dubletten { margin-top:14px; border:1px solid var(--border); border-radius:12px; background:var(--bg); }
+.akq-dubletten-kopf { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); font-size:.82rem; color:var(--fg-muted); }
+.akq-dubletten-kopf span { flex:1 1 320px; line-height:1.5; }
+.akq-dubletten ul { list-style:none; margin:0; padding:0; max-height:420px; overflow-y:auto; }
+.akq-dubletten li { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:12px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border); }
+.akq-dubletten li:last-child { border-bottom:0; }
+.akq-dubletten li.pruefen { background:rgba(180,83,9,.06); }
+.akq-dubletten-namen { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.akq-dubletten-namen span { display:flex; flex-wrap:wrap; gap:6px; align-items:baseline; font-size:.85rem; min-width:0; }
+.akq-dubletten-namen b { font-weight:600; color:var(--fg); }
+.akq-dubletten-namen em { font-style:normal; font-size:.7rem; font-weight:600; padding:1px 7px; border-radius:999px; background:var(--accent-soft); color:var(--accent); }
+.akq-dubletten-namen small { font-size:.75rem; color:var(--fg-subtle); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width:640px) { .akq-dubletten li { grid-template-columns:1fr; } }
 .akq-kennzahlen { grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
 .akq-knopf {
   display:inline-flex; align-items:center; gap:5px; font:inherit; font-size:.76rem; font-weight:600;

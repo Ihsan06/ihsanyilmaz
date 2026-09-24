@@ -450,13 +450,9 @@ export function websiteSignale(betrieb, pruefung, roh, { jetzt = Date.now() } = 
     return s;
   }
 
-  // Herkunft der Adresse: 0 Punkte, aber sichtbar – der Nutzer soll wissen,
-  // dass die Seite geraten oder von Google uebernommen ist.
+  // Herkunft der Adresse: 0 Punkte, aber sichtbar – eine geratene Seite soll
+  // der Nutzer bestaetigen. Websites von Google gelten ohne Rueckfrage.
   if (betrieb.website_quelle === 'vermutet') add('website_vermutet', 'Website geraten – bitte bestätigen', 0);
-  else if (betrieb.website_quelle === 'google') {
-    if (r.website_verifiziert) add('website_google', 'Website von Google Maps übernommen', 0);
-    else add('website_google_offen', 'Website von Google – nicht verifiziert', 0);
-  }
 
   const still = jahre(p.wayback_letzter, jetzt);
   if (still !== null && still > 4) add('lange_still', `Seit ${Math.floor(still)} Jahren keine Änderung (Wayback)`, 15);
@@ -786,7 +782,7 @@ export async function betriebLaden(env, id) {
 // Gleicher Name mehrfach in der Tabelle → mehrere Standorte.
 export async function istMehrfach(env, betrieb) {
   const z = await env.DB.prepare(
-    'SELECT COUNT(*) AS n FROM akquise_betriebe WHERE lower(name) = lower(?) AND id != ? AND geloescht IS NULL',
+    'SELECT COUNT(*) AS n FROM akquise_betriebe WHERE lower(name) = lower(?) AND id != ? AND geloescht IS NULL AND zusammengefuehrt_in IS NULL',
   ).bind(betrieb.name, betrieb.id).first();
   return Number(z?.n || 0) > 0;
 }

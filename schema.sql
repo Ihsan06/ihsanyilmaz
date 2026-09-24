@@ -223,3 +223,9 @@ ALTER TABLE akquise_betriebe ADD COLUMN google_stand TEXT;
 ALTER TABLE akquise_betriebe ADD COLUMN auswahl INTEGER NOT NULL DEFAULT 0;   -- 1 = vom Nutzer markiert
 ALTER TABLE akquise_betriebe ADD COLUMN geloescht TEXT;                        -- Zeitpunkt, wenn im Papierkorb
 ALTER TABLE akquise_betriebe ADD COLUMN kategorie TEXT;                        -- ohne_website | nur_boerse | baukasten | veraltet | gepflegt | unbekannt
+
+-- Doppelte Betriebe (OSM fuehrt manche zweimal, etwa Showroom und Werkstatt):
+-- der zusammengefuehrte Eintrag bleibt als unsichtbare Zeile stehen
+-- (geloescht gesetzt, zeigt auf den Haupteintrag), damit der naechste
+-- OSM-Suchlauf ihn nicht wieder als neu anlegt.
+ALTER TABLE akquise_betriebe ADD COLUMN zusammengefuehrt_in INTEGER;

@@ -14,7 +14,7 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
         SUM(geloescht IS NULL AND geprueft_am IS NOT NULL) AS geprueft,
         SUM(geloescht IS NULL AND prioritaet >= 60) AS prioHoch,
         SUM(geloescht IS NULL AND auswahl = 1) AS auswahl,
-        SUM(geloescht IS NOT NULL) AS papierkorb
+        SUM(geloescht IS NOT NULL AND zusammengefuehrt_in IS NULL) AS papierkorb
       FROM akquise_betriebe`),
     env.DB.prepare('SELECT status, COUNT(*) AS n FROM akquise_betriebe WHERE geloescht IS NULL GROUP BY status'),
     env.DB.prepare('SELECT id, art, region, parameter, gefunden, neu, fehler, zeitpunkt FROM akquise_laeufe ORDER BY id DESC LIMIT 5'),
