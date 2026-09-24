@@ -24,7 +24,54 @@ const PLACES_TIMEOUT_MS = 10_000;
 const VERIFIKATION_TIMEOUT_MS = 8_000;
 const NICHT_EINGERICHTET = 'Google Places nicht eingerichtet: PLACES_KEY in Cloudflare hinterlegen.';
 
-export const onRequestGet = nurAngemeldet(async ({ env }) => json({ ok: true, eingerichtet: !!env.PLACES_KEY }));
+// GET ?test=1 macht eine echte Abfrage mit einem festen Betrieb. Ohne das
+// sah man nur "eingerichtet", obwohl Google jede Anfrage abwies – der erste
+// Lauf in Produktion lief so komplett ins Leere, ohne dass der Grund irgendwo
+// stand.
+const TEST_BETRIEB = { name: 'Autohaus', plz: '97070', ort: 'Würzburg', lat: 49.7913, lng: 9.9534 };
+
+export const onRequestGet = nurAngemeldet(async ({ request, env }) => {
+  const eingerichtet = !!env.PLACES_KEY;
+  if (!eingerichtet || new URL(request.url).searchParams.get('test') !== '1') return json({ ok: true, eingerichtet });
+  try {
+    const place = await placesSuchen(env, TEST_BETRIEB);
+    return json({ ok: true, eingerichtet, test: { ok: true, name: place?.displayName?.text || null, website: place?.websiteUri || null } });
+  } catch (e) {
+    const msg = fehlerMeldung(e);
+    await fehlerMerken(env, 'Verbindungstest', msg);
+    return json({ ok: true, eingerichtet, test: { ok: false, fehler: msg } });
+  }
+});
+
+// Googles Fehler in Klartext: Grund (error.details[].reason bzw. error.status)
+// auf das, was im Google-Projekt zu tun ist. Der Rohtext bleibt dahinter
+// stehen, damit auch Unbekanntes lesbar ist.
+function klartext(status, fehler) {
+  const gruende = [fehler?.status, ...(Array.isArray(fehler?.details) ? fehler.details.map(d => d?.reason) : [])]
+    .filter(Boolean).join(' ');
+  const text = `${gruende} ${fehler?.message || ''}`;
+  if (/API_KEY_INVALID|API key not valid/i.test(text)) return 'Schlüssel ungültig – in Cloudflare den aktuellen Schlüssel als PLACES_KEY eintragen';
+  if (/API_KEY_SERVICE_BLOCKED|are blocked/i.test(text)) return 'Schlüssel ist für die Places API (New) gesperrt – bei der API-Einschränkung „Places API (New)“ anhaken';
+  if (/SERVICE_DISABLED|has not been used|is disabled/i.test(text)) return 'Places API (New) ist im Google-Projekt nicht aktiviert';
+  if (/BILLING|billing/i.test(text)) return 'Abrechnung im Google-Projekt nicht aktiviert – Rechnungskonto verknüpfen';
+  if (/API_KEY_HTTP_REFERRER_BLOCKED|API_KEY_IP_ADDRESS_BLOCKED|referer|referrer|IP address/i.test(text)) return 'Schlüssel ist auf Websites oder IP-Adressen beschränkt – nur die API-Einschränkung verwenden';
+  if (status === 429 || /RESOURCE_EXHAUSTED|quota/i.test(text)) return 'Kontingent erschöpft oder zu viele Anfragen – später erneut';
+  return '';
+}
+
+function fehlerMeldung(e) {
+  const msg = e?.name === 'AbortError' ? 'Google Places: Zeitüberschreitung' : String(e?.message || e);
+  return /^Google Places/.test(msg) ? msg : 'Google Places nicht erreichbar.';
+}
+
+// Fehler landen zusaetzlich im Laufprotokoll – so ist der Grund auch nach
+// dem Schliessen der Seite noch nachzulesen.
+async function fehlerMerken(env, parameter, msg) {
+  try {
+    await env.DB.prepare('INSERT INTO akquise_laeufe (art, region, parameter, gefunden, neu, fehler) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind('google', null, String(parameter).slice(0, 200), 0, 0, String(msg).slice(0, 300)).run();
+  } catch { /* Protokoll ist Beiwerk */ }
+}
 
 async function placesSuchen(env, betrieb) {
   const body = {
@@ -49,8 +96,9 @@ async function placesSuchen(env, betrieb) {
     if (!r.ok) {
       // Der Schluessel darf nie in Antwort oder Datenbank landen – falls
       // Google ihn in einer Fehlermeldung zitiert, wird er ausgeblendet.
-      const grund = String(daten?.error?.message || '').split(env.PLACES_KEY).join('[Schlüssel]').slice(0, 160);
-      throw new Error(`Google Places: HTTP ${r.status}${grund ? ` – ${grund}` : ''}`);
+      const roh = String(daten?.error?.message || '').split(env.PLACES_KEY).join('[Schlüssel]').slice(0, 160);
+      const klar = klartext(r.status, daten?.error);
+      throw new Error(`Google Places: ${klar || `HTTP ${r.status}`}${roh ? ` (${roh})` : ''}`);
     }
     return Array.isArray(daten?.places) ? daten.places[0] || null : null;
   } finally {
@@ -86,8 +134,9 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   try {
     place = await placesSuchen(env, betrieb);
   } catch (e) {
-    const msg = e?.name === 'AbortError' ? 'Google Places: Zeitüberschreitung' : String(e?.message || e);
-    return json({ ok: false, error: /^Google Places/.test(msg) ? msg : 'Google Places nicht erreichbar.' });
+    const msg = fehlerMeldung(e);
+    await fehlerMerken(env, `Betrieb ${id}`, msg);
+    return json({ ok: false, error: msg });
   }
 
   const stand = new Date().toISOString().slice(0, 19).replace('T', ' ');

@@ -557,6 +557,7 @@ function AkquiseCockpit() {
   const abbruch = useRef(false);
   const hinweisTimer = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const [googleEingerichtet, setGoogleEingerichtet] = useState<boolean | null>(null);
+  const [googleTest, setGoogleTest] = useState<{ laeuft?: boolean; ok?: boolean; text: string } | null>(null);
 
   // Zeile auf/zu und die vollen Pruefdaten dazu
   const [offen, setOffen] = useState<Set<number>>(new Set());
@@ -682,7 +683,9 @@ function AkquiseCockpit() {
     }
   };
 
-  const googleSuchen = async (b: Betrieb) => {
+  // Gibt die Fehlermeldung zurueck, damit der Sammellauf merkt, wenn Google
+  // jede Anfrage aus demselben Grund abweist.
+  const googleSuchen = async (b: Betrieb): Promise<string | void> => {
     setInArbeit(s => new Set(s).add(b.id));
     hinweisSetzen(b.id, "Google …");
     try {
@@ -702,6 +705,7 @@ function AkquiseCockpit() {
       const msg = e instanceof Error ? e.message : "Google fehlgeschlagen.";
       if (/nicht eingerichtet/i.test(msg)) setGoogleEingerichtet(false);
       hinweisSetzen(b.id, msg, true, 12000);
+      return msg;
     } finally {
       setInArbeit(s => { const n = new Set(s); n.delete(b.id); return n; });
     }
@@ -709,16 +713,29 @@ function AkquiseCockpit() {
 
   // Sammellauf: zwei gleichzeitig. Abbrechen laesst die beiden laufenden
   // fertig werden und startet nur keine neuen.
-  const sammellauf = async (art: "pruefen" | "google", ziele: Betrieb[], schritt: (b: Betrieb) => Promise<void>) => {
+  // Liefert ein Schritt dreimal hintereinander denselben Fehler, liegt es
+  // nicht am Betrieb, sondern an der Einrichtung – dann haelt der Lauf an und
+  // der Grund steht oben, statt 175-mal in den Zeilen.
+  const sammellauf = async (art: "pruefen" | "google", ziele: Betrieb[], schritt: (b: Betrieb) => Promise<string | void>) => {
     if (!ziele.length) return;
     abbruch.current = false;
+    setFehler("");
     setLauf({ art, gesamt: ziele.length, fertig: 0 });
     let i = 0;
+    let letzter = "", gleich = 0;
     const arbeiter = async () => {
       while (!abbruch.current) {
         const b = ziele[i++];
         if (!b) return;
-        await schritt(b);
+        const msg = await schritt(b);
+        if (msg) {
+          gleich = msg === letzter ? gleich + 1 : 1;
+          letzter = msg;
+          if (gleich >= 3) {
+            abbruch.current = true;
+            setFehler(`Lauf angehalten: ${msg}`);
+          }
+        } else gleich = 0;
         setLauf(l => (l ? { ...l, fertig: l.fertig + 1 } : l));
       }
     };
@@ -728,6 +745,17 @@ function AkquiseCockpit() {
   };
   const allePruefen = () => sammellauf("pruefen", (betriebe || []).filter(brauchtPruefung), b => pruefen(b, mitPsi));
   const alleGoogle = () => sammellauf("google", (betriebe || []).filter(brauchtGoogle), googleSuchen);
+  const googleTesten = async () => {
+    setGoogleTest({ laeuft: true, text: "Verbindung wird geprüft …" });
+    try {
+      const d = await api("/api/admin/akquise/google?test=1");
+      if (!d.eingerichtet) setGoogleTest({ ok: false, text: "Kein PLACES_KEY in Cloudflare." });
+      else if (d.test?.ok) setGoogleTest({ ok: true, text: `Verbindung steht – Testtreffer: ${d.test.name || "ohne Namen"}${d.test.website ? ` · ${host(d.test.website)}` : ""}` });
+      else setGoogleTest({ ok: false, text: d.test?.fehler || "Unbekannter Fehler." });
+    } catch (e) {
+      setGoogleTest({ ok: false, text: e instanceof Error ? e.message : "Test fehlgeschlagen." });
+    }
+  };
 
   // Suche: Bereich vom Server, Overpass im Browser, Elemente zurueck.
   const suchen = async () => {
@@ -979,9 +1007,16 @@ function AkquiseCockpit() {
                       title={googleFaellig ? `${googleFaellig} ohne Website oder ohne Google-Abfrage` : "Alle bei Google abgefragt"}>
                 Websites bei Google suchen{googleFaellig ? ` (${googleFaellig})` : ""}
               </button>
+              <button onClick={googleTesten} disabled={googleEingerichtet === false || !!googleTest?.laeuft}
+                      className="akq-knopf" title="Eine Testabfrage bei Google Places">
+                Verbindung testen
+              </button>
             </>
           )}
         </div>
+        {googleTest && (
+          <p className={googleTest.ok === false ? "akq-google-hinweis" : "akq-hinweis mt-2"}>{googleTest.text}</p>
+        )}
         {googleEingerichtet === false && (
           <p className="akq-google-hinweis">
             Google Places nicht eingerichtet – PLACES_KEY in Cloudflare hinterlegen (Google Cloud Console → Places API (New) → API-Schlüssel, nur auf diese API beschränken).
