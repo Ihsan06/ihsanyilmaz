@@ -1,0 +1,106 @@
+/* Akquise → Post: Reiter, Brieftabelle, Editor mit A4-Vorschau.
+   Baut auf den Admin-Klassen aus globals.css auf (.mon-block, .mon-tabelle,
+   .akq-knopf, .field); hier nur, was dort fehlt. Alle Klassen mit post-. */
+
+.post-reiter { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:18px; }
+.post-reiter button {
+  font:inherit; font-size:.86rem; font-weight:600; padding:8px 14px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--border); background:var(--surface); color:var(--fg-muted);
+  transition:border-color .15s ease, color .15s ease, background .15s ease;
+}
+.post-reiter button:hover { border-color:var(--accent); color:var(--accent); }
+.post-reiter button.aktiv { background:var(--accent); border-color:var(--accent); color:#fff; }
+.post-reiter button b { font-weight:700; margin-left:5px; opacity:.75; }
+
+.post-versand { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; font-size:.86rem; color:var(--fg-muted); margin-bottom:18px; }
+.post-versand i { display:inline-block; width:9px; height:9px; border-radius:50%; background:#1d8a52; }
+.post-versand i.aus { background:#b45309; }
+
+/* Status als Badge */
+.post-status { display:inline-block; font-size:.7rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; padding:3px 9px; border-radius:999px; background:var(--surface-2); color:var(--fg-muted); white-space:nowrap; }
+.post-status.freigegeben { background:rgba(18,85,127,.12); color:var(--accent); }
+.post-status.gesendet { background:rgba(180,83,9,.12); color:#b45309; }
+.post-status.zugestellt { background:rgba(29,138,82,.12); color:#1d8a52; }
+.post-status.fehler { background:rgba(220,38,38,.12); color:#dc2626; }
+.post-status.storniert { text-decoration:line-through; }
+
+.post-fehlertext { color:#dc2626; font-size:.8rem; white-space:normal; max-width:320px; }
+.post-leise { color:var(--fg-subtle); }
+.post-huelle { overflow-x:auto; margin:0 -28px; padding:0 28px; }
+.post-tabelle td { vertical-align:middle; }
+.post-tabelle td.post-betrieb { white-space:normal; min-width:170px; max-width:280px; line-height:1.35; }
+.post-aktionen { display:inline-flex; flex-wrap:wrap; gap:4px; }
+
+/* Betrieb suchen */
+.post-suche { position:relative; max-width:520px; }
+.post-treffer { list-style:none; margin:6px 0 0; padding:4px; border:1px solid var(--border); border-radius:10px; background:var(--surface); box-shadow:0 10px 30px rgba(7,26,43,.12); max-height:320px; overflow-y:auto; }
+.post-treffer li button { display:flex; justify-content:space-between; gap:12px; width:100%; text-align:left; font:inherit; font-size:.88rem; padding:8px 10px; border:0; background:none; border-radius:7px; cursor:pointer; color:var(--fg); }
+.post-treffer li button:hover { background:var(--surface-2); }
+.post-treffer li button span { color:var(--fg-subtle); font-size:.78rem; white-space:nowrap; }
+.post-gewaehlt { display:grid; grid-template-columns:1fr auto; gap:14px 24px; align-items:start; padding:16px 18px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); margin-top:14px; }
+.post-gewaehlt b { display:block; font-size:1rem; color:var(--fg); }
+.post-gewaehlt p { margin:2px 0 0; font-size:.84rem; color:var(--fg-muted); }
+.post-gewaehlt .post-aktionen { justify-content:flex-end; }
+
+/* Editor: links Befunde/Text, rechts das Blatt */
+.post-editor { display:grid; grid-template-columns:minmax(320px, 1fr) minmax(320px, 560px); gap:26px; align-items:start; }
+@media (max-width:1100px) { .post-editor { grid-template-columns:1fr; } }
+.post-editor-kopf { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin-bottom:16px; }
+.post-editor-kopf h2 { margin:0; font-size:1.05rem; font-weight:700; color:var(--fg); }
+.post-abschnitt { margin-bottom:18px; }
+.post-abschnitt-titel { margin:0 0 8px; font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-subtle); display:flex; align-items:center; gap:8px; }
+.post-abschnitt-titel small { text-transform:none; letter-spacing:0; font-weight:400; }
+.post-befunde { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.post-befunde label { display:flex; gap:9px; align-items:flex-start; font-size:.86rem; line-height:1.4; color:var(--fg); padding:6px 8px; border-radius:8px; cursor:pointer; }
+.post-befunde label:hover { background:var(--surface-2); }
+.post-befunde input { margin-top:3px; accent-color:var(--accent); flex:none; }
+.post-befunde .post-punkte { margin-left:auto; font-size:.72rem; color:var(--fg-subtle); font-variant-numeric:tabular-nums; flex:none; }
+.post-text { font-family:inherit; font-size:.9rem; line-height:1.5; min-height:380px; resize:vertical; }
+.post-anschrift { font-family:inherit; font-size:.9rem; line-height:1.5; min-height:96px; resize:vertical; }
+.post-warnung { font-size:.82rem; color:#b45309; margin:6px 0 0; }
+.post-hinweis { font-size:.8rem; color:var(--fg-subtle); margin:6px 0 0; line-height:1.5; }
+.post-pdf-stand { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; font-size:.86rem; margin-top:10px; }
+
+/* A4-Blatt: 210 × 297 mm, per transform auf die Spaltenbreite skaliert.
+   Positionen in mm – dieselben Werte wie im PDF (page.tsx, LAYOUT).
+   Dieselbe Schriftdatei wie im PDF, damit die Vorschau genauso umbricht. */
+@font-face { font-family:"Inter Brief"; src:url("/fonts/inter-brief.ttf") format("truetype"); font-weight:400; font-display:swap; }
+@font-face { font-family:"Inter Brief"; src:url("/fonts/inter-brief-semibold.ttf") format("truetype"); font-weight:600; font-display:swap; }
+.post-blatt-huelle { position:relative; width:100%; overflow:hidden; border:1px solid var(--border); border-radius:10px; background:#e9edf1; padding:14px; }
+.post-blatt-skala { position:relative; width:210mm; height:297mm; transform-origin:top left; }
+.post-blatt {
+  position:absolute; inset:0; background:#fff; color:#111; box-shadow:0 8px 26px rgba(7,26,43,.18);
+  font-family:"Inter Brief", Inter, system-ui, sans-serif; font-size:11pt; line-height:5.2mm;
+}
+.post-blatt * { box-sizing:border-box; }
+.post-blatt .post-b-absender { position:absolute; left:120mm; top:18mm; width:70mm; font-size:8.5pt; line-height:4mm; color:#222; }
+.post-blatt .post-b-absender b { display:block; font-size:10pt; font-weight:400; margin-bottom:1mm; color:#000; }
+.post-blatt .post-b-fenster { position:absolute; left:20mm; top:45mm; width:85mm; height:45mm; border:0.2mm dashed #cfd6dd; }
+.post-blatt .post-b-ruecksende { position:absolute; left:2mm; top:1.5mm; width:81mm; font-size:7pt; line-height:3.2mm; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.post-blatt .post-b-anschrift { position:absolute; left:2mm; top:8mm; width:81mm; font-size:11pt; line-height:4.6mm; white-space:pre-line; }
+.post-blatt .post-b-falz { position:absolute; left:3mm; width:5mm; height:0; border-top:0.2mm solid #999; }
+.post-blatt .post-b-datum { position:absolute; right:20mm; top:90mm; font-size:10pt; line-height:4mm; }
+.post-blatt .post-b-text { position:absolute; left:25mm; right:20mm; top:98.5mm; }
+.post-blatt .post-b-betreff { font-size:11pt; font-weight:600; margin:0 0 10.4mm; line-height:5.2mm; }
+.post-blatt .post-b-absatz { margin:0 0 4mm; }
+.post-blatt .post-b-absatz.mit-qr { padding-right:31mm; min-height:25mm; }
+.post-blatt ul.post-b-liste { margin:0 0 4mm; padding:0 0 0 5mm; list-style:none; }
+.post-blatt ul.post-b-liste li { position:relative; }
+.post-blatt ul.post-b-liste li::before { content:"–"; position:absolute; left:-5mm; }
+.post-blatt .post-b-hinweis { font-size:7.5pt; line-height:3.6mm; color:#555; margin:6mm 0 0; }
+.post-blatt .post-b-qr { position:absolute; right:0; width:25mm; height:25mm; }
+.post-blatt .post-b-qr img { display:block; width:100%; height:100%; }
+.post-blatt .post-b-fuss { position:absolute; left:25mm; right:20mm; top:283mm; font-size:7.5pt; line-height:3.6mm; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Vorlage & Absender */
+.post-form { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px 16px; }
+.post-form label { display:block; font-size:.78rem; color:var(--fg-subtle); margin-bottom:4px; }
+.post-form .breit { grid-column:1 / -1; }
+.post-platzhalter { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:4px 16px; font-size:.82rem; }
+.post-platzhalter code { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; background:var(--surface-2); padding:1px 6px; border-radius:5px; color:var(--fg); }
+.post-platzhalter span { color:var(--fg-subtle); margin-left:6px; }
+
+@media (max-width:700px) {
+  .post-huelle { margin:0 -18px; padding:0 18px; }
+  .post-gewaehlt { grid-template-columns:1fr; }
+}

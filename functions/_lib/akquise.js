@@ -1,22 +1,27 @@
 // Akquise: Websites von Autohaeusern pruefen und bewerten.
 //
 // Alles hier sind reine Funktionen bzw. Funktionen, die nur fetch brauchen –
-// damit sie sich ohne Worker mit node testen lassen. Die Endpunkte unter
-// /api/admin/akquise/* kuemmern sich um D1 und Auth.
+// damit sie sich ohne Worker mit node testen lassen. Ganz unten stehen die
+// D1-Helfer, die die Endpunkte unter /api/admin/akquise/* gemeinsam nutzen.
 //
 // Zwei Zahlen je Betrieb:
 //   score_website  Schwaeche der Website 0–100 (hoch = schlecht)
 //   score_betrieb  Staerke des Betriebs   0–100 (hoch = etabliert)
 //   prioritaet     round(0.6 * schwaeche + 0.4 * staerke)
 // Ziel: etablierte Betriebe mit vernachlaessigter Website ganz oben.
+//
+// Wayback holt seit Runde 2 der Browser (archive.org/wayback/available
+// sendet Access-Control-Allow-Origin *, der CDX-Dienst nicht) und schickt
+// die Werte per PATCH /pruefen – die Function wartet nicht mehr darauf.
 
 export const UA_CHECK = 'Mozilla/5.0 (compatible; AIY-Website-Check/1.0; +https://ihsan-yilmaz.de)';
 const HTML_MAX_BYTES = 400 * 1024;   // mehr HTML braucht die Auswertung nicht
 const FETCH_TIMEOUT_MS = 12_000;
-// Der CDX-Dienst braucht gemessen 3–40 s (collapse=digest muss alle
-// Snapshots durchgehen). Mit 20 s blieben die Felder bei jeder zweiten
-// Seite leer, deshalb grosszuegiger; die Website wird parallel geholt.
-const WAYBACK_TIMEOUT_MS = 35_000;
+const RATEN_TIMEOUT_MS = 6_000;      // je Kandidat beim Raten der Website
+const CDX_FALLBACK_MS = 8_000;       // Server-Fallback fuer den ersten Snapshot
+
+export const KATEGORIEN = ['ohne_website', 'nur_boerse', 'baukasten', 'veraltet', 'mittel', 'gepflegt'];
+export const WEBSITE_QUELLEN = ['osm', 'manuell', 'vermutet', 'bestaetigt', 'google'];
 
 // ---------------------------------------------------------------- URL-Helfer
 
@@ -68,6 +73,41 @@ export function hostErlaubt(url) {
   if (!h.includes('.')) return false;
   return true;
 }
+
+// Boersen und soziale Netze: ein Link dorthin ist keine eigene Website.
+// Solche Adressen werden nicht analysiert, sondern als "nur Boerse" gefuehrt.
+const BOERSEN = [
+  ['mobile.de', /(?:^|\.)mobile\.de$/i],
+  ['AutoScout24', /(?:^|\.)autoscout24\.(?:de|com|at|ch)$/i],
+  ['Kleinanzeigen', /(?:^|\.)(?:ebay-)?kleinanzeigen\.de$/i],
+  ['eBay', /(?:^|\.)ebay\.(?:de|com)$/i],
+  ['Facebook', /(?:^|\.)(?:facebook\.com|fb\.com|fb\.me)$/i],
+  ['Instagram', /(?:^|\.)instagram\.com$/i],
+  ['Google', /(?:^|\.)(?:google\.(?:com|de)|g\.page|business\.site|goo\.gl)$/i],
+  ['YouTube', /(?:^|\.)(?:youtube\.com|youtu\.be)$/i],
+  ['TikTok', /(?:^|\.)tiktok\.com$/i],
+  ['WhatsApp', /(?:^|\.)(?:whatsapp\.com|wa\.me)$/i],
+  ['LinkedIn', /(?:^|\.)linkedin\.com$/i],
+  ['Xing', /(?:^|\.)xing\.com$/i],
+  ['Gelbe Seiten', /(?:^|\.)gelbeseiten\.de$/i],
+  ['11880', /(?:^|\.)11880\.com$/i],
+  ['Yelp', /(?:^|\.)yelp\.(?:de|com)$/i],
+  ['autohaus24', /(?:^|\.)autohaus24\.de$/i],
+  ['pkw.de', /(?:^|\.)pkw\.de$/i],
+  ['12gebrauchtwagen', /(?:^|\.)12gebrauchtwagen\.de$/i],
+  ['heycar', /(?:^|\.)heycar\.(?:de|com)$/i],
+  ['auto.de', /(?:^|\.)auto\.de$/i],
+  ['gebrauchtwagen.de', /(?:^|\.)gebrauchtwagen\.de$/i],
+];
+
+// Name der Boerse bzw. des Netzes, sonst null (= eigene Website).
+export function boersenName(url) {
+  const h = hostVon(url);
+  if (!h) return null;
+  for (const [name, re] of BOERSEN) if (re.test(h)) return name;
+  return null;
+}
+export const istBoersenSeite = url => boersenName(url) !== null;
 
 // ---------------------------------------------------------------- HTML lesen
 
@@ -126,11 +166,13 @@ function metaInhalt(html, name) {
   return m ? entitiesDekodieren(m[1]).trim() : null;
 }
 
+const COPYRIGHT_RE = /(?:©|\(c\)|copyright)\s*(?:by\s+)?(?:[^\d<]{0,40}?)?(\d{4})(?:\s*[-–—\/]\s*(\d{4}|\d{2}))?/gi;
+
 // Jahr aus "© 2017", "Copyright 2015", "(c) 2012-2019" → letztes Jahr.
 // Bei mehreren Treffern das groesste plausible – die Seite bekommt den
 // Vorteil des Zweifels.
 export function copyrightJahr(text, jetztJahr = new Date().getFullYear()) {
-  const re = /(?:©|\(c\)|copyright)\s*(?:by\s+)?(?:[^\d<]{0,40}?)?(\d{4})(?:\s*[-–—\/]\s*(\d{4}|\d{2}))?/gi;
+  const re = new RegExp(COPYRIGHT_RE.source, 'gi');
   let best = null;
   let m;
   while ((m = re.exec(text))) {
@@ -141,6 +183,22 @@ export function copyrightJahr(text, jetztJahr = new Date().getFullYear()) {
     }
     if (jahr < 1995 || jahr > jetztJahr + 1) continue;
     if (best === null || jahr > best) best = jahr;
+  }
+  return best;
+}
+
+// Startjahr aus "© 2008–2024": Ersatz fuer den ersten Wayback-Snapshot,
+// wenn der Browser keinen liefern konnte. Nur aus echten Spannen – ein
+// einzelnes "© 2024" sagt nichts ueber das Alter.
+export function copyrightStartjahr(text, jetztJahr = new Date().getFullYear()) {
+  const re = new RegExp(COPYRIGHT_RE.source, 'gi');
+  let best = null;
+  let m;
+  while ((m = re.exec(text))) {
+    if (!m[2]) continue;
+    const von = Number(m[1]);
+    if (von < 1995 || von > jetztJahr) continue;
+    if (best === null || von < best) best = von;
   }
   return best;
 }
@@ -259,6 +317,7 @@ export function htmlAuswerten(html, { jetztJahr = new Date().getFullYear() } = {
     },
     roh: {
       technik,
+      copyright_startjahr: copyrightStartjahr(text, jetztJahr),
       vertragshaendler: vertragshaendler ? 1 : 0,
       rechtsform: RECHTSFORM_RE.test(text) ? 1 : 0,
       oeffnungszeiten: /(?:ö|oe)ffnungszeiten/i.test(text) ? 1 : 0,
@@ -267,6 +326,102 @@ export function htmlAuswerten(html, { jetztJahr = new Date().getFullYear() } = {
       zusatzangebote: /mietwagen|finanzierung|leasing|ankauf|autovermietung/i.test(text) ? 1 : 0,
     },
   };
+}
+
+// ---------------------------------------------------------------- Website raten
+
+// Umlaute wie in Domains ueblich (ae/oe/ue/ss), andere Akzente weg.
+export function umlautfrei(s) {
+  return String(s || '')
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+// Woerter, die in einer Domain nie stehen: Rechtsformen und Fuellwoerter.
+const RECHTSFORM_WOERTER = new Set(['gmbh', 'ggmbh', 'kg', 'ag', 'ohg', 'ug', 'ek', 'gbr', 'co', 'cokg', 'mbh', 'haftungsbeschraenkt', 'inh', 'inhaber', 'und', 'e', 'k', 'kfm', 'kfr']);
+// Zu allgemein fuer eine eigene Domain wie "autohaus.de" – wird als
+// einzelnes Wort nicht probiert.
+const GENERISCH = new Set(['autohaus', 'auto', 'autos', 'autoservice', 'autocenter', 'autowerkstatt', 'werkstatt', 'kfz', 'kfzwerkstatt', 'kfzservice', 'service', 'autofit', 'automobile', 'fahrzeuge', 'car', 'cars', 'garage', 'autotechnik', 'meisterbetrieb', 'autohandel', 'automobil', 'zentrum', 'center']);
+
+// Name ohne Rechtsform, als kleine ASCII-Woerter: "Autohaus Müller GmbH &
+// Co. KG" → ["autohaus", "mueller"].
+export function nameWoerter(name) {
+  const s = umlautfrei(String(name || '').toLowerCase())
+    .replace(/e\.\s?k(?:fm|fr)?\.?/g, ' ')
+    .replace(/&/g, ' ');
+  return s.split(/[^a-z0-9]+/).filter(w => w && !RECHTSFORM_WOERTER.has(w));
+}
+
+// Name ohne Rechtsform fuer die Textsuche: "Autohaus Müller GmbH & Co. KG"
+// → "Autohaus Müller".
+export function nameOhneRechtsform(name) {
+  return String(name || '')
+    .replace(/\s*(?:GmbH(?:\s*&\s*Co\.?\s*KG)?|gGmbH|KG|AG|OHG|UG(?:\s*\(haftungsbeschränkt\))?|e\.\s?K\.?|e\.Kfm\.|e\.Kfr\.|GbR|Inh\.?[^,]*)\s*(?:&\s*Co\.?)?\s*$/i, '')
+    .replace(/\s*&\s*Co\.?\s*(?:KG)?\s*$/i, '')
+    .trim();
+}
+
+// Kandidaten fuer die Domain, plausibelste zuerst. Hoechstens max Stueck,
+// weil jeder Kandidat einen Abruf kostet.
+export function websiteKandidaten(name, { max = 6 } = {}) {
+  const w = nameWoerter(name);
+  if (!w.length) return [];
+  const slug = w.join('-');
+  const hatGmbh = /gmbh/i.test(String(name || ''));
+  const alle = [];
+  const push = h => { if (h && !alle.includes(h)) alle.push(h); };
+
+  push(`${slug}.de`);
+  if (w.length === 2) push(`${w[0]}${w[1]}.de`);
+  if (w.length >= 2 && w[0].length >= 6 && !GENERISCH.has(w[0])) push(`${w[0]}.de`);
+  // "1a autoservice Kürnach": ohne das Kuerzel bzw. das Gattungswort vorn.
+  if (w.length >= 3 && (GENERISCH.has(w[0]) || w[0].length <= 2)) push(`${w.slice(1).join('-')}.de`);
+  if (!slug.startsWith('autohaus')) push(`autohaus-${slug}.de`);
+  if (hatGmbh) push(`${slug}-gmbh.de`);
+  if (!slug.startsWith('auto')) push(`auto-${slug}.de`);
+  push(`${slug}.com`);
+  push(`www.${slug}.de`);
+  return alle.slice(0, max);
+}
+
+function telefonZiffern(s) {
+  let z = String(s || '').replace(/\D/g, '');
+  if (z.startsWith('0049')) z = z.slice(4);
+  else if (z.startsWith('49') && z.length > 9) z = z.slice(2);
+  z = z.replace(/^0+/, '');
+  return z;
+}
+
+// Gehoert die Seite zum Betrieb? Gruende: Ort, PLZ, Telefon, Name. Leer =
+// nicht belegt. Wird beim Raten und bei Adressen von Google gebraucht,
+// damit kein fremder Auftritt am Betrieb haengen bleibt.
+export function websiteVerifizieren(html, betrieb) {
+  const b = betrieb || {};
+  const text = textAus(String(html || '').slice(0, HTML_MAX_BYTES)).toLowerCase();
+  const textAscii = umlautfrei(text);
+  const gruende = [];
+  const wortDrin = (wort) => {
+    const w = String(wort || '').toLowerCase().trim();
+    if (w.length < 3) return false;
+    const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(?:^|[^a-z0-9äöüß])${esc(w)}(?:$|[^a-z0-9äöüß])`);
+    const reAscii = new RegExp(`(?:^|[^a-z0-9])${esc(umlautfrei(w))}(?:$|[^a-z0-9])`);
+    return re.test(text) || reAscii.test(textAscii);
+  };
+
+  if (b.plz && /^\d{5}$/.test(String(b.plz)) && new RegExp(`(?:^|\\D)${b.plz}(?:\\D|$)`).test(text)) gruende.push('PLZ');
+  if (b.ort && wortDrin(String(b.ort).split(/[\/,(]/)[0])) gruende.push('Ort');
+
+  const tel = telefonZiffern(b.telefon);
+  if (tel.length >= 6) {
+    const kandidaten = text.match(/\+?\d[\d\s\/().-]{5,}\d/g) || [];
+    if (kandidaten.some(k => { const z = telefonZiffern(k); return z.length >= 6 && (z === tel || z.endsWith(tel) || tel.endsWith(z)); })) gruende.push('Telefon');
+  }
+
+  const kurz = nameOhneRechtsform(b.name);
+  if (kurz.length >= 4 && wortDrin(kurz)) gruende.push('Name');
+  return gruende;
 }
 
 // ---------------------------------------------------------------- Bewertung
@@ -289,6 +444,18 @@ export function websiteSignale(betrieb, pruefung, roh, { jetzt = Date.now() } = 
   if (!betrieb?.website) {
     add('keine_website', 'Keine Website hinterlegt', 100);
     return s;
+  }
+  if (istBoersenSeite(betrieb.website)) {
+    add('nur_boerse', 'Nur Börsen-Seite, keine eigene Website', 100);
+    return s;
+  }
+
+  // Herkunft der Adresse: 0 Punkte, aber sichtbar – der Nutzer soll wissen,
+  // dass die Seite geraten oder von Google uebernommen ist.
+  if (betrieb.website_quelle === 'vermutet') add('website_vermutet', 'Website geraten – bitte bestätigen', 0);
+  else if (betrieb.website_quelle === 'google') {
+    if (r.website_verifiziert) add('website_google', 'Website von Google Maps übernommen', 0);
+    else add('website_google_offen', 'Website von Google – nicht verifiziert', 0);
   }
 
   const still = jahre(p.wayback_letzter, jetzt);
@@ -330,13 +497,14 @@ export function websiteSignale(betrieb, pruefung, roh, { jetzt = Date.now() } = 
   return s;
 }
 
-// Betrieb-Staerke: aus OSM-Daten, Website-Text und Wayback.
+// Betrieb-Staerke: aus OSM-Daten, Google, Website-Text und Wayback.
 export function betriebSignale(betrieb, pruefung, roh, { jetzt = Date.now(), mehrfach = false } = {}) {
   const s = [];
   const add = (code, text, punkte) => s.push({ code, text, punkte, seite: 'betrieb' });
   const b = betrieb || {};
   const p = pruefung || {};
   const r = roh || {};
+  const jetztJahr = new Date(jetzt).getFullYear();
 
   // OSM traegt bei Ketten den eigenen Namen als "brand" ein (A.T.U,
   // "1a autoservice Dressner") – das ist keine Herstellermarke. Zaehlt nur,
@@ -346,9 +514,23 @@ export function betriebSignale(betrieb, pruefung, roh, { jetzt = Date.now(), meh
   const marke = marken && (!imNamen || MARKEN_RE.test(marken)) ? marken : '';
   if (marke || r.vertragshaendler) add('vertragshaendler', marke ? `Vertragshändler: ${marke}` : 'Vertragshändler laut Website', 20);
 
+  // Google: viele Bewertungen = viel Laufkundschaft, gute Note = gepflegter
+  // Betrieb. Die Zahlen stehen als Momentaufnahme am Betrieb.
+  const anzahl = Number(b.google_anzahl);
+  if (Number.isFinite(anzahl) && anzahl >= 100) add('google_bewertungen', `${anzahl} Google-Bewertungen`, 20);
+  else if (Number.isFinite(anzahl) && anzahl >= 30) add('google_bewertungen', `${anzahl} Google-Bewertungen`, 10);
+  const note = Number(b.google_bewertung);
+  if (Number.isFinite(note) && note >= 4.3) add('google_note', `Google ${note.toFixed(1).replace('.', ',')} Sterne`, 5);
+
   const alter = jahre(p.wayback_erster, jetzt);
   if (alter !== null && alter >= 10) add('praesenz_alt', `Seit ${Math.floor(alter)} Jahren im Netz`, 20);
   else if (alter !== null && alter >= 5) add('praesenz_alt', `Seit ${Math.floor(alter)} Jahren im Netz`, 10);
+  else if (alter === null && r.copyright_startjahr) {
+    // Ohne Wayback: das Startjahr aus "© 2008–2024" im Fuss.
+    const seit = jetztJahr - r.copyright_startjahr;
+    if (seit >= 10) add('praesenz_alt', `Seit ${seit} Jahren im Netz (© im Fuß)`, 20);
+    else if (seit >= 5) add('praesenz_alt', `Seit ${seit} Jahren im Netz (© im Fuß)`, 10);
+  }
 
   if (RECHTSFORM_RE.test(String(b.name || '')) || r.rechtsform) add('rechtsform', 'Eingetragene Gesellschaft', 10);
   if (b.telefon) add('telefon', 'Telefon bekannt', 5);
@@ -359,21 +541,43 @@ export function betriebSignale(betrieb, pruefung, roh, { jetzt = Date.now(), meh
 
   if (b.website) {
     const host = hostVon(b.website);
-    if (host && !FREMDE_DOMAINS.test(host)) add('eigene_domain', 'Eigene Domain', 5);
+    if (host && !FREMDE_DOMAINS.test(host) && !istBoersenSeite(b.website)) add('eigene_domain', 'Eigene Domain', 5);
   }
   return s;
 }
 
 const deckel = n => Math.max(0, Math.min(100, Math.round(n)));
 
-// Alles zusammen: Signale beider Seiten und die drei Zahlen.
+// Kategorie aus Website, Signalen und Schwaeche. null = noch nicht
+// einzuordnen (keine Pruefung oder Seite nicht erreichbar).
+export function kategorieErmitteln(betrieb, signale, score_website) {
+  if (!betrieb?.website) return 'ohne_website';
+  const codes = new Set((signale || []).map(s => s.code));
+  if (istBoersenSeite(betrieb.website) || codes.has('nur_boerse')) return 'nur_boerse';
+  if (score_website === null || score_website === undefined) return null;
+  if (codes.has('nicht_erreichbar')) return null;
+  if (codes.has('baukasten')) return 'baukasten';
+  if (score_website >= 50) return 'veraltet';
+  if (score_website >= 25) return 'mittel';
+  return 'gepflegt';
+}
+
+// Kategorie ohne Pruefung – nach dem Eintragen oder Verwerfen einer Adresse.
+export function kategorieOhnePruefung(website) {
+  if (!website) return 'ohne_website';
+  if (istBoersenSeite(website)) return 'nur_boerse';
+  return null;
+}
+
+// Alles zusammen: Signale beider Seiten, die drei Zahlen und die Kategorie.
 export function bewerten(betrieb, pruefung, roh, optionen = {}) {
   const sw = websiteSignale(betrieb, pruefung, roh, optionen);
   const sb = betriebSignale(betrieb, pruefung, roh, optionen);
   const score_website = deckel(sw.reduce((a, x) => a + x.punkte, 0));
   const score_betrieb = deckel(sb.reduce((a, x) => a + x.punkte, 0));
   const prioritaet = Math.round(0.6 * score_website + 0.4 * score_betrieb);
-  return { score_website, score_betrieb, prioritaet, signale: [...sw, ...sb] };
+  const signale = [...sw, ...sb];
+  return { score_website, score_betrieb, prioritaet, signale, kategorie: kategorieErmitteln(betrieb, signale, score_website) };
 }
 
 // ---------------------------------------------------------------- Abrufen
@@ -415,9 +619,9 @@ const ABRUF_HEADERS = {
 // Ziel vor dem Abruf gegen hostErlaubt geprueft (SSRF), nicht erst danach.
 // Der Timeout deckt auch das Lesen des Bodys ab, sonst koennte ein
 // tropfender Server die Function beliebig lange festhalten.
-async function einmalAbrufen(url) {
+async function einmalAbrufen(url, timeoutMs) {
   const start = Date.now();
-  return mitTimeout(FETCH_TIMEOUT_MS, async signal => {
+  return mitTimeout(timeoutMs, async signal => {
     let aktuell = url;
     let r;
     for (let hop = 0; ; hop++) {
@@ -442,8 +646,8 @@ async function einmalAbrufen(url) {
 // Fehler aus fetch lesbar machen. Die Runtime meldet ein kaputtes
 // Zertifikat nur als "internal error; reference = …" – das sagt dem
 // Nutzer nichts, dabei ist genau das ein Befund.
-function fehlerText(err, url) {
-  if (err?.name === 'AbortError') return 'Zeitüberschreitung (12 s)';
+function fehlerText(err, url, timeoutMs) {
+  if (err?.name === 'AbortError') return `Zeitüberschreitung (${Math.round(timeoutMs / 1000)} s)`;
   const roh = String(err?.message || err);
   if (/internal error|certificate|tls|ssl|handshake/i.test(roh)) {
     return url.startsWith('https:') ? 'TLS-Fehler (Zertifikat oder Verschlüsselung kaputt)' : 'Verbindungsfehler';
@@ -453,7 +657,7 @@ function fehlerText(err, url) {
 
 // Startseite holen. Reihenfolge: erst https, dann http – so ergibt sich
 // "kein HTTPS" von selbst, wenn nur http klappt.
-export async function websiteAbrufen(website) {
+export async function websiteAbrufen(website, { timeoutMs = FETCH_TIMEOUT_MS } = {}) {
   const aus = { erreichbar: 0, https: null, status: null, endUrl: null, html: '', antwort_ms: null, groesse_kb: null, fehler: null };
   if (!hostErlaubt(website)) { aus.fehler = 'Adresse nicht erlaubt'; return aus; }
 
@@ -465,7 +669,7 @@ export async function websiteAbrufen(website) {
   let ersterFehler = null;
   for (const url of versuche) {
     try {
-      const e = await einmalAbrufen(url);
+      const e = await einmalAbrufen(url, timeoutMs);
       // 4xx/5xx: nichts Auswertbares. 403/429 ist meist Bot-Schutz.
       if (e.status >= 400) {
         if (!ersterFehler) ersterFehler = `HTTP ${e.status}`;
@@ -474,7 +678,7 @@ export async function websiteAbrufen(website) {
       if (!hostErlaubt(e.endUrl)) { ersterFehler = 'Weiterleitung auf unzulässige Adresse'; continue; }
       return { ...aus, ...e, erreichbar: 1, https: e.endUrl.startsWith('https:') ? 1 : 0, fehler: null };
     } catch (err) {
-      const msg = fehlerText(err, url);
+      const msg = fehlerText(err, url, timeoutMs);
       if (!ersterFehler) ersterFehler = msg;
     }
   }
@@ -482,66 +686,170 @@ export async function websiteAbrufen(website) {
   return aus;
 }
 
-// Wayback-CDX: erster und letzter Snapshot mit geaendertem Inhalt (collapse=
-// digest), plus Anzahl. Fehler tolerieren – dann bleiben die Felder null.
-export async function waybackAbfragen(host) {
-  const leer = { wayback_erster: null, wayback_letzter: null, wayback_anzahl: null };
-  if (!host) return leer;
+// Website eines Betriebs ohne Adresse raten: alle Kandidaten parallel
+// abrufen (6 s je Kandidat), Treffer nur bei belegtem Bezug zum Betrieb.
+// Der Abruf des Treffers wird mitgegeben, damit die Pruefung ihn nicht ein
+// zweites Mal holen muss.
+export async function websiteRaten(betrieb, { timeoutMs = RATEN_TIMEOUT_MS, max = 6 } = {}) {
+  const kandidaten = websiteKandidaten(betrieb?.name, { max });
+  const versuche = kandidaten.map(async host => {
+    const url = 'https://' + host;
+    if (!hostErlaubt(url)) return null;
+    try {
+      const abruf = await websiteAbrufen(url, { timeoutMs });
+      if (!abruf.erreichbar) return null;
+      const gruende = websiteVerifizieren(abruf.html, betrieb);
+      if (!gruende.length) return null;
+      return { website: websiteNormalisieren(abruf.endUrl) || websiteNormalisieren(url), host, gruende, abruf };
+    } catch {
+      return null;
+    }
+  });
+  const ergebnisse = await Promise.all(versuche);
+  return { kandidaten, treffer: ergebnisse.find(Boolean) || null };
+}
+
+// Wayback-Zeitstempel "20150312101512" oder ISO-Datum → "2015-03-12", sonst null.
+export function waybackDatum(wert) {
+  const s = String(wert || '').trim();
+  let m = s.match(/^(\d{4})(\d{2})(\d{2})\d*$/);
+  if (!m) m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const jahr = Number(m[1]), monat = Number(m[2]), tag = Number(m[3]);
+  if (jahr < 1995 || jahr > 2100 || monat < 1 || monat > 12 || tag < 1 || tag > 31) return null;
+  return `${m[1]}-${m[2]}-${m[3]}`;
+}
+
+// Server-Fallback fuer den ersten Snapshot, wenn der Browser keinen liefern
+// konnte: CDX mit limit=1 und knappem Timeout. Fehler → null.
+export async function waybackErsterAbfragen(host, { timeoutMs = CDX_FALLBACK_MS } = {}) {
+  if (!host) return null;
   const url = 'https://web.archive.org/cdx/search/cdx?url=' + encodeURIComponent(host)
-    + '&output=json&fl=timestamp&filter=statuscode:200&collapse=digest&limit=1500';
+    + '&output=json&fl=timestamp&filter=statuscode:200&limit=1';
   try {
-    // Auch das Lesen der Antwort gehoert unter den Timeout.
-    const daten = await mitTimeout(WAYBACK_TIMEOUT_MS, async signal => {
+    const daten = await mitTimeout(timeoutMs, async signal => {
       const r = await fetch(url, { signal, headers: { 'User-Agent': UA_CHECK } });
       return r.ok ? r.json() : null;
     });
-    if (!daten) return leer;
-    return waybackAuswerten(daten);
+    return Array.isArray(daten) && daten[1] ? waybackDatum(daten[1][0]) : null;
   } catch {
-    return leer;
+    return null;
   }
 }
 
-export function waybackAuswerten(daten) {
-  const leer = { wayback_erster: null, wayback_letzter: null, wayback_anzahl: null };
-  if (!Array.isArray(daten) || daten.length < 2) return { ...leer, wayback_anzahl: 0 };
-  const zeilen = daten.slice(1).map(z => String(z[0] || '')).filter(z => /^\d{8}/.test(z)).sort();
-  if (!zeilen.length) return { ...leer, wayback_anzahl: 0 };
-  const iso = ts => `${ts.slice(0, 4)}-${ts.slice(4, 6)}-${ts.slice(6, 8)}`;
-  return { wayback_erster: iso(zeilen[0]), wayback_letzter: iso(zeilen[zeilen.length - 1]), wayback_anzahl: zeilen.length };
-}
+export const LEERE_PRUEFUNG = Object.freeze({
+  erreichbar: null, https: null, viewport: null, cms: null, baukasten: null, jquery: null, copyright_jahr: null,
+  impressum: null, datenschutz: null, schema_org: null, fahrzeuge_eigen: null, boersen_link: null,
+  psi_leistung: null, psi_lcp: null, psi_cls: null,
+  wayback_erster: null, wayback_letzter: null, wayback_anzahl: null,
+  titel: null, generator: null, antwort_ms: null, groesse_kb: null, fehler: null,
+});
 
-// Komplette Pruefung eines Betriebs: Website und Wayback parallel, dann
-// auswerten und bewerten. Ergebnis: Zeile fuer akquise_pruefungen (ohne id,
-// betrieb_id, zeitpunkt) plus Scores.
-export async function betriebPruefen(betrieb, { mehrfach = false, jetzt = Date.now() } = {}) {
+// Komplette Pruefung eines Betriebs: Website holen (oder den mitgegebenen
+// Abruf nutzen), auswerten, bewerten. Boersen-Seiten werden nicht geholt –
+// die Bewertung steht fest. Ergebnis: Zeile fuer akquise_pruefungen (ohne
+// id, betrieb_id, zeitpunkt) plus Scores und Kategorie.
+export async function betriebPruefen(betrieb, { mehrfach = false, jetzt = Date.now(), abruf = null } = {}) {
   const jetztJahr = new Date(jetzt).getFullYear();
-  const leereSpalten = {
-    erreichbar: null, https: null, viewport: null, cms: null, baukasten: null, jquery: null, copyright_jahr: null,
-    impressum: null, datenschutz: null, schema_org: null, fahrzeuge_eigen: null, boersen_link: null,
-    psi_leistung: null, psi_lcp: null, psi_cls: null,
-    wayback_erster: null, wayback_letzter: null, wayback_anzahl: null,
-    titel: null, generator: null, antwort_ms: null, groesse_kb: null, fehler: null,
-  };
 
-  if (!betrieb.website) {
+  if (!betrieb.website || istBoersenSeite(betrieb.website)) {
     const roh = {};
-    const bew = bewerten(betrieb, leereSpalten, roh, { jetzt, mehrfach });
-    return { pruefung: { ...leereSpalten, signale: bew.signale, roh }, ...bew };
+    const bew = bewerten(betrieb, LEERE_PRUEFUNG, roh, { jetzt, mehrfach });
+    return { pruefung: { ...LEERE_PRUEFUNG, signale: bew.signale, roh }, ...bew };
   }
 
-  const [abruf, wayback] = await Promise.all([
-    websiteAbrufen(betrieb.website),
-    waybackAbfragen(hostVon(betrieb.website)),
-  ]);
-
-  let spalten = { ...leereSpalten, ...wayback, erreichbar: abruf.erreichbar, https: abruf.https, antwort_ms: abruf.antwort_ms, groesse_kb: abruf.groesse_kb, fehler: abruf.fehler };
-  let roh = { end_url: abruf.endUrl, status: abruf.status };
-  if (abruf.erreichbar) {
-    const aus = htmlAuswerten(abruf.html, { jetztJahr });
+  const a = abruf || await websiteAbrufen(betrieb.website);
+  let spalten = { ...LEERE_PRUEFUNG, erreichbar: a.erreichbar, https: a.https, antwort_ms: a.antwort_ms, groesse_kb: a.groesse_kb, fehler: a.fehler };
+  let roh = { end_url: a.endUrl, status: a.status };
+  if (a.erreichbar) {
+    const aus = htmlAuswerten(a.html, { jetztJahr });
     spalten = { ...spalten, ...aus.spalten };
-    roh = { ...roh, ...aus.roh };
+    const gruende = websiteVerifizieren(a.html, betrieb);
+    roh = { ...roh, ...aus.roh, website_verifiziert: gruende.length ? 1 : 0, verifiziert_durch: gruende };
   }
   const bew = bewerten(betrieb, spalten, roh, { jetzt, mehrfach });
   return { pruefung: { ...spalten, signale: bew.signale, roh }, ...bew };
+}
+
+// ---------------------------------------------------------------- D1-Helfer
+// Gemeinsam fuer pruefen.js und google.js, damit beide Pruefzeilen und
+// Scores auf dieselbe Weise schreiben.
+
+export const PRUEF_SPALTEN = Object.keys(LEERE_PRUEFUNG);
+
+export const jsonLesen = (s, leer) => { if (!s) return leer; try { return JSON.parse(s); } catch { return leer; } };
+
+export async function betriebLaden(env, id) {
+  return env.DB.prepare('SELECT * FROM akquise_betriebe WHERE id = ?').bind(id).first();
+}
+
+// Gleicher Name mehrfach in der Tabelle → mehrere Standorte.
+export async function istMehrfach(env, betrieb) {
+  const z = await env.DB.prepare(
+    'SELECT COUNT(*) AS n FROM akquise_betriebe WHERE lower(name) = lower(?) AND id != ? AND geloescht IS NULL',
+  ).bind(betrieb.name, betrieb.id).first();
+  return Number(z?.n || 0) > 0;
+}
+
+export async function letztePruefungLaden(env, betriebId) {
+  return env.DB.prepare(
+    'SELECT * FROM akquise_pruefungen WHERE betrieb_id = ? ORDER BY zeitpunkt DESC, id DESC LIMIT 1',
+  ).bind(betriebId).first();
+}
+
+// Scores und Kategorie an den Betrieb; geprueft_am nur, wenn gewuenscht.
+export function scoresStatement(env, id, bew, { geprueft = false } = {}) {
+  return env.DB.prepare(
+    `UPDATE akquise_betriebe SET score_website = ?, score_betrieb = ?, prioritaet = ?, kategorie = ?,
+       ${geprueft ? "geprueft_am = datetime('now')," : ''} geaendert = datetime('now') WHERE id = ?`,
+  ).bind(bew.score_website, bew.score_betrieb, bew.prioritaet, bew.kategorie ?? null, id);
+}
+
+// Ergebnis von betriebPruefen als neue Pruefzeile speichern und den
+// Betrieb aktualisieren. Antwort: die Zeile, wie GET /pruefen sie liefert.
+export async function pruefungSpeichern(env, betrieb, ergebnis) {
+  const { pruefung } = ergebnis;
+  const { meta } = await env.DB.prepare(
+    `INSERT INTO akquise_pruefungen (betrieb_id, ${PRUEF_SPALTEN.join(', ')}, signale, roh)
+     VALUES (?, ${PRUEF_SPALTEN.map(() => '?').join(', ')}, ?, ?)`,
+  ).bind(betrieb.id, ...PRUEF_SPALTEN.map(s => pruefung[s] ?? null), JSON.stringify(ergebnis.signale), JSON.stringify(pruefung.roh ?? {})).run();
+  await scoresStatement(env, betrieb.id, ergebnis, { geprueft: true }).run();
+  return {
+    id: meta?.last_row_id,
+    betrieb_id: betrieb.id,
+    zeitpunkt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    ...pruefung,
+  };
+}
+
+// Letzte Pruefung mit geaenderten Spalten neu bewerten (PSI, Wayback,
+// Google-Zahlen am Betrieb) – ohne neue Zeile.
+export async function pruefungNeuBewerten(env, betrieb, letzte, aenderungen = {}) {
+  const roh = jsonLesen(letzte.roh, {});
+  const pruefung = { ...letzte, ...aenderungen };
+  const bew = bewerten(betrieb, pruefung, roh, { mehrfach: await istMehrfach(env, betrieb) });
+  const spalten = Object.keys(aenderungen).filter(k => PRUEF_SPALTEN.includes(k));
+  const set = [...spalten.map(k => `${k} = ?`), 'signale = ?'];
+  const werte = [...spalten.map(k => aenderungen[k] ?? null), JSON.stringify(bew.signale)];
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE akquise_pruefungen SET ${set.join(', ')} WHERE id = ?`).bind(...werte, letzte.id),
+    scoresStatement(env, betrieb.id, bew),
+  ]);
+  return { pruefung: { ...pruefung, signale: bew.signale, roh }, ...bew };
+}
+
+// Antwort fuer den Browser: alles, was die Zeile im Cockpit braucht.
+export function pruefAntwort(betrieb, ergebnis, pruefung, extra = {}) {
+  return {
+    ok: true,
+    pruefung,
+    score_website: ergebnis.score_website,
+    score_betrieb: ergebnis.score_betrieb,
+    prioritaet: ergebnis.prioritaet,
+    signale: ergebnis.signale,
+    kategorie: ergebnis.kategorie ?? null,
+    website: betrieb.website ?? null,
+    website_quelle: betrieb.website_quelle ?? null,
+    ...extra,
+  };
 }

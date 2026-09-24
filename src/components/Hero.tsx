@@ -5,8 +5,9 @@ import { GeoAnsicht, geoDauer } from "./Geo";
 import { LeistungZeile, ANZAHL_ANSICHTEN } from "./Leistungen";
 import { useSprache } from "@/lib/sprache";
 
-// Der Einstieg als Slider ueber vier Kapitel: GEO und die drei Leistungen,
-// jeweils mit Bild. Alle Folien liegen uebereinander in derselben
+// Der Einstieg als Slider ueber vier Kapitel: die drei Leistungen und zum
+// Schluss GEO, jeweils mit Bild. Smart Websites steht vorn, weil es das
+// Kerngeschaeft ist; GEO ist der Ausblick. Alle Folien liegen uebereinander in derselben
 // Rasterzelle – so bestimmt die hoechste die Hoehe und nichts springt beim
 // Wechsel. Bei GEO laufen mehrere KI-Antworten nacheinander (jede so lange,
 // wie sie zum Tippen braucht); bei den Leistungen wechselt alle 6 Sekunden
@@ -23,14 +24,15 @@ export default function Hero() {
   const [pause, setPause] = useState(false);
 
   const titel = [
-    "GEO",
     ...t.leistungen.eintraege.map(l => l.eyebrow),
+    "GEO",
   ];
   const anzahl = titel.length;
-  // Anzahl Schritte je Kapitel: GEO je Beispiel einer, Leistungen je Ansicht einer.
-  const SCHRITTE = [t.geo.beispiele.length, ...ANZAHL_ANSICHTEN];
+  const GEO = anzahl - 1;   // GEO ist das letzte Kapitel
+  // Anzahl Schritte je Kapitel: Leistungen je Ansicht einer, GEO je Beispiel einer.
+  const SCHRITTE = [...ANZAHL_ANSICHTEN, t.geo.beispiele.length];
   const schritte = SCHRITTE[aktiv];
-  const dauer = aktiv === 0 ? geoDauer(t.geo.beispiele[bild % t.geo.beispiele.length]) : ANSICHT_DAUER;
+  const dauer = aktiv === GEO ? geoDauer(t.geo.beispiele[bild % t.geo.beispiele.length]) : ANSICHT_DAUER;
 
   // Restzeit des laufenden Schritts: beim Anhalten gemerkt, beim neuen Schritt verworfen.
   const rest = useRef<number | null>(null);
@@ -53,6 +55,7 @@ export default function Hero() {
   const von = bild / SCHRITTE[aktiv], bis = (bild + 1) / SCHRITTE[aktiv];
 
   const folien = [
+    ...t.leistungen.eintraege.map((l, i) => <LeistungZeile key={l.eyebrow} i={i} bild={aktiv === i ? bild : 0} onBild={setBild} />),
     <div key="geo" className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
       <div className="lg:col-span-5">
         <div className="flex items-center gap-3 mb-4">
@@ -62,9 +65,8 @@ export default function Hero() {
         <h1 className="display-h slider-titel text-[var(--fg)] mb-4">{t.geo.titel}</h1>
         <p className="text-[var(--fg-muted)] leading-relaxed">{t.hero.unter}</p>
       </div>
-      <div className="lg:col-span-7"><GeoAnsicht beispiel={aktiv === 0 ? bild : 0} aktiv={aktiv === 0} /></div>
+      <div className="lg:col-span-7"><GeoAnsicht beispiel={aktiv === GEO ? bild : 0} aktiv={aktiv === GEO} /></div>
     </div>,
-    ...t.leistungen.eintraege.map((l, i) => <LeistungZeile key={l.eyebrow} i={i} bild={aktiv === i + 1 ? bild : 0} onBild={setBild} />),
   ];
 
   return (

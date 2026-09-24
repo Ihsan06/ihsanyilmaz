@@ -175,3 +175,51 @@ CREATE TABLE IF NOT EXISTS akquise_laeufe (
   fehler TEXT,
   zeitpunkt TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Woher die Website eines Betriebs stammt: aus OSM, von Hand eingetragen,
+-- von der Pruefung geraten (vermutet) oder vom Nutzer bestaetigt.
+ALTER TABLE akquise_betriebe ADD COLUMN website_quelle TEXT;
+
+-- Akquise-Post: je Brief eine Zeile, der Token fuehrt zur persoenlichen
+-- Landingpage /fuer/<token>. Der Brief selbst liegt als PDF in R2 (BILDER)
+-- unter akquise/<token>.pdf.
+CREATE TABLE IF NOT EXISTS akquise_briefe (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  betrieb_id INTEGER NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'entwurf',        -- entwurf | freigegeben | gesendet | zugestellt | fehler | storniert
+  art TEXT NOT NULL DEFAULT 'brief',              -- brief | nachfass | test
+  empfaenger TEXT,                                -- Anschriftenblock, wie gedruckt (Zeilen mit \n)
+  befunde TEXT,                                   -- JSON: die im Brief genannten Befunde
+  text TEXT,                                      -- gerenderter Brieftext
+  pdf_schluessel TEXT,
+  anbieter TEXT, anbieter_id TEXT, kosten_cent INTEGER,
+  fehler TEXT,
+  aufrufe INTEGER NOT NULL DEFAULT 0,
+  zuletzt_aufgerufen TEXT,
+  demo_angefordert TEXT,
+  angelegt TEXT NOT NULL DEFAULT (datetime('now')),
+  gesendet_am TEXT,
+  zugestellt_am TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_akq_brief_betrieb ON akquise_briefe(betrieb_id, angelegt DESC);
+
+-- Wer nicht mehr angeschrieben werden will, steht hier – Pflichtabgleich vor
+-- jedem Versand.
+CREATE TABLE IF NOT EXISTS akquise_sperrliste (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  betrieb_id INTEGER,
+  name TEXT,
+  grund TEXT,
+  angelegt TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Runde 2: Website-Suche ueber Google Places (nur Place-ID dauerhaft, Bewertungs-
+-- zahl als Momentaufnahme mit Stand), Auswahl-Stern, Papierkorb und Kategorie.
+ALTER TABLE akquise_betriebe ADD COLUMN google_place_id TEXT;
+ALTER TABLE akquise_betriebe ADD COLUMN google_bewertung REAL;
+ALTER TABLE akquise_betriebe ADD COLUMN google_anzahl INTEGER;
+ALTER TABLE akquise_betriebe ADD COLUMN google_stand TEXT;
+ALTER TABLE akquise_betriebe ADD COLUMN auswahl INTEGER NOT NULL DEFAULT 0;   -- 1 = vom Nutzer markiert
+ALTER TABLE akquise_betriebe ADD COLUMN geloescht TEXT;                        -- Zeitpunkt, wenn im Papierkorb
+ALTER TABLE akquise_betriebe ADD COLUMN kategorie TEXT;                        -- ohne_website | nur_boerse | baukasten | veraltet | gepflegt | unbekannt

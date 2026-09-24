@@ -608,17 +608,32 @@ html, body {
 .akq-inline input[type="checkbox"] { accent-color:var(--accent); width:15px; height:15px; }
 .akq-hinweis { font-size:.82rem; color:var(--fg-subtle); font-variant-numeric:tabular-nums; }
 .akq-fortschritt { font-size:.9rem; font-weight:700; color:var(--fg); font-variant-numeric:tabular-nums; }
+.akq-google-hinweis { margin:12px 0 0; font-size:.82rem; color:#b45309; line-height:1.5; }
+.akq-kennzahlen { grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
 .akq-knopf {
   display:inline-flex; align-items:center; gap:5px; font:inherit; font-size:.76rem; font-weight:600;
   padding:5px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--fg-muted);
-  cursor:pointer; white-space:nowrap; transition:border-color .15s ease, color .15s ease;
+  cursor:pointer; white-space:nowrap; text-decoration:none; transition:border-color .15s ease, color .15s ease;
 }
 .akq-knopf:hover { border-color:var(--accent); color:var(--accent); }
 .akq-knopf:disabled { opacity:.5; cursor:default; border-color:var(--border); color:var(--fg-muted); }
+.akq-knopf.aktiv { border-color:var(--accent); color:var(--accent); }
 .akq-link { color:var(--accent); text-decoration:none; }
 .akq-link:hover { text-decoration:underline; }
 
-/* Tabelle scrollt immer seitlich, sobald sie nicht passt – acht Spalten
+/* Mehrfachauswahl (Kategorie, Signal): Knopf mit aufklappender Liste */
+.akq-wahl { position:relative; }
+.akq-wahl-liste {
+  position:absolute; top:calc(100% + 6px); left:0; z-index:30; min-width:220px; max-height:320px; overflow:auto;
+  background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 10px 28px rgba(0,0,0,.14);
+  padding:8px; display:flex; flex-direction:column; gap:2px;
+}
+.akq-wahl-liste label { display:flex; align-items:center; gap:8px; font-size:.82rem; color:var(--fg); padding:5px 6px; border-radius:6px; cursor:pointer; white-space:nowrap; }
+.akq-wahl-liste label:hover { background:var(--mon-off); }
+.akq-wahl-liste input[type="checkbox"] { accent-color:var(--accent); width:14px; height:14px; }
+.akq-wahl-leeren { margin-top:4px; font:inherit; font-size:.76rem; color:var(--accent); background:none; border:0; padding:5px 6px; text-align:left; cursor:pointer; }
+
+/* Tabelle scrollt immer seitlich, sobald sie nicht passt – zehn Spalten
    sind auch am Laptop knapp. */
 .akq-huelle { overflow-x:auto; margin:0 -28px; padding:0 28px; }
 .akq-tabelle th:first-child, .akq-tabelle td:first-child { padding-left:0; }
@@ -627,8 +642,22 @@ html, body {
 .akq-tabelle td.akq-betrieb { white-space:normal; min-width:180px; max-width:300px; line-height:1.35; }
 /* Lange Hosts (Filialseiten grosser Ketten) sollen die Spalte nicht aufreissen. */
 .akq-tabelle td .akq-link { display:inline-block; max-width:190px; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; }
+.akq-tabelle td.akq-website { max-width:240px; }
 .akq-tabelle tr.akq-offen td { border-bottom:0; }
 .akq-tabelle td { vertical-align:middle; }
+.akq-tabelle tr.akq-gewaehlt td.akq-betrieb b { color:var(--accent); }
+
+/* Sortierbare Koepfe: Pfeil fuer die Richtung, Ziffer fuer die Stelle */
+.akq-sortierbar { cursor:pointer; user-select:none; }
+.akq-sortierbar:hover { color:var(--fg); }
+.akq-sortierbar.aktiv { color:var(--fg); }
+.akq-sortierbar > span { display:inline-flex; align-items:center; gap:3px; }
+.akq-sortierbar i { font-style:normal; font-size:.6rem; font-weight:700; color:var(--accent); }
+.akq-stern-kopf, .akq-stern { width:28px; }
+.akq-stern button { border:0; background:none; padding:4px; cursor:pointer; color:var(--fg-subtle); display:inline-flex; border-radius:6px; }
+.akq-stern button:hover { color:var(--accent); }
+.akq-stern button.an { color:#d99a06; }
+.akq-stern button.an svg { fill:currentColor; }
 
 /* Prioritaet: Zahl plus schmaler Balken. Ab 60 in der Akzentfarbe – das
    ist die Schwelle, ab der ein Betrieb einen Brief wert ist. */
@@ -637,6 +666,33 @@ html, body {
 .akq-prio b.hoch { color:var(--accent); }
 .akq-prio-balken { display:block; width:54px; height:5px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
 .akq-prio-balken i { display:block; height:100%; background:var(--accent); border-radius:999px; }
+
+/* Kurzer Zustand in der Zeile: "Prüft …", "Geprüft", Fehlertext */
+.akq-zeilenhinweis { display:block; margin-top:3px; font-size:.72rem; color:var(--accent); white-space:normal; }
+.akq-zeilenhinweis.fehler { color:#b45309; }
+
+/* Herkunft der Website als kleines Etikett, bei "vermutet"/"Google" mit
+   Bestaetigen (✓) und Verwerfen (✕) direkt daneben. */
+.akq-quelle {
+  display:inline-flex; align-items:center; gap:3px; margin-left:6px; vertical-align:middle;
+  font-size:.64rem; font-weight:600; letter-spacing:.02em; padding:1px 6px; border-radius:999px;
+  background:var(--surface-2); border:1px solid var(--border); color:var(--fg-subtle);
+}
+.akq-quelle.vermutet, .akq-quelle.google { background:rgba(217,154,6,.12); border-color:transparent; color:#9a6b00; }
+.akq-quelle.bestaetigt { background:rgba(29,138,82,.10); border-color:transparent; color:#1d8a52; }
+.akq-quelle button { border:0; background:none; padding:0 2px; font:inherit; font-size:.72rem; line-height:1; cursor:pointer; color:inherit; border-radius:4px; }
+.akq-quelle button:hover { background:rgba(0,0,0,.08); color:var(--fg); }
+
+/* Kategorie-Chip: je Stufe eine Farbe, "ohne Website" und "nur Boerse"
+   sind die interessanten – die springen ins Auge. */
+.akq-kat { display:inline-block; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:999px; white-space:nowrap; background:var(--surface-2); border:1px solid var(--border); color:var(--fg-muted); }
+.akq-kat.ohne_website { background:rgba(18,85,127,.12); border-color:transparent; color:var(--accent); }
+.akq-kat.nur_boerse { background:rgba(180,83,9,.12); border-color:transparent; color:#b45309; }
+.akq-kat.baukasten { background:rgba(124,58,237,.10); border-color:transparent; color:#6d28d9; }
+.akq-kat.veraltet { background:rgba(220,38,38,.10); border-color:transparent; color:#b91c1c; }
+.akq-kat.mittel { background:rgba(217,154,6,.12); border-color:transparent; color:#9a6b00; }
+.akq-kat.gepflegt { background:rgba(29,138,82,.10); border-color:transparent; color:#1d8a52; }
+.akq-google { font-variant-numeric:tabular-nums; white-space:nowrap; }
 
 /* Signale: Schwaechen grau, Staerken gruen – auf einen Blick, welche Seite
    der Bewertung ein Chip bedient. */
@@ -648,15 +704,50 @@ html, body {
 }
 .akq-signal.betrieb { background:rgba(29,138,82,.10); border-color:transparent; color:#1d8a52; }
 
+/* "+n" mit Popover: sichtbar beim Ueberfahren und bei Fokus (Tab oder
+   Tipp am Handy). Rein per CSS, deshalb kein Streit zwischen Tipp und
+   Fokus; Escape nimmt den Fokus weg. */
+.akq-mehr { position:relative; display:inline-flex; cursor:pointer; outline:none; }
+.akq-mehr:hover > .akq-signal, .akq-mehr:focus-within > .akq-signal { border-color:var(--accent); color:var(--accent); }
+/* Mittig unter dem Chip: so bleibt es auch am Handy im Scrollkasten der
+   Tabelle sichtbar, statt rechts abgeschnitten zu werden. */
+.akq-popover {
+  display:none; position:absolute; top:calc(100% + 6px); left:50%; transform:translateX(-50%); z-index:25; min-width:240px; max-width:min(360px, 80vw);
+  background:var(--mon-dunkel); color:rgba(255,255,255,.92); border-radius:10px; padding:8px 12px;
+  box-shadow:0 10px 28px rgba(0,0,0,.28); font-size:.76rem; line-height:1.45; white-space:normal; text-align:left;
+}
+.akq-mehr:hover .akq-popover, .akq-mehr:focus-within .akq-popover { display:block; }
+/* Sobald der Chip seine Lage kennt (data-lage, --pop-x/--pop-y aus
+   popoverLage), liegt das Popover fest im Sichtfenster – so schneidet es
+   weder der Scrollkasten der Tabelle noch der Fensterrand ab. */
+.akq-mehr[data-lage] .akq-popover { position:fixed; left:var(--pop-x); transform:none; width:min(320px, calc(100vw - 32px)); max-width:none; }
+.akq-mehr[data-lage="unten"] .akq-popover { top:var(--pop-y); bottom:auto; }
+.akq-mehr[data-lage="oben"] .akq-popover { top:auto; bottom:var(--pop-y); }
+.akq-popover ul { list-style:none; margin:0; padding:0; }
+.akq-popover li { display:flex; justify-content:space-between; gap:12px; padding:3px 0; border-bottom:1px solid rgba(255,255,255,.12); }
+.akq-popover li:last-child { border-bottom:0; }
+.akq-popover b { font-variant-numeric:tabular-nums; color:rgba(255,255,255,.7); }
+.akq-popover b.betrieb { color:#5fd39a; }
+/* In den letzten Zeilen wuerde das Popover unten abgeschnitten – dort nach oben. */
+.akq-tabelle tbody tr:nth-last-child(-n+2) .akq-mehr:not([data-lage]) .akq-popover { top:auto; bottom:calc(100% + 6px); }
+
 /* Aufgeklappte Zeile */
 .akq-details td { background:var(--mon-off); padding:18px 16px 20px; white-space:normal; border-radius:10px; }
 .akq-details-raster { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px 24px; align-items:start; }
+.akq-details-raster > div { min-width:0; }
 .akq-dt { margin:0 0 8px; font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-subtle); }
-.akq-dl { margin:0; display:grid; grid-template-columns:auto 1fr; gap:5px 12px; font-size:.82rem; }
+.akq-dl { margin:0; display:grid; grid-template-columns:auto minmax(0,1fr); gap:5px 12px; font-size:.82rem; }
 .akq-dl dt { color:var(--fg-subtle); white-space:nowrap; }
-.akq-dl dd { margin:0; color:var(--fg); font-variant-numeric:tabular-nums; }
+.akq-dl dd { margin:0; min-width:0; color:var(--fg); font-variant-numeric:tabular-nums; }
 .akq-dl dd.akq-lang { white-space:normal; word-break:break-word; }
-.akq-dl dd input { width:100%; min-width:200px; }
+/* Das Website-Feld darf nie breiter werden als seine Spalte – lange
+   Adressen laufen im Feld, nicht ueber den Rand. */
+.akq-dl dd.akq-website-feld { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.akq-dl dd.akq-website-feld input { flex:1 1 140px; width:auto; min-width:0; max-width:100%; box-sizing:border-box; text-overflow:ellipsis; }
+.akq-dl dd.akq-website-feld .akq-quelle { margin-left:0; }
+.akq-status { display:inline-block; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:999px; background:var(--surface-2); border:1px solid var(--border); color:var(--fg-muted); vertical-align:middle; }
+.akq-status.brief, .akq-status.kontakt { background:rgba(18,85,127,.12); border-color:transparent; color:var(--accent); }
+.akq-status.kunde { background:rgba(29,138,82,.10); border-color:transparent; color:#1d8a52; }
 .akq-signalliste { list-style:none; margin:0; padding:0; font-size:.82rem; }
 .akq-signalliste li { display:flex; justify-content:space-between; gap:12px; padding:3px 0; border-bottom:1px solid var(--border); }
 .akq-signalliste li:last-child { border-bottom:0; }

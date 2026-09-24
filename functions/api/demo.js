@@ -18,6 +18,11 @@
 // Bremsen: je Adresse eine Mail in 24 Stunden, insgesamt hoechstens 30 in
 // der Stunde, Honeypot „fax“. Gespeichert werden Adresse, Zeitpunkt, Sprache
 // und ob der Versand klappte – keine IP.
+//
+// Optionales Feld "token": kommt die Anfrage von einer persoenlichen Seite
+// /fuer/<token> (Akquise-Brief), wird am Brief "demo_angefordert" gesetzt,
+// der Betrieb rueckt auf Status "kontakt", und Ihsan sieht in der
+// Benachrichtigung, welcher Betrieb das war.
 
 const KOPF = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
 const json = (b, status = 200) => new Response(JSON.stringify(b), { status, headers: KOPF });
@@ -107,7 +112,8 @@ async function resend(env, nachricht) {
 }
 
 // Ihsan Bescheid geben: Mail mit der Adresse, Telegram nur mit dem Hinweis.
-async function benachrichtigen(env, email, sprache, auswahl, versandt, grund) {
+async function benachrichtigen(env, email, sprache, auswahl, versandt, grund, landing) {
+  const ueber = landing ? `Über Landingpage: ${[landing.name, landing.ort].filter(Boolean).join(', ')}` : '';
   if (env.RESEND_API_KEY) {
     try {
       await resend(env, {
@@ -118,6 +124,7 @@ async function benachrichtigen(env, email, sprache, auswahl, versandt, grund) {
         html: `<h2 style="margin:0 0 16px">Demo-Link angefordert – ihsan-yilmaz.de</h2>
           <p><strong>E-Mail:</strong> ${esc(email)}</p><p><strong>Gewünscht:</strong> ${esc(AUSWAHL[auswahl].map(k => DEMOS[k].name).join(' + '))}</p><p><strong>Sprache:</strong> ${esc(sprache.toUpperCase())}</p>
           <p><strong>Versand an den Besucher:</strong> ${versandt ? 'geklappt' : 'NICHT geklappt – bitte Links persönlich schicken'}${grund ? ` (${esc(grund)})` : ''}</p>
+          ${ueber ? `<p><strong>${esc(ueber)}</strong></p>` : ''}
           <p>Die Anfrage steht auch unter <a href="${SEITE}/admin/anfragen">Anfragen</a>.</p>`,
       });
     } catch { /* nur eine Zusatzmeldung */ }
@@ -128,7 +135,7 @@ async function benachrichtigen(env, email, sprache, auswahl, versandt, grund) {
       await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, disable_web_page_preview: true,
-          text: `🔗 Demo-Link über ihsan-yilmaz.de angefordert${versandt ? '' : ' – Versand hat NICHT geklappt'} — Details im Postfach.` }),
+          text: `🔗 Demo-Link über ihsan-yilmaz.de angefordert${versandt ? '' : ' – Versand hat NICHT geklappt'}${ueber ? ` — ${ueber}` : ''} — Details im Postfach.` }),
       });
     } catch { /* egal */ }
   }
@@ -137,7 +144,9 @@ async function benachrichtigen(env, email, sprache, auswahl, versandt, grund) {
 export async function onRequestPost({ request, env, waitUntil }) {
   let d;
   try { d = await request.json(); } catch { return json({ ok: false, fehler: 'ungueltig' }, 400); }
-  const { email: roh, sprache: sp, auswahl: aw, fax } = d || {};
+  const { email: roh, sprache: sp, auswahl: aw, fax, token: tokenRoh } = d || {};
+  // Nur das genaue Format – alles andere wird still ignoriert, nie nachgeschlagen.
+  const token = /^[a-z0-9]{12}$/.test(String(tokenRoh || '')) ? String(tokenRoh) : null;
   const sprache = ['de', 'en', 'es'].includes(sp) ? sp : 'de';
   const auswahl = AUSWAHL[aw] ? aw : 'beide';
   const demos = AUSWAHL[auswahl].map(k => DEMOS[k]);
@@ -181,6 +190,24 @@ export async function onRequestPost({ request, env, waitUntil }) {
         `Demo-Links über die Website angefordert: ${demos.map(x => x.name).join(' + ')} (${sprache.toUpperCase()}). Gespräch zum Verwaltungsbereich anbieten.`).run();
   } catch { /* Zusatzfunktion – der Versand darf daran nicht scheitern */ }
 
+  // Von einer persoenlichen Seite? Dann am Brief und am Betrieb vermerken.
+  let landing = null;
+  if (token) {
+    try {
+      const brief = await env.DB.prepare(
+        `SELECT br.id, br.betrieb_id, b.name, b.ort FROM akquise_briefe br
+         LEFT JOIN akquise_betriebe b ON b.id = br.betrieb_id WHERE br.token = ?`,
+      ).bind(token).first();
+      if (brief) {
+        landing = { name: brief.name, ort: brief.ort };
+        await env.DB.batch([
+          env.DB.prepare("UPDATE akquise_briefe SET demo_angefordert = datetime('now') WHERE id = ?").bind(brief.id),
+          env.DB.prepare("UPDATE akquise_betriebe SET status = 'kontakt', geaendert = datetime('now') WHERE id = ? AND status IN ('neu', 'beobachten', 'brief')").bind(brief.betrieb_id),
+        ]);
+      }
+    } catch { /* Zusatzfunktion */ }
+  }
+
   let versandt = false, grund = '';
   if (!env.RESEND_API_KEY) {
     grund = 'RESEND_API_KEY fehlt';
@@ -205,7 +232,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     .bind(versandt ? 1 : 0, grund || null, id).run().catch(() => {});
   zaehlen(env, waitUntil, versandt ? 'ok' : 'fehler');
 
-  const melden = benachrichtigen(env, email, sprache, auswahl, versandt, grund);
+  const melden = benachrichtigen(env, email, sprache, auswahl, versandt, grund, landing);
   if (typeof waitUntil === 'function') waitUntil(melden); else await melden;
 
   return versandt ? json({ ok: true }) : json({ ok: false, fehler: 'nichtVersandt' });

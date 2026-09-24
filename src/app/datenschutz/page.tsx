@@ -88,6 +88,15 @@ export default function Datenschutz() {
             <h2 className="text-[var(--fg)] font-semibold text-base mb-3">12. Aktualität dieser Datenschutzerklärung</h2>
             <p>Diese Datenschutzerklärung wird angepasst, sobald Änderungen der Website oder der rechtlichen Vorgaben dies erforderlich machen.</p>
           </section>
+
+          <section>
+            <h2 className="text-[var(--fg)] font-semibold text-base mb-3">13. Persönliche Seiten unter /fuer/ (Anschreiben an Betriebe)</h2>
+            <p>Ich schreibe gelegentlich Autohäuser und Werkstätten in der Region per Brief an, wenn deren Internetauftritt erkennbar Nachholbedarf hat. Der Brief enthält einen Link und einen QR-Code zu einer persönlichen Seite unter ihsan-yilmaz.de/fuer/…, die nur über diesen Link erreichbar ist und nicht von Suchmaschinen erfasst wird.</p>
+            <p className="mt-2"><strong className="text-[var(--fg)]">Woher die Daten stammen:</strong> Firmenname, Anschrift und Website-Adresse des Betriebs stammen aus OpenStreetMap, aus dem öffentlichen Google-Karteneintrag und von der öffentlich erreichbaren Website des Betriebs. Personennamen werden nicht erhoben; der Brief richtet sich an die Geschäftsleitung. Die auf der persönlichen Seite genannten Punkte beruhen auf einer automatischen technischen Prüfung der öffentlichen Website (z.&nbsp;B. Verschlüsselung, Darstellung auf dem Smartphone, Jahresangabe im Fuß).</p>
+            <p className="mt-2"><strong className="text-[var(--fg)]">Zweck und Rechtsgrundlage:</strong> Direktwerbung gegenüber Unternehmen zur Anbahnung eines Auftrags, Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse). Für den Druck und den Postversand nutze ich den Dienst LetterXpress (A&amp;O Fischer GmbH &amp; Co. KG, Winsen/Luhe), mit dem ein Auftragsverarbeitungsvertrag besteht; die übermittelten Adress- und Inhaltsdaten werden dort nach 60 Tagen gelöscht.</p>
+            <p className="mt-2"><strong className="text-[var(--fg)]">Aufrufzähler:</strong> Beim Aufruf der persönlichen Seite wird lediglich gezählt, dass sie aufgerufen wurde. Es werden keine Cookies gesetzt, keine IP-Adresse gespeichert und keine Nutzungsprofile erstellt. Wird über die Seite ein Demo-Zugang angefordert, gilt Abschnitt 5.</p>
+            <p className="mt-2"><strong className="text-[var(--fg)]">Widerspruch (Art. 21 DSGVO) und Information (Art. 14 DSGVO):</strong> Sie können der Nutzung Ihrer Firmenanschrift für Anschreiben jederzeit widersprechen – über den Link „Keine weitere Post“ auf der persönlichen Seite oder formlos an die oben genannten Kontaktdaten. Der Betrieb wird dann in eine Sperrliste eingetragen und nicht mehr angeschrieben. Die übrigen Daten zum Betrieb lösche ich spätestens zwölf Monate nach dem Anschreiben, sofern kein Kontakt zustande kommt.</p>
+          </section>
         </div>
 
         <div className="mt-12">
