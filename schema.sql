@@ -229,3 +229,9 @@ ALTER TABLE akquise_betriebe ADD COLUMN kategorie TEXT;                        -
 -- (geloescht gesetzt, zeigt auf den Haupteintrag), damit der naechste
 -- OSM-Suchlauf ihn nicht wieder als neu anlegt.
 ALTER TABLE akquise_betriebe ADD COLUMN zusammengefuehrt_in INTEGER;
+
+-- Von Hand eingetragen (mobile.de-Haendlerseite, Handelsregister): Fahrzeuge
+-- im Bestand und Gruendungsjahr. Beides zaehlt als Staerke des Betriebs.
+-- Automatisch auslesen verbieten die AGB von mobile.de und AutoScout24.
+ALTER TABLE akquise_betriebe ADD COLUMN fahrzeuge INTEGER;
+ALTER TABLE akquise_betriebe ADD COLUMN gruendungsjahr INTEGER;

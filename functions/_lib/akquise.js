@@ -528,6 +528,19 @@ export function betriebSignale(betrieb, pruefung, roh, { jetzt = Date.now(), meh
     else if (seit >= 5) add('praesenz_alt', `Seit ${seit} Jahren im Netz (© im Fuß)`, 10);
   }
 
+  // Von Hand eingetragen: Bestand und Gruendungsjahr. Beides sagt mehr ueber
+  // den Betrieb als jede Website – viele Fahrzeuge heissen Umsatz, ein altes
+  // Gruendungsjahr heisst Stammkundschaft.
+  const fahrzeuge = Number(b.fahrzeuge);
+  if (Number.isFinite(fahrzeuge) && b.fahrzeuge !== null && fahrzeuge >= 50) add('fahrzeuge', `${fahrzeuge} Fahrzeuge im Bestand`, 15);
+  else if (Number.isFinite(fahrzeuge) && b.fahrzeuge !== null && fahrzeuge >= 20) add('fahrzeuge', `${fahrzeuge} Fahrzeuge im Bestand`, 8);
+  const gegruendet = Number(b.gruendungsjahr);
+  if (Number.isFinite(gegruendet) && b.gruendungsjahr !== null && gegruendet > 1800) {
+    const seit = jetztJahr - gegruendet;
+    if (seit >= 20) add('gruendung', `Gegründet ${gegruendet} (${seit} Jahre)`, 15);
+    else if (seit >= 10) add('gruendung', `Gegründet ${gegruendet} (${seit} Jahre)`, 8);
+  }
+
   if (RECHTSFORM_RE.test(String(b.name || '')) || r.rechtsform) add('rechtsform', 'Eingetragene Gesellschaft', 10);
   if (b.telefon) add('telefon', 'Telefon bekannt', 5);
   if (b.oeffnungszeiten || r.oeffnungszeiten) add('oeffnungszeiten', 'Öffnungszeiten gepflegt', 5);

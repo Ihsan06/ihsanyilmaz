@@ -1,8 +1,9 @@
 "use client";
-import { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Download, Plus, RotateCcw, Star, Trash2 } from "lucide-react";
-import AdminShell, { api, datum } from "@/components/admin/AdminShell";
+import { ArrowDown, ArrowUp, ArrowUpToLine, ChevronDown, ChevronUp, Download, List, Mail, Map as KarteIcon, MapPin, Plus, RotateCcw, Star, Trash2 } from "lucide-react";
+import AdminShell, { api, datum, InfoTipp } from "@/components/admin/AdminShell";
+import Karte from "./Karte";
 
 // Akquise-Cockpit: Autohaeuser aus OpenStreetMap holen, ihre Websites vom
 // Server pruefen lassen und die Liste sortier- und filterbar zeigen.
@@ -51,6 +52,7 @@ type Betrieb = {
   score_website: number | null; score_betrieb: number | null; prioritaet: number | null;
   kategorie: string | null; auswahl: number; geloescht: string | null;
   google_place_id: string | null; google_bewertung: number | null; google_anzahl: number | null; google_stand: string | null;
+  fahrzeuge: number | null; gruendungsjahr: number | null;
   geprueft_am: string | null; angelegt: string; geaendert: string;
   signale: Signal[] | null;
   letzte_pruefung: LetztePruefung | null;
@@ -96,6 +98,8 @@ const KATEGORIEN: { wert: string; label: string }[] = [
   { wert: "mittel", label: "Mittel" },
   { wert: "gepflegt", label: "Gepflegt" },
 ];
+// Ohne Kategorie: noch nicht geprueft oder Website nicht erreichbar.
+const KAT_OFFEN = "offen";
 const kategorieLabel = (k: string | null) => KATEGORIEN.find(x => x.wert === k)?.label || "—";
 
 const QUELLE_LABEL: Record<string, string> = { osm: "OSM", manuell: "manuell", vermutet: "vermutet", bestaetigt: "bestätigt", google: "Google" };
@@ -114,6 +118,15 @@ const SIGNAL_LABEL: Record<string, string> = {
   praesenz_alt: "Lange im Netz", rechtsform: "Eingetragene Gesellschaft", telefon: "Telefon bekannt",
   oeffnungszeiten: "Öffnungszeiten", mehrere_standorte: "Mehrere Standorte", werkstatt_und_handel: "Werkstatt und Handel",
   zusatzangebote: "Zusatzangebote", eigene_domain: "Eigene Domain",
+  fahrzeuge: "Fahrzeuge im Bestand", gruendung: "Gründungsjahr",
+};
+
+// Kurz erklaert, was hinter den Zahlen steht (Info-Symbol im Spaltenkopf).
+const ERKLAERUNG = {
+  prio: "Priorität = 60 % Website-Schwäche + 40 % Betriebs-Stärke. Ab 60 lohnt ein Brief: schwache Website bei gesundem Betrieb.",
+  kat: "Kategorie aus der Prüfung: Ohne Website · Nur Börse (nur mobile.de/AutoScout24-Seite) · Baukasten (Jimdo, Wix …) · Veraltet (Schwäche ≥ 50) · Mittel (25–49) · Gepflegt (< 25). Offen = noch nicht geprüft oder Seite nicht erreichbar.",
+  schwaeche: "Website-Schwäche 0–100: Punkte aus den grauen Signalen, z. B. kein HTTPS, nicht fürs Handy gebaut, © alt, Baukasten, alte Technik, lange keine Änderung. Keine Website oder nur Börse = 100.",
+  staerke: "Betriebs-Stärke 0–100: Punkte aus den grünen Signalen, z. B. Vertragshändler, viele Google-Bewertungen, lange im Netz, Fahrzeuge im Bestand, Gründungsjahr, Rechtsform.",
 };
 
 const REGIONEN = [
@@ -167,7 +180,10 @@ function zeitAlt(wert: string | null, tage: number) {
   return isNaN(t) || Date.now() - t > tage * 86400000;
 }
 const brauchtPruefung = (b: Betrieb) => zeitAlt(b.geprueft_am, PRUEF_ALTER_TAGE);
-const brauchtGoogle = (b: Betrieb) => !b.website || !b.google_stand;
+// Nur wer noch nie bei Google abgefragt wurde. Frueher zaehlte auch jeder
+// Betrieb ohne Website – Google kennt fuer ihn aber keine, und der Knopf
+// stand nach jedem Lauf wieder mit derselben Zahl da.
+const brauchtGoogle = (b: Betrieb) => !b.google_stand;
 
 // PageSpeed direkt bei Google, ohne Schluessel. 429 und alles andere wird
 // geschluckt – dann bleibt die Pruefung einfach ohne PSI-Wert.
@@ -304,10 +320,11 @@ type Sortierung = { schluessel: SortSchluessel; ab: boolean };
 type Filter = {
   q: string; kat: string[]; art: string; web: string; gep: string; sig: string[];
   prio: string; region: string; auswahl: boolean; papierkorb: boolean; sort: Sortierung[];
+  ansicht: "liste" | "karte";
 };
 const FILTER_LEER: Filter = {
   q: "", kat: [], art: "alle", web: "alle", gep: "alle", sig: [], prio: "", region: "alle",
-  auswahl: false, papierkorb: false, sort: [{ schluessel: "prioritaet", ab: true }],
+  auswahl: false, papierkorb: false, sort: [{ schluessel: "prioritaet", ab: true }], ansicht: "liste",
 };
 const SORT_SCHLUESSEL: SortSchluessel[] = ["auswahl", "prioritaet", "name", "website", "kategorie", "score_website", "score_betrieb", "google", "geprueft"];
 // Text-Spalten steigen beim ersten Klick, Zahlen fallen – so, wie man es
@@ -328,6 +345,7 @@ function filterAusUrl(search: string): Filter {
     gep: p.get("gep") || "alle", sig: liste("sig"), prio: p.get("prio") || "", region: p.get("region") || "alle",
     auswahl: p.get("auswahl") === "1", papierkorb: p.get("papierkorb") === "1",
     sort: sort.length ? sort : FILTER_LEER.sort,
+    ansicht: p.get("ansicht") === "karte" ? "karte" : "liste",
   };
 }
 
@@ -343,6 +361,7 @@ function filterInUrl(f: Filter) {
   if (f.region !== "alle") p.set("region", f.region);
   if (f.auswahl) p.set("auswahl", "1");
   if (f.papierkorb) p.set("papierkorb", "1");
+  if (f.ansicht === "karte") p.set("ansicht", "karte");
   const sortStd = f.sort.length === 1 && f.sort[0].schluessel === "prioritaet" && f.sort[0].ab;
   if (!sortStd) p.set("sort", f.sort.map(s => `${s.schluessel}:${s.ab ? "ab" : "auf"}`).join(","));
   const s = p.toString();
@@ -384,7 +403,7 @@ function filterAnwenden(betriebe: Betrieb[], f: Filter) {
   const prio = f.prio === "" ? null : Number(f.prio);
   return betriebe
     .filter(b => !q || b.name.toLowerCase().includes(q) || (b.ort || "").toLowerCase().includes(q) || host(b.website).toLowerCase().includes(q))
-    .filter(b => !f.kat.length || f.kat.includes(b.kategorie || ""))
+    .filter(b => !f.kat.length || f.kat.includes(b.kategorie || KAT_OFFEN))
     .filter(b => f.art === "alle" || b.art === f.art)
     .filter(b => {
       switch (f.web) {
@@ -437,54 +456,7 @@ function KategorieChip({ wert }: { wert: string | null }) {
   return <span className={`akq-kat ${wert}`}>{kategorieLabel(wert)}</span>;
 }
 
-// Drei Chips, der Rest hinter "+n": das Popover oeffnet beim Ueberfahren
-// und bei Fokus (Tab oder Tipp am Handy) – rein per CSS, damit Tipp und
-// Fokus sich nicht gegenseitig aufheben.
-// Das Popover liegt "fixed" im Sichtfenster, nicht im Scrollkasten der
-// Tabelle – dort wuerde es rechts oder oben abgeschnitten. Lage beim
-// Ueberfahren/Fokus aus dem Chip berechnen: mittig darunter, am Rand nach
-// innen geschoben, unten im Fenster nach oben geklappt.
-const POPOVER_BREITE = 320;
-function popoverLage(e: React.SyntheticEvent<HTMLElement>) {
-  const el = e.currentTarget;
-  const r = el.getBoundingClientRect();
-  const breite = Math.min(POPOVER_BREITE, window.innerWidth - 32);
-  const x = Math.max(16, Math.min(r.left + r.width / 2 - breite / 2, window.innerWidth - 16 - breite));
-  const nachOben = r.bottom + 6 + 220 > window.innerHeight && r.top > window.innerHeight / 2;
-  el.style.setProperty("--pop-x", `${Math.round(x)}px`);
-  el.style.setProperty("--pop-y", `${Math.round(nachOben ? window.innerHeight - r.top + 6 : r.bottom + 6)}px`);
-  el.dataset.lage = nachOben ? "oben" : "unten";
-}
-
-function SignalChips({ signale }: { signale: Signal[] }) {
-  if (!signale.length) return <span className="text-[var(--fg-subtle)]">—</span>;
-  const sichtbar = signale.slice(0, 3);
-  const rest = signale.slice(3);
-  return (
-    <span className="akq-signale">
-      {sichtbar.map(s => <span key={s.code} className={`akq-signal ${s.seite}`} title={`${s.punkte} Punkte`}>{s.text}</span>)}
-      {rest.length > 0 && (
-        <span className="akq-mehr" tabIndex={0} role="button" aria-label={`${rest.length} weitere Signale`}
-              onMouseEnter={popoverLage} onFocus={popoverLage}
-              onKeyDown={e => { if (e.key === "Escape") (e.currentTarget as HTMLElement).blur(); }}>
-          <span className="akq-signal">+{rest.length}</span>
-          <span className="akq-popover" role="tooltip">
-            <ul>
-              {rest.map(s => (
-                <li key={s.code}>
-                  <span>{s.text}</span>
-                  <b className={s.seite}>{s.seite === "betrieb" ? "+" : ""}{s.punkte}</b>
-                </li>
-              ))}
-            </ul>
-          </span>
-        </span>
-      )}
-    </span>
-  );
-}
-
-// Mehrfachauswahl als Knopf mit Liste – fuer Kategorie und Signal.
+// Mehrfachauswahl als Knopf mit Liste – fuer die Signale.
 function MehrfachWahl({ label, optionen, wert, onChange }: {
   label: string; optionen: { wert: string; label: string }[]; wert: string[]; onChange: (v: string[]) => void;
 }) {
@@ -831,6 +803,21 @@ function AkquiseCockpit() {
     patch({ id: b.id, notiz }).catch(e => setFehler(e.message));
   };
 
+  // Fahrzeuge und Gruendungsjahr: leer = unbekannt. Der Server rechnet die
+  // Staerke gleich neu, die Zeile uebernimmt Signale und Zahlen.
+  const zahlFeldSpeichern = async (b: Betrieb, feld: "fahrzeuge" | "gruendungsjahr", roh: string) => {
+    const wert = roh.trim() === "" ? null : Number(roh.trim());
+    if ((b[feld] ?? null) === wert) return;
+    if (wert !== null && !Number.isInteger(wert)) { hinweisSetzen(b.id, "Bitte eine ganze Zahl.", true, 6000); return; }
+    try {
+      const d = await patch({ id: b.id, [feld]: wert });
+      zeileAendern(b.id, { [feld]: wert } as Partial<Betrieb>);
+      patchUebernehmen(b.id, d);
+    } catch (e) {
+      hinweisSetzen(b.id, e instanceof Error ? e.message : "Speichern ging nicht.", true, 8000);
+    }
+  };
+
   // Antwort von PATCH /betriebe: Website-Felder und, wenn der Server neu
   // gerechnet hat, auch Signale und Scores.
   const patchUebernehmen = (id: number, d: Record<string, unknown>) => {
@@ -936,6 +923,39 @@ function AkquiseCockpit() {
     return [...codes].sort().map(c => ({ wert: c, label: SIGNAL_LABEL[c] || c }));
   }, [liste]);
   const regionOptionen = useMemo(() => [...new Set(liste.map(b => b.region).filter((r): r is string => !!r))].sort(), [liste]);
+  const katZahlen = useMemo(() => {
+    const z: Record<string, number> = {};
+    for (const b of liste) { const k = b.kategorie || KAT_OFFEN; z[k] = (z[k] || 0) + 1; }
+    return z;
+  }, [liste]);
+  const katSchalten = (k: string) => setzeFilter({ kat: filter.kat.includes(k) ? filter.kat.filter(x => x !== k) : [...filter.kat, k] });
+
+  // Aus dem Karten-Popup: zur Liste wechseln, Zeile oeffnen und hinscrollen.
+  // Das Ziel steht in einem Ref: gescrollt wird erst, wenn die Liste nach dem
+  // Umschalten gezeichnet ist (Effekt nach dem Rendern).
+  const springeZu = useRef<number | null>(null);
+  const detailsAusKarte = useCallback((id: number) => {
+    springeZu.current = id;
+    setFilter(f => ({ ...f, ansicht: "liste" }));
+    aufklappen(id, true);
+  }, [aufklappen]);
+  useEffect(() => {
+    const id = springeZu.current;
+    if (id == null || filter.ansicht !== "liste") return;
+    const el = document.getElementById(`betrieb-${id}`);
+    if (!el) return;
+    springeZu.current = null;
+    const leiste = document.querySelector(".akq-leiste")?.getBoundingClientRect().height || 0;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - leiste - 12, behavior: "smooth" });
+  }, [filter.ansicht, offen]);
+
+  // "Nach oben" erscheint, sobald die Liste weiter gescrollt ist.
+  const [weitUnten, setWeitUnten] = useState(false);
+  useEffect(() => {
+    const pruefen = () => setWeitUnten(window.scrollY > 900);
+    window.addEventListener("scroll", pruefen, { passive: true });
+    return () => window.removeEventListener("scroll", pruefen);
+  }, []);
 
   const csvExport = () => {
     const kopf = ["Auswahl", "Priorität", "Betrieb", "Straße", "PLZ", "Ort", "Marken", "Website", "Website-Quelle", "Kategorie", "Website-Schwäche", "Betrieb-Stärke", "Google-Bewertung", "Google-Anzahl", "Status", "Signale", "Telefon", "Geprüft", "Notiz"];
@@ -960,15 +980,17 @@ function AkquiseCockpit() {
 
   // Sortierbarer Spaltenkopf – Pfeil zeigt die Richtung, die kleine Zahl
   // die Stelle bei Zweit- und Drittsortierung.
-  const kopf = (schluessel: SortSchluessel, inhalt: React.ReactNode, className?: string) => {
+  const kopf = (schluessel: SortSchluessel, inhalt: React.ReactNode, className?: string, info?: string) => {
     const pos = filter.sort.findIndex(s => s.schluessel === schluessel);
     const s = pos >= 0 ? filter.sort[pos] : null;
     return (
-      <th className={`akq-sortierbar${className ? ` ${className}` : ""}${s ? " aktiv" : ""}`}
-          aria-sort={s ? (s.ab ? "descending" : "ascending") : "none"}
-          onClick={e => sortieren(schluessel, e.shiftKey)} title="Klick sortiert, Shift-Klick sortiert zusätzlich">
-        <span>{inhalt}{s && (s.ab ? <ArrowDown size={11} /> : <ArrowUp size={11} />)}{s && pos > 0 && <i>{pos + 1}</i>}</span>
-      </th>
+      <div role="columnheader" className={`akq-sortierbar${className ? ` ${className}` : ""}${s ? " aktiv" : ""}`}
+           aria-sort={s ? (s.ab ? "descending" : "ascending") : "none"}>
+        <button type="button" onClick={e => sortieren(schluessel, e.shiftKey)} title="Klick sortiert, Shift-Klick sortiert zusätzlich">
+          {inhalt}{s && (s.ab ? <ArrowDown size={11} /> : <ArrowUp size={11} />)}{s && pos > 0 && <i>{pos + 1}</i>}
+        </button>
+        {info && <InfoTipp breite={300}>{info}</InfoTipp>}
+      </div>
     );
   };
 
@@ -1091,286 +1113,341 @@ function AkquiseCockpit() {
         )}
       </section>
 
-      {/* Filter und Tabelle */}
-      <section className="mon-block">
-        <div className="akq-steuerung mb-4">
-          <input value={filter.q} onChange={e => setzeFilter({ q: e.target.value })} placeholder="Name, Ort oder Domain"
-                 className="field px-3 py-2 text-sm" style={{ width: 200 }} />
-          <MehrfachWahl label="Kategorie" optionen={KATEGORIEN} wert={filter.kat} onChange={kat => setzeFilter({ kat })} />
-          <select value={filter.art} onChange={e => setzeFilter({ art: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Art">
-            <option value="alle">Alle Arten</option>
-            <option value="car">Autohaus</option>
-            <option value="car_repair">Werkstatt</option>
-          </select>
-          <select value={filter.web} onChange={e => setzeFilter({ web: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Website">
-            <option value="alle">Website: alle</option>
-            <option value="mit">mit Website</option>
-            <option value="ohne">ohne Website</option>
-            <option value="vermutet">vermutet</option>
-            <option value="boerse">nur Börse</option>
-          </select>
-          <select value={filter.gep} onChange={e => setzeFilter({ gep: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Geprüft">
-            <option value="alle">Geprüft: alle</option>
-            <option value="ja">geprüft</option>
-            <option value="nein">nicht geprüft</option>
-            <option value="alt">älter als {PRUEF_ALTER_TAGE} Tage</option>
-          </select>
-          <MehrfachWahl label="Signal" optionen={signalOptionen} wert={filter.sig} onChange={sig => setzeFilter({ sig })} />
-          <label className="akq-inline">
-            min. Priorität
-            <input type="number" min={0} max={100} value={filter.prio} onChange={e => setzeFilter({ prio: e.target.value })}
-                   className="field px-3 py-2 text-sm" style={{ width: 72 }} />
-          </label>
-          {regionOptionen.length > 1 && (
-            <select value={filter.region} onChange={e => setzeFilter({ region: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Region">
-              <option value="alle">Alle Regionen</option>
-              {regionOptionen.map(r => <option key={r} value={r}>{r}</option>)}
+      {/* Filter und Liste. Die Leiste mit Filtern und Spaltenkoepfen bleibt
+          beim Scrollen oben stehen; die Liste selbst scrollt mit der Seite,
+          nicht in einem eigenen Kasten – das war am Trackpad fummelig. */}
+      <section className="mon-block akq-listenblock">
+        <div className="akq-leiste">
+          <div className="akq-steuerung">
+            <input value={filter.q} onChange={e => setzeFilter({ q: e.target.value })} placeholder="Name, Ort oder Domain"
+                   className="field px-3 py-2 text-sm" style={{ width: 200 }} />
+            <select value={filter.art} onChange={e => setzeFilter({ art: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Art">
+              <option value="alle">Alle Arten</option>
+              <option value="car">Autohaus</option>
+              <option value="car_repair">Werkstatt</option>
             </select>
-          )}
-          <label className="akq-inline">
-            <input type="checkbox" checked={filter.auswahl} onChange={e => setzeFilter({ auswahl: e.target.checked })} /> nur Auswahl
-          </label>
-          <label className="akq-inline">
-            <input type="checkbox" checked={filter.papierkorb} onChange={e => papierkorbSchalten(e.target.checked)} /> Papierkorb
-          </label>
-          <span className="akq-trenner" aria-hidden="true" />
-          <span className="akq-hinweis">{zahl(sichtbar.length)} von {zahl(liste.length)}</span>
-          {filterAktiv(filter) && (
-            <button onClick={() => setFilter(f => ({ ...FILTER_LEER, papierkorb: f.papierkorb, sort: f.sort }))} className="akq-knopf">Filter zurücksetzen</button>
-          )}
-          <button onClick={csvExport} disabled={!sichtbar.length} className="akq-knopf" title="Gefilterte Liste als CSV">
-            <Download size={13} /> CSV
-          </button>
-          {!filter.papierkorb && (
-            <button onClick={() => setFormOffen(o => !o)} className="akq-knopf">
-              <Plus size={13} /> Betrieb anlegen
+            <select value={filter.web} onChange={e => setzeFilter({ web: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Website">
+              <option value="alle">Website: alle</option>
+              <option value="mit">mit Website</option>
+              <option value="ohne">ohne Website</option>
+              <option value="vermutet">vermutet</option>
+              <option value="boerse">nur Börse</option>
+            </select>
+            <select value={filter.gep} onChange={e => setzeFilter({ gep: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Geprüft">
+              <option value="alle">Geprüft: alle</option>
+              <option value="ja">geprüft</option>
+              <option value="nein">nicht geprüft</option>
+              <option value="alt">älter als {PRUEF_ALTER_TAGE} Tage</option>
+            </select>
+            <MehrfachWahl label="Signal" optionen={signalOptionen} wert={filter.sig} onChange={sig => setzeFilter({ sig })} />
+            <label className="akq-inline">
+              min. Priorität
+              <input type="number" min={0} max={100} value={filter.prio} onChange={e => setzeFilter({ prio: e.target.value })}
+                     className="field px-3 py-2 text-sm" style={{ width: 72 }} />
+            </label>
+            {regionOptionen.length > 1 && (
+              <select value={filter.region} onChange={e => setzeFilter({ region: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Region">
+                <option value="alle">Alle Regionen</option>
+                {regionOptionen.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            )}
+            <label className="akq-inline">
+              <input type="checkbox" checked={filter.auswahl} onChange={e => setzeFilter({ auswahl: e.target.checked })} /> nur Auswahl
+            </label>
+            <label className="akq-inline">
+              <input type="checkbox" checked={filter.papierkorb} onChange={e => papierkorbSchalten(e.target.checked)} /> Papierkorb
+            </label>
+            <span className="akq-trenner" aria-hidden="true" />
+            <button onClick={csvExport} disabled={!sichtbar.length} className="akq-knopf" title="Gefilterte Liste als CSV">
+              <Download size={13} /> CSV
             </button>
+            {!filter.papierkorb && (
+              <button onClick={() => setFormOffen(o => !o)} className="akq-knopf">
+                <Plus size={13} /> Betrieb anlegen
+              </button>
+            )}
+          </div>
+
+          {/* Kategorie als Knoepfe: ein Klick filtert, mehrere zugleich gehen. */}
+          <div className="akq-kat-leiste" role="group" aria-label="Kategorie">
+            <button type="button" className={`akq-kat-knopf${filter.kat.length ? "" : " an"}`} onClick={() => setzeFilter({ kat: [] })}>
+              Alle <b>{zahl(liste.length)}</b>
+            </button>
+            {[...KATEGORIEN, { wert: KAT_OFFEN, label: "Offen" }].map(k => (
+              <button key={k.wert} type="button" onClick={() => katSchalten(k.wert)} disabled={!katZahlen[k.wert]}
+                      className={`akq-kat-knopf ${k.wert}${filter.kat.includes(k.wert) ? " an" : ""}`} aria-pressed={filter.kat.includes(k.wert)}>
+                {k.label} <b>{zahl(katZahlen[k.wert] || 0)}</b>
+              </button>
+            ))}
+            <InfoTipp breite={320}>{ERKLAERUNG.kat}</InfoTipp>
+            <span className="akq-trenner" aria-hidden="true" />
+            <span className="akq-hinweis">{zahl(sichtbar.length)} von {zahl(liste.length)}</span>
+            <span className="akq-ansicht" role="group" aria-label="Ansicht">
+              <button type="button" className={filter.ansicht === "liste" ? "an" : ""} onClick={() => setzeFilter({ ansicht: "liste" })} aria-pressed={filter.ansicht === "liste"}>
+                <List size={14} /> Liste
+              </button>
+              <button type="button" className={filter.ansicht === "karte" ? "an" : ""} onClick={() => setzeFilter({ ansicht: "karte" })} aria-pressed={filter.ansicht === "karte"}>
+                <KarteIcon size={14} /> Karte
+              </button>
+            </span>
+            {filterAktiv(filter) && (
+              <button onClick={() => setFilter(f => ({ ...FILTER_LEER, papierkorb: f.papierkorb, sort: f.sort, ansicht: f.ansicht }))} className="akq-knopf">Filter zurücksetzen</button>
+            )}
+          </div>
+
+          {formOffen && !filter.papierkorb && (
+            <form onSubmit={anlegen} className="akq-steuerung akq-anlegen">
+              <input required value={neu.name} onChange={e => setNeu({ ...neu, name: e.target.value })} placeholder="Name"
+                     className="field px-3 py-2 text-sm" style={{ width: 220 }} />
+              <input value={neu.website} onChange={e => setNeu({ ...neu, website: e.target.value })} placeholder="Website"
+                     className="field px-3 py-2 text-sm" style={{ width: 220 }} />
+              <input value={neu.ort} onChange={e => setNeu({ ...neu, ort: e.target.value })} placeholder="Ort"
+                     className="field px-3 py-2 text-sm" style={{ width: 160 }} />
+              <button type="submit" className="btn-primary px-4 py-2 text-sm">Anlegen</button>
+              <button type="button" onClick={() => setFormOffen(false)} className="akq-knopf">Abbrechen</button>
+            </form>
+          )}
+
+          {sichtbar.length > 0 && filter.ansicht === "liste" && (
+            <div className="akq-raster akq-kopfzeile" role="row">
+              <div className="akq-nr">#</div>
+              {kopf("auswahl", <Star size={12} />, "akq-stern-kopf")}
+              {kopf("prioritaet", "Priorität", undefined, ERKLAERUNG.prio)}
+              {kopf("name", "Betrieb")}
+              {kopf("website", "Website")}
+              {kopf("kategorie", "Kategorie")}
+              {kopf("score_website", "Schwäche", "num", ERKLAERUNG.schwaeche)}
+              {kopf("score_betrieb", "Stärke", "num", ERKLAERUNG.staerke)}
+              {kopf("google", "Google")}
+              <div />
+            </div>
           )}
         </div>
 
-        {formOffen && !filter.papierkorb && (
-          <form onSubmit={anlegen} className="akq-steuerung mb-5">
-            <input required value={neu.name} onChange={e => setNeu({ ...neu, name: e.target.value })} placeholder="Name"
-                   className="field px-3 py-2 text-sm" style={{ width: 220 }} />
-            <input value={neu.website} onChange={e => setNeu({ ...neu, website: e.target.value })} placeholder="Website"
-                   className="field px-3 py-2 text-sm" style={{ width: 220 }} />
-            <input value={neu.ort} onChange={e => setNeu({ ...neu, ort: e.target.value })} placeholder="Ort"
-                   className="field px-3 py-2 text-sm" style={{ width: 160 }} />
-            <button type="submit" className="btn-primary px-4 py-2 text-sm">Anlegen</button>
-            <button type="button" onClick={() => setFormOffen(false)} className="akq-knopf">Abbrechen</button>
-          </form>
-        )}
-
         {laedt ? (
-          <p className="mon-leer">Wird geladen …</p>
+          <p className="mon-leer py-6">Wird geladen …</p>
         ) : liste.length === 0 ? (
           <p className="mon-leer py-6 text-center">{filter.papierkorb ? "Der Papierkorb ist leer." : "Noch keine Betriebe. Region wählen und suchen."}</p>
         ) : sichtbar.length === 0 ? (
           <p className="mon-leer py-6 text-center">Kein Betrieb passt zu den Filtern.</p>
+        ) : filter.ansicht === "karte" ? (
+          <Karte betriebe={sichtbar} onDetails={detailsAusKarte} />
         ) : (
-          <div className="akq-huelle">
-            <table className="mon-tabelle akq-tabelle">
-              <thead>
-                <tr>
-                  {kopf("auswahl", <Star size={12} />, "akq-stern-kopf")}
-                  {kopf("prioritaet", "Priorität")}
-                  {kopf("name", "Betrieb")}
-                  {kopf("website", "Website")}
-                  {kopf("kategorie", "Kategorie")}
-                  {kopf("score_website", "Schwäche", "num")}
-                  {kopf("score_betrieb", "Stärke", "num")}
-                  {kopf("google", "Google")}
-                  <th>Signale</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sichtbar.map(b => {
-                  const istOffen = offen.has(b.id);
-                  const arbeitet = inArbeit.has(b.id);
-                  const hinweis = hinweise[b.id];
-                  const voll = verlauf[b.id]?.[0];
-                  const lp = b.letzte_pruefung;
-                  const signale = b.signale || [];
-                  const boerse = istBoerse(b.website);
-                  return (
-                    <Fragment key={b.id}>
-                      <tr className={`${istOffen ? "akq-offen" : ""}${b.auswahl ? " akq-gewaehlt" : ""}`}>
-                        <td className="akq-stern">
-                          <button type="button" onClick={() => auswahlSchalten(b)} className={b.auswahl ? "an" : ""}
-                                  aria-pressed={!!b.auswahl} aria-label={b.auswahl ? "Aus der Auswahl nehmen" : "In die Auswahl"}>
-                            <Star size={15} />
+          <div className="akq-liste" role="table" aria-label="Betriebe">
+            {sichtbar.map((b, nr) => {
+              const istOffen = offen.has(b.id);
+              const arbeitet = inArbeit.has(b.id);
+              const hinweis = hinweise[b.id];
+              const voll = verlauf[b.id]?.[0];
+              const lp = b.letzte_pruefung;
+              const signale = b.signale || [];
+              const boerse = istBoerse(b.website);
+              const schwaechen = signale.filter(x => x.seite === "website");
+              const staerken = signale.filter(x => x.seite === "betrieb");
+              return (
+                <div key={b.id} id={`betrieb-${b.id}`} role="rowgroup" className={`akq-eintrag${istOffen ? " offen" : ""}${b.auswahl ? " gewaehlt" : ""}`}>
+                  <div className="akq-raster" role="row">
+                    <div className="akq-nr" title={`ID ${b.id}`}>
+                      <b>{nr + 1}</b>
+                      <small>ID {b.id}</small>
+                    </div>
+                    <div className="akq-stern">
+                      <button type="button" onClick={() => auswahlSchalten(b)} className={b.auswahl ? "an" : ""}
+                              aria-pressed={!!b.auswahl} aria-label={b.auswahl ? "Aus der Auswahl nehmen" : "In die Auswahl"}>
+                        <Star size={16} />
+                      </button>
+                    </div>
+                    <div><Prio wert={b.prioritaet} /></div>
+                    <div className="akq-betrieb">
+                      <button type="button" className="akq-name" onClick={() => aufklappen(b.id)}>{b.name}</button>
+                      <span className="akq-unter">
+                        {[b.art === "car_repair" ? "Werkstatt" : "Autohaus", b.ort, b.marken].filter(Boolean).join(" · ")}
+                      </span>
+                      {hinweis && <span className={`akq-zeilenhinweis${hinweis.fehler ? " fehler" : ""}`}>{hinweis.text}</span>}
+                    </div>
+                    <div className="akq-website">
+                      {b.website ? (
+                        <>
+                          <a href={b.website} target="_blank" rel="noopener noreferrer" className="akq-link" title={b.website}>
+                            {boerse ? `Börse: ${host(b.website)}` : host(b.website)}
+                          </a>
+                          <QuelleBadge b={b} bestaetigen={websiteBestaetigen} verwerfen={websiteVerwerfen} />
+                        </>
+                      ) : <span className="text-[var(--fg-subtle)]">keine</span>}
+                    </div>
+                    <div><KategorieChip wert={b.kategorie} /></div>
+                    <div className="num akq-zahl" data-l="Schwäche">{zahl(b.score_website)}</div>
+                    <div className="num akq-zahl stark" data-l="Stärke">{zahl(b.score_betrieb)}</div>
+                    <div className="akq-google">
+                      {b.google_anzahl != null || b.google_bewertung != null
+                        ? <span title={b.google_stand ? `Stand ${datum(b.google_stand)}` : undefined}>★ {note(b.google_bewertung)} · {zahl(b.google_anzahl)}</span>
+                        : <span className="text-[var(--fg-subtle)]">–</span>}
+                    </div>
+                    <div className="akq-aktionen">
+                      {filter.papierkorb ? (
+                        <>
+                          <button onClick={() => wiederherstellen(b)} className="akq-knopf" title="Wiederherstellen"><RotateCcw size={13} /> Zurück</button>
+                          <button onClick={() => endgueltigLoeschen(b)} className="akq-knopf" title="Endgültig löschen"><Trash2 size={14} /> Endgültig</button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => pruefen(b, mitPsi, { oeffnen: true }).then(ladeStand)} disabled={arbeitet || !!lauf} className="akq-knopf">
+                            {arbeitet && hinweis?.text === "Prüft …" ? "Prüft …" : "Prüfen"}
                           </button>
-                        </td>
-                        <td><Prio wert={b.prioritaet} /></td>
-                        <td className="akq-betrieb">
-                          <b className="text-[var(--fg)] font-semibold">{b.name}</b>
-                          <span className="block text-[0.76rem] text-[var(--fg-subtle)]">
-                            {[b.ort, b.marken].filter(Boolean).join(" · ") || (b.art === "car_repair" ? "Werkstatt" : "")}
-                          </span>
-                          {hinweis && <span className={`akq-zeilenhinweis${hinweis.fehler ? " fehler" : ""}`}>{hinweis.text}</span>}
-                        </td>
-                        <td className="akq-website">
-                          {b.website ? (
-                            <>
-                              <a href={b.website} target="_blank" rel="noopener noreferrer" className="akq-link" title={b.website}>
-                                {boerse ? `Börsen-Seite (${host(b.website)})` : host(b.website)}
-                              </a>
-                              <QuelleBadge b={b} bestaetigen={websiteBestaetigen} verwerfen={websiteVerwerfen} />
-                            </>
-                          ) : <span className="text-[var(--fg-subtle)]">keine</span>}
-                        </td>
-                        <td><KategorieChip wert={b.kategorie} /></td>
-                        <td className="num">{zahl(b.score_website)}</td>
-                        <td className="num">{zahl(b.score_betrieb)}</td>
-                        <td className="akq-google">
-                          {b.google_anzahl != null || b.google_bewertung != null
-                            ? <span title={b.google_stand ? `Stand ${datum(b.google_stand)}` : undefined}>{note(b.google_bewertung)} · {zahl(b.google_anzahl)}</span>
-                            : <span className="text-[var(--fg-subtle)]">–</span>}
-                        </td>
-                        <td><SignalChips signale={signale} /></td>
-                        <td>
-                          <span className="akq-aktionen">
-                            {filter.papierkorb ? (
-                              <>
-                                <button onClick={() => wiederherstellen(b)} className="akq-knopf" title="Wiederherstellen"><RotateCcw size={13} /> Zurück</button>
-                                <button onClick={() => endgueltigLoeschen(b)} className="akq-knopf" title="Endgültig löschen"><Trash2 size={14} /> Endgültig</button>
-                              </>
-                            ) : (
-                              <>
-                                <button onClick={() => pruefen(b, mitPsi, { oeffnen: true }).then(ladeStand)} disabled={arbeitet || !!lauf} className="akq-knopf">
-                                  {arbeitet && hinweis?.text === "Prüft …" ? "Prüft …" : "Prüfen"}
-                                </button>
-                                <button onClick={() => googleSuchen(b).then(ladeStand)} disabled={arbeitet || !!lauf || googleEingerichtet === false} className="akq-knopf"
-                                        title={googleEingerichtet === false ? "Google Places nicht eingerichtet" : "Bei Google Maps nachschlagen"}>
-                                  Google
-                                </button>
-                                <a href={`/admin/akquise/post?betrieb=${b.id}`} className="akq-knopf" title="Brief vorbereiten">Brief</a>
-                              </>
-                            )}
-                            <button onClick={() => aufklappen(b.id)} className="akq-knopf" aria-expanded={istOffen} aria-label="Details">
-                              {istOffen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                            </button>
-                            {!filter.papierkorb && (
-                              <button onClick={() => inPapierkorb(b)} className="akq-knopf" aria-label={`${b.name} in den Papierkorb`} title="In den Papierkorb">
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-                          </span>
-                        </td>
-                      </tr>
-                      {istOffen && (
-                        <tr className="akq-details">
-                          <td colSpan={10}>
-                            <div className="akq-details-raster">
-                              <div>
-                                <p className="akq-dt">Signale</p>
-                                {signale.length ? (
-                                  <ul className="akq-signalliste">
-                                    {signale.map(s => (
-                                      <li key={s.code}>
-                                        <span>{s.text}</span>
-                                        <span className={`akq-punkte ${s.seite}`}>{s.seite === "betrieb" ? "+" : ""}{s.punkte}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                ) : <p className="mon-leer">Noch nicht geprüft.</p>}
-                              </div>
-
-                              <div>
-                                <p className="akq-dt">Prüfung</p>
-                                <dl className="akq-dl">
-                                  <dt>Zeitpunkt</dt><dd>{lp ? datum(lp.zeitpunkt) : "—"}</dd>
-                                  <dt>Erreichbar</dt><dd>{lp ? (lp.erreichbar ? "ja" : "nein") : "—"}</dd>
-                                  <dt>HTTPS</dt><dd>{lp ? (lp.https ? "ja" : "nein") : "—"}</dd>
-                                  <dt>Viewport</dt><dd>{lp ? (lp.viewport ? "ja" : "nein") : "—"}</dd>
-                                  <dt>System</dt><dd>{lp?.baukasten || lp?.cms || voll?.generator || "—"}</dd>
-                                  <dt>© im Fuß</dt><dd>{lp?.copyright_jahr ?? "—"}</dd>
-                                  {voll?.titel && <><dt>Titel</dt><dd className="akq-lang">{voll.titel}</dd></>}
-                                  {voll?.antwort_ms != null && <><dt>Antwort</dt><dd>{zahl(voll.antwort_ms)} ms · {zahl(voll.groesse_kb)} KB</dd></>}
-                                  {voll?.roh?.verifiziert_durch?.length ? <><dt>Bezug</dt><dd>{voll.roh.verifiziert_durch.join(", ")} im HTML</dd></> : null}
-                                  {lp?.fehler && <><dt>Fehler</dt><dd className="akq-lang">{lp.fehler}</dd></>}
-                                </dl>
-                              </div>
-
-                              <div>
-                                <p className="akq-dt">PageSpeed &amp; Wayback</p>
-                                <dl className="akq-dl">
-                                  <dt>Leistung</dt><dd>{lp?.psi_leistung ?? voll?.psi_leistung ?? "—"}</dd>
-                                  <dt>LCP</dt><dd>{voll?.psi_lcp != null ? `${voll.psi_lcp.toFixed(1).replace(".", ",")} s` : "—"}</dd>
-                                  <dt>CLS</dt><dd>{voll?.psi_cls != null ? voll.psi_cls.toFixed(2).replace(".", ",") : "—"}</dd>
-                                  <dt>Erster Snapshot</dt><dd>{datum(lp?.wayback_erster)}</dd>
-                                  <dt>Letzter Snapshot</dt><dd>{datum(lp?.wayback_letzter)}</dd>
-                                  <dt>Snapshots</dt><dd>{zahl(lp?.wayback_anzahl ?? voll?.wayback_anzahl)}</dd>
-                                </dl>
-                              </div>
-
-                              <div>
-                                <p className="akq-dt">Betrieb</p>
-                                <dl className="akq-dl">
-                                  <dt>Adresse</dt>
-                                  <dd className="akq-lang">{[b.strasse, [b.plz, b.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ") || "—"}</dd>
-                                  <dt>Telefon</dt>
-                                  <dd>{b.telefon ? <a href={`tel:${b.telefon.replace(/\s/g, "")}`} className="akq-link">{b.telefon}</a> : "—"}</dd>
-                                  {b.email && <><dt>E-Mail</dt><dd className="akq-lang">{b.email}</dd></>}
-                                  {b.oeffnungszeiten && <><dt>Öffnungszeiten</dt><dd className="akq-lang">{b.oeffnungszeiten}</dd></>}
-                                  <dt>Quelle</dt><dd>{b.quelle === "osm" ? `OSM${b.region ? ` · ${b.region}` : ""}` : "manuell"}</dd>
-                                  <dt>Status</dt>
-                                  <dd>
-                                    <span className={`akq-status ${b.status}`}>{STATUS.find(s => s.wert === b.status)?.label || b.status}</span>
-                                    <select value={b.status} onChange={e => statusSetzen(b.id, e.target.value)}
-                                            className="field px-2 py-1 text-xs ml-2" style={{ width: "auto", display: "inline-block" }} aria-label={`Status von ${b.name}`}>
-                                      {STATUS.map(s => <option key={s.wert} value={s.wert}>{s.label}</option>)}
-                                    </select>
-                                  </dd>
-                                  <dt>Website</dt>
-                                  <dd className="akq-website-feld">
-                                    <input key={b.website || ""} defaultValue={b.website || ""} placeholder="https://…"
-                                           onBlur={e => websiteSpeichern(b, e.target.value)}
-                                           onKeyDown={e => { if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }}
-                                           className="field px-2 py-1 text-xs" />
-                                    <QuelleBadge b={b} bestaetigen={websiteBestaetigen} verwerfen={websiteVerwerfen} />
-                                  </dd>
-                                  <dt>Google</dt>
-                                  <dd className="akq-lang">
-                                    {b.google_stand ? (
-                                      <>
-                                        {b.google_place_id
-                                          ? <>{note(b.google_bewertung)} Sterne · {zahl(b.google_anzahl)} Bewertungen</>
-                                          : "nicht gefunden"}
-                                        <span className="text-[var(--fg-subtle)]"> · Stand {datum(b.google_stand)}</span>
-                                        {b.google_place_id && (
-                                          <> · <a href={`https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(b.google_place_id)}`}
-                                                  target="_blank" rel="noopener noreferrer" className="akq-link">bei Google Maps ↗</a></>
-                                        )}
-                                      </>
-                                    ) : "—"}
-                                  </dd>
-                                </dl>
-                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.name, b.plz, b.ort].filter(Boolean).join(" "))}`}
-                                   target="_blank" rel="noopener noreferrer" className="akq-link text-sm inline-block mt-2">
-                                  Auf Google Maps suchen ↗
-                                </a>
-                              </div>
-
-                              <div className="akq-notiz">
-                                <p className="akq-dt">Notiz</p>
-                                <textarea defaultValue={b.notiz || ""} rows={4}
-                                          onBlur={e => notizSpeichern(b, e.target.value)}
-                                          className="field px-3 py-2 text-sm" />
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
+                          <button onClick={() => googleSuchen(b).then(() => ladeStand())} disabled={arbeitet || !!lauf || googleEingerichtet === false} className="akq-knopf akq-symbol"
+                                  title={googleEingerichtet === false ? "Google Places nicht eingerichtet" : "Bei Google Maps nachschlagen"} aria-label="Bei Google nachschlagen">
+                            <MapPin size={14} />
+                          </button>
+                          <a href={`/admin/akquise/post?betrieb=${b.id}`} className="akq-knopf akq-symbol" title="Brief vorbereiten" aria-label="Brief vorbereiten"><Mail size={14} /></a>
+                        </>
                       )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+                      <button onClick={() => aufklappen(b.id)} className="akq-knopf akq-symbol" aria-expanded={istOffen} aria-label="Details" title="Details">
+                        {istOffen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </button>
+                      {!filter.papierkorb && (
+                        <button onClick={() => inPapierkorb(b)} className="akq-knopf akq-symbol" aria-label={`${b.name} in den Papierkorb`} title="In den Papierkorb">
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Alle Signale in eigener Zeile: links die Schwaechen der
+                      Website, rechts die Staerken des Betriebs, jeweils mit Punkten. */}
+                  {signale.length > 0 && (
+                    <div className="akq-signalzeile">
+                      {schwaechen.map(x => (
+                        <span key={x.code} className="akq-signal website">{x.text}{x.punkte ? <b>{x.punkte}</b> : null}</span>
+                      ))}
+                      {staerken.map(x => (
+                        <span key={x.code} className="akq-signal betrieb">{x.text}<b>+{x.punkte}</b></span>
+                      ))}
+                    </div>
+                  )}
+
+                  {istOffen && (
+                    <div className="akq-details">
+                      <div className="akq-details-raster">
+                        <div>
+                          <p className="akq-dt">Prüfung</p>
+                          <dl className="akq-dl">
+                            <dt>Zeitpunkt</dt><dd>{lp ? datum(lp.zeitpunkt) : "—"}</dd>
+                            <dt>Erreichbar</dt><dd>{lp ? (lp.erreichbar ? "ja" : "nein") : "—"}</dd>
+                            <dt>HTTPS</dt><dd>{lp ? (lp.https ? "ja" : "nein") : "—"}</dd>
+                            <dt>Viewport</dt><dd>{lp ? (lp.viewport ? "ja" : "nein") : "—"}</dd>
+                            <dt>System</dt><dd>{lp?.baukasten || lp?.cms || voll?.generator || "—"}</dd>
+                            <dt>© im Fuß</dt><dd>{lp?.copyright_jahr ?? "—"}</dd>
+                            {voll?.titel && <><dt>Titel</dt><dd className="akq-lang">{voll.titel}</dd></>}
+                            {voll?.antwort_ms != null && <><dt>Antwort</dt><dd>{zahl(voll.antwort_ms)} ms · {zahl(voll.groesse_kb)} KB</dd></>}
+                            {lp?.fehler && <><dt>Fehler</dt><dd className="akq-lang">{lp.fehler}</dd></>}
+                          </dl>
+                        </div>
+
+                        <div>
+                          <p className="akq-dt">PageSpeed &amp; Wayback</p>
+                          <dl className="akq-dl">
+                            <dt>Leistung</dt><dd>{lp?.psi_leistung ?? voll?.psi_leistung ?? "—"}</dd>
+                            <dt>LCP</dt><dd>{voll?.psi_lcp != null ? `${voll.psi_lcp.toFixed(1).replace(".", ",")} s` : "—"}</dd>
+                            <dt>CLS</dt><dd>{voll?.psi_cls != null ? voll.psi_cls.toFixed(2).replace(".", ",") : "—"}</dd>
+                            <dt>Erster Snapshot</dt><dd>{datum(lp?.wayback_erster)}</dd>
+                            <dt>Letzter Snapshot</dt><dd>{datum(lp?.wayback_letzter)}</dd>
+                          </dl>
+                        </div>
+
+                        <div>
+                          <p className="akq-dt">Betrieb</p>
+                          <dl className="akq-dl">
+                            <dt>Adresse</dt>
+                            <dd className="akq-lang">{[b.strasse, [b.plz, b.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ") || "—"}</dd>
+                            <dt>Telefon</dt>
+                            <dd>{b.telefon ? <a href={`tel:${b.telefon.replace(/\s/g, "")}`} className="akq-link">{b.telefon}</a> : "—"}</dd>
+                            {b.email && <><dt>E-Mail</dt><dd className="akq-lang">{b.email}</dd></>}
+                            {b.oeffnungszeiten && <><dt>Öffnungszeiten</dt><dd className="akq-lang">{b.oeffnungszeiten}</dd></>}
+                            <dt>Quelle</dt><dd>{b.quelle === "osm" ? `OSM${b.region ? ` · ${b.region}` : ""}` : "manuell"}</dd>
+                            <dt>Status</dt>
+                            <dd>
+                              <span className={`akq-status ${b.status}`}>{STATUS.find(x => x.wert === b.status)?.label || b.status}</span>
+                              <select value={b.status} onChange={e => statusSetzen(b.id, e.target.value)}
+                                      className="field px-2 py-1 text-xs ml-2" style={{ width: "auto", display: "inline-block" }} aria-label={`Status von ${b.name}`}>
+                                {STATUS.map(x => <option key={x.wert} value={x.wert}>{x.label}</option>)}
+                              </select>
+                            </dd>
+                            <dt>Website</dt>
+                            <dd className="akq-website-feld">
+                              <input key={b.website || ""} defaultValue={b.website || ""} placeholder="https://…"
+                                     onBlur={e => websiteSpeichern(b, e.target.value)}
+                                     onKeyDown={e => { if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }}
+                                     className="field px-2 py-1 text-xs" />
+                              <QuelleBadge b={b} bestaetigen={websiteBestaetigen} verwerfen={websiteVerwerfen} />
+                            </dd>
+                            <dt>Google</dt>
+                            <dd className="akq-lang">
+                              {b.google_stand ? (
+                                <>
+                                  {b.google_place_id ? <>{note(b.google_bewertung)} Sterne · {zahl(b.google_anzahl)} Bewertungen</> : "nicht gefunden"}
+                                  <span className="text-[var(--fg-subtle)]"> · Stand {datum(b.google_stand)}</span>
+                                  {b.google_place_id && (
+                                    <> · <a href={`https://www.google.com/maps/place/?q=place_id:${encodeURIComponent(b.google_place_id)}`}
+                                            target="_blank" rel="noopener noreferrer" className="akq-link">Maps ↗</a></>
+                                  )}
+                                </>
+                              ) : "—"}
+                            </dd>
+                          </dl>
+                        </div>
+
+                        {/* Von Hand: Bestand und Gruendungsjahr. Automatisch
+                            auslesen verbieten die AGB von mobile.de; die Links
+                            fuehren zu den Stellen, wo man es nachsieht. */}
+                        <div>
+                          <p className="akq-dt">Größe &amp; Alter <span className="normal-case tracking-normal font-normal">(von Hand)</span></p>
+                          <dl className="akq-dl akq-eingabe">
+                            <dt>Fahrzeuge</dt>
+                            <dd>
+                              <input key={`f-${b.fahrzeuge ?? ""}`} defaultValue={b.fahrzeuge ?? ""} inputMode="numeric" placeholder="z. B. 45"
+                                     onBlur={e => zahlFeldSpeichern(b, "fahrzeuge", e.target.value)}
+                                     onKeyDown={e => { if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }}
+                                     className="field px-2 py-1 text-xs" aria-label="Fahrzeuge im Bestand" />
+                            </dd>
+                            <dt>Gegründet</dt>
+                            <dd>
+                              <input key={`g-${b.gruendungsjahr ?? ""}`} defaultValue={b.gruendungsjahr ?? ""} inputMode="numeric" placeholder="z. B. 1987"
+                                     onBlur={e => zahlFeldSpeichern(b, "gruendungsjahr", e.target.value)}
+                                     onKeyDown={e => { if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }}
+                                     className="field px-2 py-1 text-xs" aria-label="Gründungsjahr" />
+                            </dd>
+                          </dl>
+                          <p className="akq-links">
+                            <a href={boerse && b.website ? b.website : `https://www.google.com/search?q=${encodeURIComponent(`site:home.mobile.de ${b.name} ${b.ort || ""}`)}`}
+                               target="_blank" rel="noopener noreferrer" className="akq-link">Bestand bei mobile.de ↗</a>
+                            <a href={`https://www.northdata.de/${encodeURIComponent([b.name, b.ort].filter(Boolean).join(", "))}`}
+                               target="_blank" rel="noopener noreferrer" className="akq-link">Gründung bei North Data ↗</a>
+                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([b.name, b.plz, b.ort].filter(Boolean).join(" "))}`}
+                               target="_blank" rel="noopener noreferrer" className="akq-link">Google Maps ↗</a>
+                          </p>
+                        </div>
+
+                        <div className="akq-notiz">
+                          <p className="akq-dt">Notiz</p>
+                          <textarea defaultValue={b.notiz || ""} rows={3}
+                                    onBlur={e => notizSpeichern(b, e.target.value)}
+                                    className="field px-3 py-2 text-sm" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
+
+      {weitUnten && (
+        <button type="button" className="akq-nach-oben" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Nach oben">
+          <ArrowUpToLine size={18} />
+        </button>
+      )}
     </>
   );
 }

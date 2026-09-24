@@ -111,6 +111,24 @@ export const onRequestPatch = nurAngemeldet(async ({ request, env }) => {
   // neu gerechnet (der Chip "Website geraten" soll verschwinden). Eine neue
   // Adresse von Hand setzt die Scores zurueck – der Browser prueft gleich.
   let neuRechnen = false;
+
+  // Fahrzeuge und Gruendungsjahr: leer = unbekannt; beides fliesst sofort in
+  // die Staerke ein.
+  const ganzeZahl = (wert, min, max) => {
+    if (wert === null || wert === '') return null;
+    const n = Number(wert);
+    return Number.isInteger(n) && n >= min && n <= max ? n : undefined;
+  };
+  if (body.fahrzeuge !== undefined) {
+    const n = ganzeZahl(body.fahrzeuge, 0, 100000);
+    if (n === undefined) return json({ ok: false, error: 'Fahrzeuganzahl ungültig.' }, 400);
+    setze('fahrzeuge', n); antwort.fahrzeuge = n; neuRechnen = true;
+  }
+  if (body.gruendungsjahr !== undefined) {
+    const n = ganzeZahl(body.gruendungsjahr, 1850, new Date().getFullYear());
+    if (n === undefined) return json({ ok: false, error: 'Gründungsjahr ungültig.' }, 400);
+    setze('gruendungsjahr', n); antwort.gruendungsjahr = n; neuRechnen = true;
+  }
   if (body.website !== undefined) {
     const roh = String(body.website ?? '').trim();
     const website = roh ? websiteNormalisieren(roh) : null;
