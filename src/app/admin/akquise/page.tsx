@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpToLine, ChevronDown, ChevronUp, Download, Mail, MapPin, Plus, RotateCcw, Star, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpToLine, Check, ChevronDown, ChevronUp, CircleAlert, Download, Loader2, Mail, Plus, RefreshCw, RotateCcw, Search, Star, Trash2 } from "lucide-react";
 import AdminShell, { api, datum, InfoTipp } from "@/components/admin/AdminShell";
 import Karte from "./Karte";
 
@@ -62,7 +62,20 @@ type Lauf = { id: number; art: string; region: string | null; gefunden: number |
 type Stand = {
   betriebe: number; mitWebsite: number; ohneWebsite: number; nurBoerse: number; geprueft: number;
   prioHoch: number; auswahl: number; papierkorb: number; nachStatus: Record<string, number>; laeufe: Lauf[];
+  google?: { eingerichtet: boolean; monat?: string; genutzt?: number; grenze?: number; frei?: number };
 };
+
+// Der Suchlauf in Schritten – jeder zeigt Zustand und Zahlen.
+type SchrittKey = "osm" | "google" | "abgleich" | "doppelte" | "pruefen" | "psi";
+type SchrittStand = { status: "wartet" | "laeuft" | "fertig" | "fehler" | "aus"; text: string; fertig?: number; gesamt?: number };
+const SCHRITTE: { key: SchrittKey; titel: string }[] = [
+  { key: "osm", titel: "OpenStreetMap" },
+  { key: "google", titel: "Google Maps" },
+  { key: "abgleich", titel: "Abgleich" },
+  { key: "doppelte", titel: "Zusammenführen" },
+  { key: "pruefen", titel: "Websites prüfen" },
+  { key: "psi", titel: "PageSpeed" },
+];
 
 type GoogleInfo = { google_place_id: string | null; google_bewertung: number | null; google_anzahl: number | null; google_stand: string | null };
 
@@ -184,28 +197,10 @@ const brauchtPruefung = (b: Betrieb) => zeitAlt(b.geprueft_am, PRUEF_ALTER_TAGE)
 // Betrieb ohne Website – Google kennt fuer ihn aber keine, und der Knopf
 // stand nach jedem Lauf wieder mit derselben Zahl da.
 const brauchtGoogle = (b: Betrieb) => !b.google_stand;
-
-// PageSpeed direkt bei Google, ohne Schluessel. 429 und alles andere wird
-// geschluckt – dann bleibt die Pruefung einfach ohne PSI-Wert.
-async function psiHolen(url: string): Promise<{ leistung: number; lcp: number; cls: number } | null> {
-  try {
-    const res = await fetch(
-      `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=mobile&category=performance`,
-    );
-    if (!res.ok) return null;
-    const d = await res.json();
-    const lr = d?.lighthouseResult;
-    const score = lr?.categories?.performance?.score;
-    if (typeof score !== "number") return null;
-    return {
-      leistung: Math.round(score * 100),
-      lcp: (lr.audits?.["largest-contentful-paint"]?.numericValue ?? 0) / 1000,
-      cls: lr.audits?.["cumulative-layout-shift"]?.numericValue ?? 0,
-    };
-  } catch {
-    return null;
-  }
-}
+// PageSpeed nur fuer eigene, erreichbare Websites ohne Messwert.
+const brauchtPsi = (b: Betrieb) =>
+  !!b.website && !istBoerse(b.website) && !!b.letzte_pruefung?.erreichbar && b.letzte_pruefung?.psi_leistung == null;
+const warte = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 // Wayback im Browser: archive.org/wayback/available erlaubt CORS, der
 // CDX-Dienst nicht. Ohne timestamp kommt der juengste Snapshot, mit
@@ -325,6 +320,10 @@ const FILTER_LEER: Filter = {
   q: "", kat: [], art: "alle", web: "alle", gep: "alle", sig: [], prio: "", region: "alle",
   auswahl: false, papierkorb: false, sort: [{ schluessel: "prioritaet", ab: true }],
 };
+const SORT_LABEL: Record<SortSchluessel, string> = {
+  auswahl: "Auswahl", prioritaet: "Priorität", name: "Name", website: "Website", kategorie: "Kategorie",
+  score_website: "Schwäche", score_betrieb: "Stärke", google: "Google-Bewertungen", geprueft: "Zuletzt geprüft",
+};
 const SORT_SCHLUESSEL: SortSchluessel[] = ["auswahl", "prioritaet", "name", "website", "kategorie", "score_website", "score_betrieb", "google", "geprueft"];
 // Text-Spalten steigen beim ersten Klick, Zahlen fallen – so, wie man es
 // jeweils lesen will.
@@ -428,15 +427,22 @@ function filterAnwenden(betriebe: Betrieb[], f: Filter) {
 
 // ---------------------------------------------------------------- Bausteine
 
-function Kachel({ titel, wert, unter }: { titel: string; wert: string; unter?: string }) {
+// Kennzahl als Knopf: ein Klick setzt den passenden Filter, ein zweiter hebt
+// ihn auf. Der farbige Streifen zeigt die Kategorie wie auf der Karte.
+function KpiKachel({ titel, wert, aktiv, onClick, farbe, akzent }: {
+  titel: string; wert: string; aktiv?: boolean; onClick: () => void; farbe?: string; akzent?: boolean;
+}) {
   return (
-    <div className="mon-kachel">
-      <p className="mon-kachel-titel">{titel}</p>
-      <p className="mon-kachel-wert">{wert}</p>
-      {unter && <p className="mon-kachel-unter">{unter}</p>}
-    </div>
+    <button type="button" onClick={onClick} aria-pressed={!!aktiv}
+            className={`akq-kpi${aktiv ? " an" : ""}${akzent ? " akzent" : ""}${farbe ? ` kat-${farbe}` : ""}`}>
+      <span className="akq-kpi-titel">{titel}</span>
+      <span className="akq-kpi-wert">{wert}</span>
+    </button>
   );
 }
+
+const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+const monatName = (m?: string) => (m && /^\d{4}-\d{2}$/.test(m) ? MONATE[Number(m.slice(5, 7)) - 1] : "Monat");
 
 function Prio({ wert }: { wert: number | null }) {
   if (wert == null) return <span className="text-[var(--fg-subtle)]">—</span>;
@@ -523,19 +529,17 @@ function AkquiseCockpit() {
   const [region, setRegion] = useState("wuerzburg");
   const [ort, setOrt] = useState("");
   const [radius, setRadius] = useState("25");
-  const [sucht, setSucht] = useState(false);
-  const [suchFortschritt, setSuchFortschritt] = useState("");
-  const [suchErgebnis, setSuchErgebnis] = useState<{ gefunden: number; neu: number } | null>(null);
+  // Suchlauf: ein Klick fuer alles – OSM, Google, Abgleich, Zusammenfuehren,
+  // Pruefen, PageSpeed. "laeuft" sperrt die Knoepfe, "ablauf" zeigt die Schritte.
+  const [laeuft, setLaeuft] = useState(false);
+  const [ablauf, setAblauf] = useState<Record<SchrittKey, SchrittStand> | null>(null);
+  const [psiHinweis, setPsiHinweis] = useState("");
 
-  // Sammellaeufe (Pruefen, Google), Zeilenzustand
-  const [mitPsi, setMitPsi] = useState(false);
-  const [lauf, setLauf] = useState<{ art: "pruefen" | "google"; gesamt: number; fertig: number } | null>(null);
+  // Zeilenzustand
   const [inArbeit, setInArbeit] = useState<Set<number>>(new Set());
   const [hinweise, setHinweise] = useState<Record<number, { text: string; fehler: boolean }>>({});
   const abbruch = useRef(false);
   const hinweisTimer = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
-  const [googleEingerichtet, setGoogleEingerichtet] = useState<boolean | null>(null);
-  const [googleTest, setGoogleTest] = useState<{ laeuft?: boolean; ok?: boolean; text: string } | null>(null);
 
   // Zeile auf/zu und die vollen Pruefdaten dazu
   const [offen, setOffen] = useState<Set<number>>(new Set());
@@ -554,14 +558,17 @@ function AkquiseCockpit() {
   const ladeDubletten = useCallback(() =>
     api("/api/admin/akquise/dubletten").then(d => setDubletten((d.gruppen || []) as DublettenGruppe[])).catch(() => setDubletten(null)), []);
 
+  // Aktive Betriebe frisch vom Server – der Suchlauf braucht nach jedem
+  // Schritt den echten Stand, nicht den der letzten Anzeige.
+  const holeAktive = useCallback(async (): Promise<Betrieb[]> => {
+    const d = await api("/api/admin/akquise/betriebe");
+    return (d.betriebe || []).map((b: Betrieb) => ({ ...b, signale: signaleLesen(b.signale) }));
+  }, []);
   const ladeListe = useCallback((papierkorb: boolean) =>
     api(`/api/admin/akquise/betriebe${papierkorb ? "?papierkorb=1" : ""}`)
       .then(d => setBetriebe((d.betriebe || []).map((b: Betrieb) => ({ ...b, signale: signaleLesen(b.signale) }))))
       .catch(e => { setBetriebe([]); setFehler(e instanceof Error ? e.message : "Ging nicht."); }), []);
-
-  useEffect(() => {
-    api("/api/admin/akquise/google").then(d => setGoogleEingerichtet(!!d.eingerichtet)).catch(() => setGoogleEingerichtet(null));
-  }, []);
+  const googleEingerichtet = stand?.google ? stand.google.eingerichtet : null;
 
   useEffect(() => {
     window.history.replaceState(null, "", filterInUrl(filter));
@@ -644,64 +651,32 @@ function AkquiseCockpit() {
       .catch(() => setVerlauf(x => ({ ...x, [id]: [] })));
   }, [verlauf]);
 
-  // Wayback und PageSpeed nach einer erreichbaren Pruefung nachziehen.
-  const nachziehen = async (id: number, website: string | null, a: PruefAntwort, psi: boolean) => {
+  // Wayback nach einer erreichbaren Pruefung nachziehen (Browser, siehe oben).
+  const nachziehen = async (id: number, website: string | null, a: PruefAntwort) => {
     if (!website || !a.pruefung?.erreichbar || istBoerse(website)) return;
     const wb = await waybackHolen(website);
     if (wb) {
       const a2 = (await api("/api/admin/akquise/pruefen", { method: "PATCH", body: JSON.stringify({ id, wayback: wb }) })) as PruefAntwort;
       pruefungUebernehmen(id, a2);
     }
-    if (psi) {
-      const werte = await psiHolen(website);
-      if (werte) {
-        const a3 = (await api("/api/admin/akquise/pruefen", { method: "PATCH", body: JSON.stringify({ id, psi: werte }) })) as PruefAntwort;
-        pruefungUebernehmen(id, a3);
-      }
-    }
   };
 
-  const pruefen = async (b: Betrieb, psi: boolean, { oeffnen = false } = {}) => {
+  // Gibt eine Fehlermeldung zurueck (oder nichts) – der Suchlauf zaehlt mit.
+  const pruefen = async (b: Betrieb, { oeffnen = false } = {}): Promise<string | void> => {
     setInArbeit(s => new Set(s).add(b.id));
     hinweisSetzen(b.id, "Prüft …");
     try {
       const a = (await api("/api/admin/akquise/pruefen", { method: "POST", body: JSON.stringify({ id: b.id }) })) as PruefAntwort;
       pruefungUebernehmen(b.id, a);
       let text = "Geprüft";
-      if (a.gefunden === false) text = a.hinweis || "Keine Website gefunden";
+      if (a.gefunden === false) text = "Keine Website gefunden";
       else if (a.geraten) text = `Website geraten: ${host(a.geraten.website)} – bitte bestätigen`;
       else if (a.pruefung?.fehler) text = `Geprüft – ${a.pruefung.fehler}`;
-      hinweisSetzen(b.id, text, a.gefunden === false, a.gefunden === false || a.geraten ? 0 : 6000);
+      hinweisSetzen(b.id, text, false, a.geraten ? 0 : 5000);
       if (oeffnen) aufklappen(b.id, true);
-      await nachziehen(b.id, a.website ?? b.website, a, psi);
+      await nachziehen(b.id, a.website ?? b.website, a);
     } catch (e) {
-      hinweisSetzen(b.id, e instanceof Error ? e.message : "Prüfung fehlgeschlagen.", true, 12000);
-    } finally {
-      setInArbeit(s => { const n = new Set(s); n.delete(b.id); return n; });
-    }
-  };
-
-  // Gibt die Fehlermeldung zurueck, damit der Sammellauf merkt, wenn Google
-  // jede Anfrage aus demselben Grund abweist.
-  const googleSuchen = async (b: Betrieb): Promise<string | void> => {
-    setInArbeit(s => new Set(s).add(b.id));
-    hinweisSetzen(b.id, "Google …");
-    try {
-      const a = (await api("/api/admin/akquise/google", { method: "POST", body: JSON.stringify({ id: b.id }) })) as PruefAntwort;
-      if (a.gefunden === false) {
-        zeileAendern(b.id, { google_stand: a.google_stand || new Date().toISOString() });
-        hinweisSetzen(b.id, "Bei Google Maps nicht gefunden", false, 8000);
-        return;
-      }
-      pruefungUebernehmen(b.id, a);
-      const g = a.google;
-      let text = g ? `Google: ${note(g.google_bewertung)} · ${zahl(g.google_anzahl)} Bewertungen` : "Google abgefragt";
-      if (a.website_uebernommen && a.website) text = `Website von Google: ${host(a.website)}`;
-      hinweisSetzen(b.id, text, false, 8000);
-      await nachziehen(b.id, a.website ?? b.website, a, false);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Google fehlgeschlagen.";
-      if (/nicht eingerichtet/i.test(msg)) setGoogleEingerichtet(false);
+      const msg = e instanceof Error ? e.message : "Prüfung fehlgeschlagen.";
       hinweisSetzen(b.id, msg, true, 12000);
       return msg;
     } finally {
@@ -709,75 +684,232 @@ function AkquiseCockpit() {
     }
   };
 
-  // Sammellauf: zwei gleichzeitig. Abbrechen laesst die beiden laufenden
-  // fertig werden und startet nur keine neuen.
-  // Liefert ein Schritt dreimal hintereinander denselben Fehler, liegt es
-  // nicht am Betrieb, sondern an der Einrichtung – dann haelt der Lauf an und
-  // der Grund steht oben, statt 175-mal in den Zeilen.
-  const sammellauf = async (art: "pruefen" | "google", ziele: Betrieb[], schritt: (b: Betrieb) => Promise<string | void>) => {
-    if (!ziele.length) return;
-    abbruch.current = false;
-    setFehler("");
-    setLauf({ art, gesamt: ziele.length, fertig: 0 });
-    let i = 0;
-    let letzter = "", gleich = 0;
-    const arbeiter = async () => {
-      while (!abbruch.current) {
-        const b = ziele[i++];
-        if (!b) return;
-        const msg = await schritt(b);
-        if (msg) {
-          gleich = msg === letzter ? gleich + 1 : 1;
-          letzter = msg;
-          if (gleich >= 3) {
-            abbruch.current = true;
-            setFehler(`Lauf angehalten: ${msg}`);
-          }
-        } else gleich = 0;
-        setLauf(l => (l ? { ...l, fertig: l.fertig + 1 } : l));
-      }
-    };
-    await Promise.all([arbeiter(), arbeiter()]);
-    setLauf(null);
-    ladeStand();
-    if (art === "google") ladeDubletten();
-  };
-  const allePruefen = () => sammellauf("pruefen", (betriebe || []).filter(brauchtPruefung), b => pruefen(b, mitPsi));
-  const alleGoogle = () => sammellauf("google", (betriebe || []).filter(brauchtGoogle), googleSuchen);
-  const googleTesten = async () => {
-    setGoogleTest({ laeuft: true, text: "Verbindung wird geprüft …" });
+  // Einzelabgleich bei Google (fuer Betriebe, die die Flaechensuche nicht
+  // zugeordnet hat).
+  const googleSuchen = async (b: Betrieb): Promise<string | void> => {
+    setInArbeit(s => new Set(s).add(b.id));
+    hinweisSetzen(b.id, "Google …");
     try {
-      const d = await api("/api/admin/akquise/google?test=1");
-      if (!d.eingerichtet) setGoogleTest({ ok: false, text: "Kein PLACES_KEY in Cloudflare." });
-      else if (d.test?.ok) setGoogleTest({ ok: true, text: `Verbindung steht – Testtreffer: ${d.test.name || "ohne Namen"}${d.test.website ? ` · ${host(d.test.website)}` : ""}` });
-      else setGoogleTest({ ok: false, text: d.test?.fehler || "Unbekannter Fehler." });
+      const a = (await api("/api/admin/akquise/google", { method: "POST", body: JSON.stringify({ id: b.id }) })) as PruefAntwort;
+      if (a.gefunden === false) {
+        zeileAendern(b.id, { google_stand: a.google_stand || new Date().toISOString() });
+        hinweisSetzen(b.id, "Bei Google Maps nicht gefunden", false, 6000);
+        return;
+      }
+      pruefungUebernehmen(b.id, a);
+      const g = a.google;
+      let text = g ? `Google: ${note(g.google_bewertung)} · ${zahl(g.google_anzahl)} Bewertungen` : "Google abgefragt";
+      if (a.website_uebernommen && a.website) text = `Website von Google: ${host(a.website)}`;
+      hinweisSetzen(b.id, text, false, 6000);
     } catch (e) {
-      setGoogleTest({ ok: false, text: e instanceof Error ? e.message : "Test fehlgeschlagen." });
+      const msg = e instanceof Error ? e.message : "Google fehlgeschlagen.";
+      hinweisSetzen(b.id, msg, true, 12000);
+      return msg;
+    } finally {
+      setInArbeit(s => { const n = new Set(s); n.delete(b.id); return n; });
     }
   };
 
-  // Suche: Bereich vom Server, Overpass im Browser, Elemente zurueck.
-  const suchen = async () => {
-    setSucht(true); setFehler(""); setSuchErgebnis(null); setSuchFortschritt("Bereich wird bestimmt …");
+  // PageSpeed mit Schluessel auf dem Server. Ist die API am Schluessel nicht
+  // freigegeben, wirft sie – der Suchlauf haelt diesen Schritt dann an.
+  const PSI_GESPERRT = /aktiviert|gesperrt|ungültig|beschränkt|Abrechnung|nicht eingerichtet/;
+  const psiMessen = async (b: Betrieb): Promise<string | void> => {
+    hinweisSetzen(b.id, "PageSpeed …");
     try {
-      const params = new URLSearchParams({ region });
-      if (region === "ort") {
-        if (!ort.trim()) { setFehler("Bitte einen Ort angeben."); return; }
-        params.set("ort", ort.trim());
-        params.set("radiusKm", String(Math.max(1, Math.min(80, Number(radius) || 25))));
-      }
-      const v = await api(`/api/admin/akquise/suche?${params.toString()}`);
-      const elements = await overpassHolen(String(v.query || ""), setSuchFortschritt);
-      setSuchFortschritt(`${zahl(elements.length)} Elemente – werden gespeichert …`);
-      const d = await api("/api/admin/akquise/suche", { method: "POST", body: JSON.stringify({ region: v.region, bbox: v.bbox, elements }) });
-      setSuchErgebnis({ gefunden: d.gefunden ?? 0, neu: d.neu ?? 0 });
-      await Promise.all([ladeListe(filter.papierkorb), ladeStand()]);
+      const a = (await api("/api/admin/akquise/psi", { method: "POST", body: JSON.stringify({ id: b.id }) })) as PruefAntwort;
+      pruefungUebernehmen(b.id, a);
+      hinweisSetzen(b.id, `PageSpeed ${a.pruefung?.psi_leistung ?? "–"}`, false, 5000);
     } catch (e) {
-      setFehler(e instanceof Error ? e.message : "Suche fehlgeschlagen.");
-    } finally {
-      setSucht(false);
-      setSuchFortschritt("");
+      const msg = e instanceof Error ? e.message : "PageSpeed fehlgeschlagen.";
+      if (PSI_GESPERRT.test(msg)) { hinweisSetzen(b.id, "", false, 1); throw new Error(msg); }
+      hinweisSetzen(b.id, msg, true, 8000);
+      return msg;
     }
+  };
+
+  // Mehrere zugleich abarbeiten. Liefert ein Schritt dreimal hintereinander
+  // denselben Fehler, liegt es an der Einrichtung, nicht am Betrieb – dann
+  // steht der Grund oben statt hundertfach in den Zeilen. Ein Wurf haelt
+  // sofort an.
+  const nebenher = async <T,>(ziele: T[], parallel: number, fn: (z: T) => Promise<string | void>, fortschritt: (n: number) => void): Promise<string | null> => {
+    let i = 0, fertig = 0, letzter = "", gleich = 0;
+    let grund: string | null = null;
+    const arbeiter = async () => {
+      while (!abbruch.current && !grund) {
+        const z = ziele[i++];
+        if (z === undefined) return;
+        try {
+          const msg = await fn(z);
+          if (msg) { gleich = msg === letzter ? gleich + 1 : 1; letzter = msg; if (gleich >= 3) grund = msg; } else gleich = 0;
+        } catch (e) {
+          grund = e instanceof Error ? e.message : String(e);
+        }
+        fortschritt(++fertig);
+      }
+    };
+    await Promise.all(Array.from({ length: parallel }, arbeiter));
+    return grund;
+  };
+
+  const schritt = (k: SchrittKey, s: Partial<SchrittStand>) =>
+    setAblauf(a => (a ? { ...a, [k]: { ...a[k], ...s } } : a));
+
+  // Google-Flaechensuche: das Suchgebiet in Felder von ~20 km teilen, je
+  // Feld Autohaeuser und Werkstaetten abfragen. Meldet Google ein Feld als
+  // voll (mehr als 60 Treffer), wird es geviertelt und neu gefragt.
+  const googleFlaeche = async (bbox: number[], regionName: string) => {
+    const [s0, w0, n0, o0] = bbox;
+    const zeilen = Math.max(1, Math.round((n0 - s0) / 0.18));
+    const spalten = Math.max(1, Math.round((o0 - w0) / 0.27));
+    const felder: { b: number[]; typ: "car" | "car_repair" }[] = [];
+    for (const typ of ["car", "car_repair"] as const) {
+      for (let r = 0; r < zeilen; r++) for (let c = 0; c < spalten; c++) {
+        const h = (n0 - s0) / zeilen, br = (o0 - w0) / spalten;
+        felder.push({ typ, b: [s0 + r * h, w0 + c * br, s0 + (r + 1) * h, w0 + (c + 1) * br] });
+      }
+    }
+    const summe = { neu: 0, verknuepft: 0, aktualisiert: 0 };
+    let i = 0, fertig = 0, aktiv = 0;
+    let grund: string | null = null;
+    const text = () => `${zahl(fertig)} von ${zahl(felder.length)} Feldern · ${zahl(summe.neu)} neu · ${zahl(summe.verknuepft + summe.aktualisiert)} abgeglichen`;
+    const arbeiter = async () => {
+      while (!abbruch.current && !grund) {
+        const f = felder[i];
+        if (!f) { if (!aktiv) return; await warte(150); continue; }
+        i++; aktiv++;
+        try {
+          const d = await api("/api/admin/akquise/google-suche", { method: "POST", body: JSON.stringify({ bbox: f.b, typ: f.typ, region: regionName }) });
+          summe.neu += d.neu || 0; summe.verknuepft += d.verknuepft || 0; summe.aktualisiert += d.aktualisiert || 0;
+          const [s, w, n, o] = f.b;
+          if (d.voll && n - s > 0.02) {
+            const ms = (s + n) / 2, mw = (w + o) / 2;
+            felder.push({ typ: f.typ, b: [s, w, ms, mw] }, { typ: f.typ, b: [s, mw, ms, o] }, { typ: f.typ, b: [ms, w, n, mw] }, { typ: f.typ, b: [ms, mw, n, o] });
+          }
+          if (d.kontingent) setStand(st => (st ? { ...st, google: { eingerichtet: true, ...d.kontingent } } : st));
+        } catch (e) {
+          grund = e instanceof Error ? e.message : "Google fehlgeschlagen.";
+        } finally {
+          aktiv--; fertig++;
+          schritt("google", { text: text(), fertig, gesamt: felder.length });
+        }
+      }
+    };
+    await Promise.all([arbeiter(), arbeiter()]);
+    if (grund) schritt("google", { status: "fehler", text: `${text()} – ${grund}` });
+    else schritt("google", { status: abbruch.current ? "aus" : "fertig", text: text() });
+    return !grund;
+  };
+
+  // Ein Klick fuer alles. mitSuche=false: nur abgleichen, pruefen, messen –
+  // ohne neue Suche in OSM und Google.
+  const suchlauf = async (mitSuche: boolean) => {
+    abbruch.current = false;
+    setLaeuft(true); setFehler(""); setPsiHinweis("");
+    const start = {} as Record<SchrittKey, SchrittStand>;
+    for (const s of SCHRITTE) start[s.key] = { status: !mitSuche && (s.key === "osm" || s.key === "google") ? "aus" : "wartet", text: "" };
+    setAblauf(start);
+    let aktuell: SchrittKey = "osm";
+    try {
+      if (mitSuche) {
+        // 1 OpenStreetMap
+        aktuell = "osm";
+        schritt("osm", { status: "laeuft", text: "Bereich wird bestimmt …" });
+        const params = new URLSearchParams({ region });
+        if (region === "ort") {
+          if (!ort.trim()) throw new Error("Bitte einen Ort angeben.");
+          params.set("ort", ort.trim());
+          params.set("radiusKm", String(Math.max(1, Math.min(80, Number(radius) || 25))));
+        }
+        const v = await api(`/api/admin/akquise/suche?${params.toString()}`);
+        const elements = await overpassHolen(String(v.query || ""), t => schritt("osm", { text: t }));
+        schritt("osm", { text: `${zahl(elements.length)} Einträge werden gespeichert …` });
+        const d = await api("/api/admin/akquise/suche", { method: "POST", body: JSON.stringify({ region: v.region, bbox: v.bbox, elements }) });
+        schritt("osm", { status: "fertig", text: `${zahl(d.gefunden)} gefunden · ${zahl(d.neu)} neu` });
+        if (abbruch.current) return;
+
+        // 2 Google-Flaechensuche
+        aktuell = "google";
+        if (!googleEingerichtet) schritt("google", { status: "aus", text: "PLACES_KEY fehlt in Cloudflare" });
+        else {
+          schritt("google", { status: "laeuft", text: "Felder werden abgefragt …" });
+          await googleFlaeche(v.bbox as number[], String(v.region || ""));
+        }
+        await ladeListe(filter.papierkorb);
+        if (abbruch.current) return;
+      }
+
+      // 3 Abgleich: Betriebe, die noch nie bei Google nachgeschlagen wurden
+      aktuell = "abgleich";
+      let aktive = await holeAktive();
+      const ohneGoogle = googleEingerichtet ? aktive.filter(brauchtGoogle) : [];
+      if (!googleEingerichtet) schritt("abgleich", { status: "aus", text: "ohne Google" });
+      else if (!ohneGoogle.length) schritt("abgleich", { status: "fertig", text: "alle abgeglichen" });
+      else {
+        schritt("abgleich", { status: "laeuft", text: `0 von ${zahl(ohneGoogle.length)}`, fertig: 0, gesamt: ohneGoogle.length });
+        const grund = await nebenher(ohneGoogle, 2, googleSuchen, n => schritt("abgleich", { text: `${zahl(n)} von ${zahl(ohneGoogle.length)}`, fertig: n }));
+        schritt("abgleich", grund ? { status: "fehler", text: grund } : { status: "fertig", text: `${zahl(ohneGoogle.length)} nachgeschlagen` });
+      }
+      if (abbruch.current) return;
+
+      // 4 Zusammenfuehren (nur sichere Gruppen; unsichere bleiben zum Pruefen)
+      aktuell = "doppelte";
+      schritt("doppelte", { status: "laeuft", text: "Doppelte werden gesucht …" });
+      const z = await api("/api/admin/akquise/dubletten", { method: "POST", body: JSON.stringify({}) });
+      await ladeDubletten();
+      schritt("doppelte", { status: "fertig", text: z.zusammengefuehrt ? `${zahl(z.zusammengefuehrt)} zusammengeführt` : "keine sicheren Doppelten" });
+      if (abbruch.current) return;
+
+      // 5 Websites pruefen (neu oder aelter als 30 Tage)
+      aktuell = "pruefen";
+      aktive = await holeAktive();
+      await ladeListe(filter.papierkorb);
+      const faelligP = aktive.filter(brauchtPruefung);
+      if (!faelligP.length) schritt("pruefen", { status: "fertig", text: "alle aktuell" });
+      else {
+        schritt("pruefen", { status: "laeuft", text: `0 von ${zahl(faelligP.length)}`, fertig: 0, gesamt: faelligP.length });
+        const grund = await nebenher(faelligP, 2, b => pruefen(b), n => schritt("pruefen", { text: `${zahl(n)} von ${zahl(faelligP.length)}`, fertig: n }));
+        schritt("pruefen", grund ? { status: "fehler", text: grund } : { status: "fertig", text: `${zahl(faelligP.length)} geprüft` });
+      }
+      if (abbruch.current) return;
+
+      // 6 PageSpeed fuer alle erreichbaren eigenen Websites ohne Messwert
+      aktuell = "psi";
+      aktive = await holeAktive();
+      const faelligPsi = aktive.filter(brauchtPsi);
+      if (!faelligPsi.length) schritt("psi", { status: "fertig", text: "alle gemessen" });
+      else {
+        schritt("psi", { status: "laeuft", text: `0 von ${zahl(faelligPsi.length)}`, fertig: 0, gesamt: faelligPsi.length });
+        const grund = await nebenher(faelligPsi, 3, psiMessen, n => schritt("psi", { text: `${zahl(n)} von ${zahl(faelligPsi.length)}`, fertig: n }));
+        if (grund && PSI_GESPERRT.test(grund)) {
+          setPsiHinweis(grund);
+          schritt("psi", { status: "aus", text: "am Google-Schlüssel noch nicht freigegeben" });
+        } else schritt("psi", grund ? { status: "fehler", text: grund } : { status: "fertig", text: `${zahl(faelligPsi.length)} gemessen` });
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Suchlauf fehlgeschlagen.";
+      schritt(aktuell, { status: "fehler", text: msg });
+      setFehler(msg);
+    } finally {
+      if (abbruch.current) setAblauf(a => {
+        if (!a) return a;
+        const n = { ...a };
+        for (const k of Object.keys(n) as SchrittKey[]) if (n[k].status === "wartet" || n[k].status === "laeuft") n[k] = { ...n[k], status: "aus", text: "abgebrochen" };
+        return n;
+      });
+      setLaeuft(false);
+      await Promise.all([ladeListe(filter.papierkorb), ladeStand(), ladeDubletten()]);
+    }
+  };
+
+  // Eine Zeile komplett auffrischen: Google (falls nie), pruefen, PageSpeed.
+  const zeileAuffrischen = async (b: Betrieb) => {
+    if (googleEingerichtet && !b.google_stand) await googleSuchen(b);
+    await pruefen(b, { oeffnen: true });
+    const frisch = (await holeAktive()).find(x => x.id === b.id);
+    if (frisch && brauchtPsi(frisch)) {
+      try { await psiMessen(frisch); } catch (e) { setPsiHinweis(e instanceof Error ? e.message : ""); }
+    }
+    ladeStand();
   };
 
   const patch = (body: Record<string, unknown>) =>
@@ -838,7 +970,11 @@ function AkquiseCockpit() {
       patchUebernehmen(b.id, d);
       if (d.website) {
         zeileAendern(b.id, { score_website: null, score_betrieb: null, prioritaet: null, signale: [] });
-        await pruefen({ ...b, website: d.website as string, website_quelle: "manuell" }, false);
+        const neu = { ...b, website: d.website as string, website_quelle: "manuell" };
+        await pruefen(neu);
+        // Nach einer neuen Adresse auch gleich PageSpeed – sonst fehlt der Wert bis zum naechsten Lauf.
+        const frisch = (await holeAktive()).find(x => x.id === b.id);
+        if (frisch && brauchtPsi(frisch)) { try { await psiMessen(frisch); } catch (e) { setPsiHinweis(e instanceof Error ? e.message : ""); } }
       }
       ladeStand();
     } catch (e) {
@@ -947,8 +1083,14 @@ function AkquiseCockpit() {
 
   // "Nach oben" erscheint, sobald die Liste weiter gescrollt ist.
   const [weitUnten, setWeitUnten] = useState(false);
+  const [klebt, setKlebt] = useState(false);
+  const leisteRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const pruefen = () => setWeitUnten(window.scrollY > 900);
+    const pruefen = () => {
+      setWeitUnten(window.scrollY > 900);
+      const r = leisteRef.current?.getBoundingClientRect();
+      setKlebt(!!r && r.top <= 0.5 && window.scrollY > 0);
+    };
     window.addEventListener("scroll", pruefen, { passive: true });
     return () => window.removeEventListener("scroll", pruefen);
   }, []);
@@ -970,9 +1112,13 @@ function AkquiseCockpit() {
     URL.revokeObjectURL(url);
   };
 
-  const faellig = filter.papierkorb ? 0 : liste.filter(brauchtPruefung).length;
-  const googleFaellig = filter.papierkorb ? 0 : liste.filter(brauchtGoogle).length;
+  const faellig = filter.papierkorb ? 0 : liste.filter(b => brauchtPruefung(b) || brauchtPsi(b) || (googleEingerichtet && brauchtGoogle(b))).length;
   const letzterLauf = stand?.laeufe?.[0];
+  const unsichereDoppelte = (dubletten || []).filter(g => !g.sicher).length;
+
+  // Kennzahlen oben filtern per Klick – ein zweiter Klick hebt den Filter auf.
+  const nurKat = (k: string[]) => filter.kat.length === k.length && k.every(x => filter.kat.includes(x));
+  const katKachel = (k: string[]) => setzeFilter({ kat: nurKat(k) ? [] : k });
 
   // Sortierbarer Spaltenkopf – Pfeil zeigt die Richtung, die kleine Zahl
   // die Stelle bei Zweit- und Drittsortierung.
@@ -994,129 +1140,154 @@ function AkquiseCockpit() {
     <>
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
-      {/* Oben das Lagebild: Karte mit allen sichtbaren Betrieben (dieselben
-          Filter wie die Liste) und daneben die Kennzahlen. */}
-      <div className="akq-dashboard">
-        <section className="mon-block akq-karten-block">
-          {laedt
-            ? <p className="mon-leer">Karte wird geladen …</p>
-            : <Karte betriebe={filter.papierkorb ? [] : sichtbar} onDetails={detailsAusKarte} />}
-        </section>
-        <div className="akq-kennzahlen">
-          <Kachel titel="Betriebe" wert={zahl(stand?.betriebe)} />
-          <Kachel titel="Priorität ≥ 60" wert={zahl(stand?.prioHoch)} />
-          <Kachel titel="Ohne Website" wert={zahl(stand?.ohneWebsite)} />
-          <Kachel titel="Nur Börse" wert={zahl(stand?.nurBoerse)} />
-          <Kachel titel="Mit Website" wert={zahl(stand?.mitWebsite)} />
-          <Kachel titel="Geprüft" wert={zahl(stand?.geprueft)} unter={faellig ? `${zahl(faellig)} fällig` : undefined} />
-          <Kachel titel="Auswahl" wert={zahl(stand?.auswahl)} />
-          <Kachel titel="Papierkorb" wert={zahl(stand?.papierkorb)} />
-        </div>
-      </div>
+      {/* Oben das Lagebild: links Suchlauf und Kennzahlen, rechts die Karte
+          im Hochformat – Deutschland und die meisten Landkreise sind hoeher
+          als breit. Kennzahlen und Legende filtern per Klick. */}
+      <div className="akq-oben">
+        <div className="akq-oben-links">
+          <section className="mon-block akq-lauf">
+            <div className="akq-lauf-kopf">
+              <div>
+                <p className="akq-eyebrow">Suchlauf</p>
+                <p className="akq-lauf-titel">OpenStreetMap und Google Maps, automatisch zusammengeführt und geprüft</p>
+              </div>
+              <InfoTipp breite={340}>
+                Ein Klick erledigt alles: Betriebe aus OpenStreetMap holen, dieselbe Gegend bei Google Maps absuchen,
+                beides abgleichen, Doppelte zusammenführen, jede Website prüfen und PageSpeed messen. Bestehende Einträge
+                behalten Stern, Notiz und Papierkorb.
+              </InfoTipp>
+            </div>
 
-      {/* Steuerung: Suche links, Sammellaeufe rechts */}
-      <section className="mon-block">
-        <div className="akq-steuerung">
-          <select value={region} onChange={e => setRegion(e.target.value)} className="field px-3 py-2 text-sm" style={{ width: "auto" }} disabled={sucht}>
-            {REGIONEN.map(r => <option key={r.wert} value={r.wert}>{r.label}</option>)}
-          </select>
-          {region === "ort" && (
-            <>
-              <input value={ort} onChange={e => setOrt(e.target.value)} placeholder="Ort" className="field px-3 py-2 text-sm" style={{ width: 180 }} />
-              <label className="akq-inline">
-                <input type="number" min={1} max={80} value={radius} onChange={e => setRadius(e.target.value)}
-                       className="field px-3 py-2 text-sm" style={{ width: 80 }} /> km
-              </label>
-            </>
-          )}
-          <button onClick={suchen} disabled={sucht || !!lauf} className="btn-primary px-4 py-2 text-sm disabled:opacity-60">
-            {sucht ? "Sucht …" : "Betriebe suchen"}
-          </button>
-          {sucht && suchFortschritt && <span className="akq-hinweis">{suchFortschritt}</span>}
-          {!sucht && suchErgebnis && (
-            <span className="akq-hinweis">{zahl(suchErgebnis.gefunden)} gefunden · {zahl(suchErgebnis.neu)} neu</span>
-          )}
-          {!sucht && !suchErgebnis && letzterLauf && (
-            <span className="akq-hinweis">
-              Letzter Lauf: {letzterLauf.region || "—"} · {zahl(letzterLauf.gefunden)} gefunden · {zahl(letzterLauf.neu)} neu · {datum(letzterLauf.zeitpunkt)}
-            </span>
-          )}
-
-          <span className="akq-trenner" aria-hidden="true" />
-
-          {lauf ? (
-            <>
-              <span className="akq-fortschritt">{lauf.art === "google" ? "Google" : "Prüfung"} {lauf.fertig} / {lauf.gesamt}</span>
-              <button onClick={() => { abbruch.current = true; }} className="btn-ghost px-4 py-2 text-sm">Abbrechen</button>
-            </>
-          ) : (
-            <>
-              <button onClick={allePruefen} disabled={!faellig || sucht} className="btn-ghost px-4 py-2 text-sm disabled:opacity-60"
-                      title={faellig ? `${faellig} ohne Prüfung oder älter als ${PRUEF_ALTER_TAGE} Tage` : "Alle Prüfungen sind aktuell"}>
-                Websites prüfen{faellig ? ` (${faellig})` : ""}
-              </button>
-              <label className="akq-inline">
-                <input type="checkbox" checked={mitPsi} onChange={e => setMitPsi(e.target.checked)} />
-                mit PageSpeed (langsamer)
-              </label>
-              <button onClick={alleGoogle} disabled={!googleFaellig || sucht || googleEingerichtet === false}
-                      className="btn-ghost px-4 py-2 text-sm disabled:opacity-60"
-                      title={googleFaellig ? `${googleFaellig} ohne Website oder ohne Google-Abfrage` : "Alle bei Google abgefragt"}>
-                Websites bei Google suchen{googleFaellig ? ` (${googleFaellig})` : ""}
-              </button>
-              <button onClick={googleTesten} disabled={googleEingerichtet === false || !!googleTest?.laeuft}
-                      className="akq-knopf" title="Eine Testabfrage bei Google Places">
-                Verbindung testen
-              </button>
-              {!!dubletten?.length && (
-                <button onClick={() => setDublettenOffen(o => !o)} className="akq-knopf"
-                        title="Betriebe, die mehrfach in der Liste stehen">
-                  Doppelte ({dubletten.length})
-                </button>
+            <div className="akq-lauf-steuerung">
+              <select value={region} onChange={e => setRegion(e.target.value)} className="field px-3 py-2 text-sm" style={{ width: "auto" }} disabled={laeuft} aria-label="Region">
+                {REGIONEN.map(r => <option key={r.wert} value={r.wert}>{r.label}</option>)}
+              </select>
+              {region === "ort" && (
+                <>
+                  <input value={ort} onChange={e => setOrt(e.target.value)} placeholder="Ort" className="field px-3 py-2 text-sm" style={{ width: 160 }} disabled={laeuft} />
+                  <label className="akq-inline">
+                    <input type="number" min={1} max={80} value={radius} onChange={e => setRadius(e.target.value)}
+                           className="field px-3 py-2 text-sm" style={{ width: 72 }} disabled={laeuft} /> km
+                  </label>
+                </>
               )}
-            </>
-          )}
-        </div>
-        {googleTest && (
-          <p className={googleTest.ok === false ? "akq-google-hinweis" : "akq-hinweis mt-2"}>{googleTest.text}</p>
-        )}
-        {dublettenOffen && dubletten && (
-          <div className="akq-dubletten">
-            <div className="akq-dubletten-kopf">
-              <span>
-                {dubletten.length} Gruppen. „Bleibt“ ist der Eintrag, in den die anderen übergehen – Notiz, Stern und
-                Briefe gehen mit. „Prüfen“: die Namen passen nicht zusammen, eher hat Google falsch zugeordnet.
-              </span>
-              {dubletten.some(g => g.sicher) && (
-                <button onClick={() => zusammenfuehren()} disabled={fuehrtZusammen} className="btn-primary px-4 py-2 text-sm">
-                  {fuehrtZusammen ? "Wird zusammengeführt …" : `Alle sicheren zusammenführen (${dubletten.filter(g => g.sicher).length})`}
+              {laeuft ? (
+                <button onClick={() => { abbruch.current = true; }} className="btn-ghost px-4 py-2 text-sm">Abbrechen</button>
+              ) : (
+                <>
+                  <button onClick={() => suchlauf(true)} className="btn-primary px-5 py-2 text-sm akq-start">
+                    <Search size={15} /> Suchlauf starten
+                  </button>
+                  {faellig > 0 && (
+                    <button onClick={() => suchlauf(false)} className="akq-knopf" title="Ohne neue Suche: offene Abgleiche, fällige Prüfungen und fehlende PageSpeed-Werte nachholen">
+                      <RefreshCw size={13} /> Nur prüfen ({zahl(faellig)})
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            {ablauf ? (
+              <ol className="akq-schritte">
+                {SCHRITTE.map((sc, i) => {
+                  const st = ablauf[sc.key];
+                  const anteil = st.gesamt ? Math.min(100, Math.round(((st.fertig || 0) / st.gesamt) * 100)) : st.status === "fertig" ? 100 : 0;
+                  return (
+                    <li key={sc.key} className={`akq-schritt ${st.status}`}>
+                      <span className="akq-schritt-marke" aria-hidden="true">
+                        {st.status === "fertig" ? <Check size={13} /> : st.status === "laeuft" ? <Loader2 size={13} className="akq-dreht" />
+                          : st.status === "fehler" ? <CircleAlert size={13} /> : i + 1}
+                      </span>
+                      <span className="akq-schritt-text">
+                        <b>{sc.titel}</b>
+                        <small>{st.text || (st.status === "wartet" ? "wartet" : st.status === "aus" ? "übersprungen" : "")}</small>
+                        {st.status === "laeuft" && st.gesamt ? <i className="akq-schritt-balken"><i style={{ width: `${anteil}%` }} /></i> : null}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <p className="akq-lauf-letzter">
+                {letzterLauf
+                  ? <>Letzter Suchlauf: {letzterLauf.region || "—"} · {zahl(letzterLauf.gefunden)} aus OpenStreetMap · {datum(letzterLauf.zeitpunkt)}</>
+                  : "Noch kein Suchlauf. Region wählen und starten."}
+              </p>
+            )}
+
+            <div className="akq-lauf-fuss">
+              {stand?.google?.eingerichtet ? (
+                <span title="Google berechnet Abfragen mit Website und Bewertungen ab 1.000 im Monat. Die Akquise hält unterhalb der Grenze an.">
+                  Google im {monatName(stand.google.monat)}: <b>{zahl(stand.google.genutzt ?? 0)}</b> von {zahl(stand.google.frei ?? 1000)} frei
+                  {stand.google.grenze ? <> · Stopp bei {zahl(stand.google.grenze)}</> : null}
+                </span>
+              ) : googleEingerichtet === false ? (
+                <span className="akq-warn">Google Maps nicht eingerichtet – PLACES_KEY in Cloudflare hinterlegen.</span>
+              ) : null}
+              {unsichereDoppelte > 0 && (
+                <button onClick={() => setDublettenOffen(o => !o)} className="akq-textknopf">
+                  {zahl(unsichereDoppelte)} mögliche Doppelte prüfen {dublettenOffen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                 </button>
               )}
             </div>
-            <ul>
-              {dubletten.map(g => (
-                <li key={g.ids.join("-")} className={g.sicher ? "" : "pruefen"}>
-                  <div className="akq-dubletten-namen">
-                    {g.betriebe.map(b => (
-                      <span key={b.id}>
-                        <b>{b.name}</b>{b.id === g.haupt && <em>bleibt</em>}
-                        <small>{[b.art === "car" ? "Autohaus" : "Werkstatt", b.ort, host(b.website)].filter(Boolean).join(" · ")}</small>
-                      </span>
-                    ))}
-                  </div>
-                  <span className="akq-hinweis">{g.sicher ? g.grund : `Prüfen · ${g.grund}`}</span>
-                  <button onClick={() => zusammenfuehren([g.ids])} disabled={fuehrtZusammen} className="akq-knopf">Zusammenführen</button>
-                </li>
-              ))}
-            </ul>
+            {psiHinweis && (
+              <p className="akq-warn akq-lauf-hinweis">
+                PageSpeed pausiert: {psiHinweis.replace(/^PageSpeed: /, "").replace(/\.$/, "")}. In der Google Cloud (Projekt „AIY Vertrieb“) die
+                „PageSpeed Insights API“ aktivieren und am Schlüssel bei den API-Einschränkungen anhaken – dann läuft es beim nächsten Suchlauf mit.
+              </p>
+            )}
+
+            {dublettenOffen && dubletten && dubletten.length > 0 && (
+              <div className="akq-dubletten">
+                <div className="akq-dubletten-kopf">
+                  <span>
+                    Sichere Doppelte führt der Suchlauf selbst zusammen. Diese hier passen nicht eindeutig – andere PLZ
+                    oder fremder Name. „Bleibt“ ist der Eintrag, in den die anderen übergehen; Notiz, Stern und Briefe gehen mit.
+                  </span>
+                </div>
+                <ul>
+                  {dubletten.map(g => (
+                    <li key={g.ids.join("-")} className={g.sicher ? "" : "pruefen"}>
+                      <div className="akq-dubletten-namen">
+                        {g.betriebe.map(b => (
+                          <span key={b.id}>
+                            <b>{b.name}</b>{b.id === g.haupt && <em>bleibt</em>}
+                            <small>{[b.art === "car" ? "Autohaus" : "Werkstatt", b.ort, host(b.website)].filter(Boolean).join(" · ")}</small>
+                          </span>
+                        ))}
+                      </div>
+                      <span className="akq-hinweis">{g.grund}</span>
+                      <button onClick={() => zusammenfuehren([g.ids])} disabled={fuehrtZusammen} className="akq-knopf">Zusammenführen</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          <div className="akq-kennzahlen">
+            <KpiKachel titel="Betriebe" wert={zahl(stand?.betriebe)} aktiv={!filterAktiv(filter) && !filter.papierkorb}
+                       onClick={() => setFilter(f => ({ ...FILTER_LEER, sort: f.sort }))} />
+            <KpiKachel titel="Priorität ≥ 60" wert={zahl(stand?.prioHoch)} akzent aktiv={filter.prio === "60"}
+                       onClick={() => setzeFilter({ prio: filter.prio === "60" ? "" : "60" })} />
+            <KpiKachel titel="Nur Börse" wert={zahl(katZahlen.nur_boerse || 0)} farbe="nur_boerse" aktiv={nurKat(["nur_boerse"])}
+                       onClick={() => katKachel(["nur_boerse"])} />
+            <KpiKachel titel="Ohne Website" wert={zahl(katZahlen.ohne_website || 0)} farbe="ohne_website" aktiv={nurKat(["ohne_website"])}
+                       onClick={() => katKachel(["ohne_website"])} />
+            <KpiKachel titel="Veraltet & Baukasten" wert={zahl((katZahlen.veraltet || 0) + (katZahlen.baukasten || 0))} farbe="veraltet"
+                       aktiv={nurKat(["veraltet", "baukasten"])} onClick={() => katKachel(["veraltet", "baukasten"])} />
+            <KpiKachel titel="Auswahl" wert={zahl(stand?.auswahl)} aktiv={filter.auswahl}
+                       onClick={() => setzeFilter({ auswahl: !filter.auswahl })} />
           </div>
-        )}
-        {googleEingerichtet === false && (
-          <p className="akq-google-hinweis">
-            Google Places nicht eingerichtet – PLACES_KEY in Cloudflare hinterlegen (Google Cloud Console → Places API (New) → API-Schlüssel, nur auf diese API beschränken).
-          </p>
-        )}
-      </section>
+        </div>
+
+        <section className="mon-block akq-karten-block">
+          {laedt
+            ? <p className="mon-leer">Karte wird geladen …</p>
+            : <Karte betriebe={filter.papierkorb ? [] : sichtbar} onDetails={detailsAusKarte}
+                     kategorien={katZahlen} aktiv={filter.kat} onKategorie={katSchalten} />}
+        </section>
+      </div>
 
       {/* Filter und Liste. Die Leiste mit Filtern und Spaltenkoepfen bleibt
           beim Scrollen oben stehen; die Liste selbst scrollt mit der Seite,
@@ -1183,21 +1354,31 @@ function AkquiseCockpit() {
           </form>
         )}
 
-        {/* Beim Scrollen bleiben nur Suche, Kategorie und Spaltenkoepfe oben –
-            so bleibt Platz fuer die Liste. */}
-        <div className="akq-leiste">
-          <div className="akq-kat-leiste" role="group" aria-label="Suche und Kategorie">
-            <input value={filter.q} onChange={e => setzeFilter({ q: e.target.value })} placeholder="Name, Ort oder Domain"
-                   className="field px-3 py-1.5 text-sm akq-suche" aria-label="Suche" />
-            <button type="button" className={`akq-kat-knopf${filter.kat.length ? "" : " an"}`} onClick={() => setzeFilter({ kat: [] })}>
-              Alle <b>{zahl(liste.length)}</b>
-            </button>
-            {[...KATEGORIEN, { wert: KAT_OFFEN, label: "Offen" }].map(k => (
-              <button key={k.wert} type="button" onClick={() => katSchalten(k.wert)} disabled={!katZahlen[k.wert]}
-                      className={`akq-kat-knopf ${k.wert}${filter.kat.includes(k.wert) ? " an" : ""}`} aria-pressed={filter.kat.includes(k.wert)}>
-                {k.label} <b>{zahl(katZahlen[k.wert] || 0)}</b>
+        {/* Beim Scrollen bleiben nur Suche, Kategorie und Spaltenkoepfe oben.
+            Sobald die Leiste klebt, bekommt sie Schatten und Unschaerfe. */}
+        <div className={`akq-leiste${klebt ? " klebt" : ""}`} ref={leisteRef}>
+          <div className="akq-leiste-zeile">
+            <label className="akq-suche">
+              <Search size={15} aria-hidden="true" />
+              <input value={filter.q} onChange={e => setzeFilter({ q: e.target.value })} placeholder="Name, Ort oder Domain" aria-label="Suche" />
+            </label>
+            <div className="akq-kat-band" role="group" aria-label="Kategorie">
+              <button type="button" className={`akq-kat-knopf${filter.kat.length ? "" : " an"}`} onClick={() => setzeFilter({ kat: [] })}>
+                Alle <b>{zahl(liste.length)}</b>
               </button>
-            ))}
+              {[...KATEGORIEN, { wert: KAT_OFFEN, label: "Offen" }].map(k => (
+                <button key={k.wert} type="button" onClick={() => katSchalten(k.wert)} disabled={!katZahlen[k.wert]}
+                        className={`akq-kat-knopf ${k.wert}${filter.kat.includes(k.wert) ? " an" : ""}`} aria-pressed={filter.kat.includes(k.wert)}>
+                  <i aria-hidden="true" />{k.label} <b>{zahl(katZahlen[k.wert] || 0)}</b>
+                </button>
+              ))}
+            </div>
+            <span className="akq-anzahl" title={`${zahl(sichtbar.length)} von ${zahl(liste.length)} sichtbar`}>
+              <b>{zahl(sichtbar.length)}</b>{sichtbar.length !== liste.length && <> / {zahl(liste.length)}</>}
+            </span>
+            {filterAktiv(filter) && (
+              <button onClick={() => setFilter(f => ({ ...FILTER_LEER, papierkorb: f.papierkorb, sort: f.sort }))} className="akq-textknopf">Zurücksetzen</button>
+            )}
             <InfoTipp breite={340}>
               <span className="flex flex-col gap-1.5">
                 <span>{ERKLAERUNG.prio}</span>
@@ -1206,27 +1387,36 @@ function AkquiseCockpit() {
                 <span>{ERKLAERUNG.kat}</span>
               </span>
             </InfoTipp>
-            <span className="akq-trenner" aria-hidden="true" />
-            <span className="akq-hinweis">{zahl(sichtbar.length)} von {zahl(liste.length)}</span>
-            {filterAktiv(filter) && (
-              <button onClick={() => setFilter(f => ({ ...FILTER_LEER, papierkorb: f.papierkorb, sort: f.sort }))} className="akq-knopf">Filter zurücksetzen</button>
-            )}
           </div>
 
-
           {sichtbar.length > 0 && (
-            <div className="akq-raster akq-kopfzeile" role="row">
-              <div className="akq-nr">#</div>
-              {kopf("auswahl", <Star size={12} />, "akq-stern-kopf")}
-              {kopf("prioritaet", "Priorität")}
-              {kopf("name", "Betrieb")}
-              {kopf("website", "Website")}
-              {kopf("kategorie", "Kategorie")}
-              {kopf("score_website", "Schwäche", "num")}
-              {kopf("score_betrieb", "Stärke", "num")}
-              {kopf("google", "Google")}
-              <div />
-            </div>
+            <>
+              <div className="akq-raster akq-kopfzeile" role="row">
+                <div className="akq-nr">#</div>
+                {kopf("auswahl", <Star size={12} />, "akq-stern-kopf")}
+                {kopf("prioritaet", "Priorität")}
+                {kopf("name", "Betrieb")}
+                {kopf("website", "Website")}
+                {kopf("kategorie", "Kategorie")}
+                {kopf("score_website", "Schwäche", "num")}
+                {kopf("score_betrieb", "Stärke", "num")}
+                {kopf("google", "Google")}
+                <div />
+              </div>
+              {/* Schmal: statt Spaltenkoepfen eine Sortierwahl */}
+              <div className="akq-sortwahl">
+                <label>
+                  Sortieren
+                  <select value={filter.sort[0]?.schluessel || "prioritaet"} onChange={e => sortieren(e.target.value as SortSchluessel, false)} className="field px-2 py-1 text-sm">
+                    {SORT_SCHLUESSEL.map(k => <option key={k} value={k}>{SORT_LABEL[k]}</option>)}
+                  </select>
+                </label>
+                <button type="button" className="akq-knopf akq-symbol" onClick={() => sortieren(filter.sort[0]?.schluessel || "prioritaet", false)}
+                        aria-label={filter.sort[0]?.ab ? "Absteigend – umdrehen" : "Aufsteigend – umdrehen"}>
+                  {filter.sort[0]?.ab ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+                </button>
+              </div>
+            </>
           )}
         </div>
 
@@ -1295,12 +1485,9 @@ function AkquiseCockpit() {
                         </>
                       ) : (
                         <>
-                          <button onClick={() => pruefen(b, mitPsi, { oeffnen: true }).then(ladeStand)} disabled={arbeitet || !!lauf} className="akq-knopf">
-                            {arbeitet && hinweis?.text === "Prüft …" ? "Prüft …" : "Prüfen"}
-                          </button>
-                          <button onClick={() => googleSuchen(b).then(() => ladeStand())} disabled={arbeitet || !!lauf || googleEingerichtet === false} className="akq-knopf akq-symbol"
-                                  title={googleEingerichtet === false ? "Google Places nicht eingerichtet" : "Bei Google Maps nachschlagen"} aria-label="Bei Google nachschlagen">
-                            <MapPin size={14} />
+                          <button onClick={() => zeileAuffrischen(b)} disabled={arbeitet || laeuft} className="akq-knopf akq-symbol"
+                                  title="Neu prüfen: Google, Website, PageSpeed" aria-label={`${b.name} neu prüfen`}>
+                            <RefreshCw size={14} className={arbeitet ? "akq-dreht" : undefined} />
                           </button>
                           <a href={`/admin/akquise/post?betrieb=${b.id}`} className="akq-knopf akq-symbol" title="Brief vorbereiten" aria-label="Brief vorbereiten"><Mail size={14} /></a>
                         </>

@@ -15,7 +15,7 @@
 // Google zwei Standorte auf einen Eintrag gelegt oder falsch zugeordnet.
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
 import { hostVon, istBoersenSeite } from '../../../_lib/akquise.js';
-import { kennwoerter as googleKennwoerter } from './google.js';
+import { kennwoerter as googleKennwoerter } from '../../../_lib/places.js';
 
 const GATTUNG = new Set(['autohaus', 'auto', 'autos', 'autoservice', 'autocenter', 'werkstatt', 'kfz', 'service', 'automobile',
   'fahrzeuge', 'garage', 'meisterbetrieb', 'autohandel', 'automobil', 'zentrum', 'center', 'showroom', 'verkaufsraum',

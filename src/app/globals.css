@@ -623,18 +623,69 @@ html, body {
 .akq-dubletten-namen em { font-style:normal; font-size:.7rem; font-weight:600; padding:1px 7px; border-radius:999px; background:var(--accent-soft); color:var(--accent); }
 .akq-dubletten-namen small { font-size:.75rem; color:var(--fg-subtle); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 @media (max-width:640px) { .akq-dubletten li { grid-template-columns:1fr; } }
-.akq-kennzahlen { grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
-/* Lagebild oben: Karte links, Kennzahlen rechts als 2×4-Raster. Unter
-   1100 px untereinander, die Kennzahlen dann in einer Reihe. */
-.akq-dashboard { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px; margin-bottom:22px; align-items:stretch; }
-.akq-dashboard .akq-kennzahlen { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-content:start; }
-.akq-dashboard .mon-kachel { padding:14px 16px; }
-.akq-dashboard .mon-kachel-wert { font-size:1.5rem; }
-.akq-karten-block { margin-bottom:0; padding:14px; min-width:0; }
-@media (max-width:1100px) {
-  .akq-dashboard { grid-template-columns:1fr; }
-  .akq-dashboard .akq-kennzahlen { grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); order:-1; }
+/* Lagebild oben: links Suchlauf und Kennzahlen, rechts die Karte im
+   Hochformat (Deutschland ist hoeher als breit). */
+.akq-oben { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,420px); gap:18px; margin-bottom:22px; align-items:stretch; }
+.akq-oben-links { display:flex; flex-direction:column; gap:18px; min-width:0; }
+.akq-oben .mon-block { margin-bottom:0; }
+@media (max-width:1180px) { .akq-oben { grid-template-columns:1fr; } }
+
+/* Suchlauf */
+.akq-lauf { display:flex; flex-direction:column; gap:16px; padding:22px 24px; }
+.akq-lauf-kopf { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.akq-eyebrow { margin:0 0 4px; font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); }
+.akq-lauf-titel { margin:0; font-size:1rem; font-weight:600; color:var(--fg); line-height:1.35; }
+.akq-lauf-steuerung { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.akq-start { display:inline-flex; align-items:center; gap:8px; font-weight:600; }
+.akq-lauf-letzter { margin:0; font-size:.84rem; color:var(--fg-subtle); }
+.akq-lauf-fuss { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 16px; font-size:.8rem; color:var(--fg-subtle); border-top:1px solid var(--border); padding-top:12px; }
+.akq-lauf-fuss b { color:var(--fg); font-variant-numeric:tabular-nums; }
+.akq-lauf-hinweis { margin:0; font-size:.8rem; line-height:1.5; }
+.akq-warn { color:#b45309; }
+.akq-textknopf { all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:4px; font-size:.8rem; font-weight:600; color:var(--accent); }
+.akq-textknopf:hover { text-decoration:underline; }
+.akq-textknopf:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+
+/* Schritte des Suchlaufs: sechs Stationen, jede mit Zustand und Zahl. */
+.akq-schritte { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+@media (max-width:760px) { .akq-schritte { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.akq-schritt { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); transition:border-color .2s ease, background .2s ease; min-width:0; }
+.akq-schritt-marke { flex:none; width:24px; height:24px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; background:var(--surface-2); color:var(--fg-subtle); }
+.akq-schritt-text { display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+.akq-schritt-text b { font-size:.82rem; font-weight:600; color:var(--fg); }
+.akq-schritt-text small { font-size:.74rem; color:var(--fg-subtle); line-height:1.35; overflow-wrap:anywhere; }
+.akq-schritt-balken { display:block; height:4px; margin-top:5px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+.akq-schritt-balken i { display:block; height:100%; background:var(--accent); border-radius:999px; transition:width .3s ease; }
+.akq-schritt.laeuft { border-color:var(--accent); background:var(--accent-soft); }
+.akq-schritt.laeuft .akq-schritt-marke { background:var(--accent); color:#fff; }
+.akq-schritt.fertig .akq-schritt-marke { background:#16a34a; color:#fff; }
+.akq-schritt.fehler { border-color:rgba(220,38,38,.35); }
+.akq-schritt.fehler .akq-schritt-marke { background:#dc2626; color:#fff; }
+.akq-schritt.aus { opacity:.55; }
+.akq-dreht { animation:akq-drehen 1s linear infinite; }
+@keyframes akq-drehen { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .akq-dreht { animation:none; } }
+
+/* Kennzahlen als Filterknoepfe */
+.akq-kennzahlen { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+@media (max-width:640px) { .akq-kennzahlen { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.akq-kpi {
+  all:unset; box-sizing:border-box; cursor:pointer; position:relative; overflow:hidden;
+  display:flex; flex-direction:column; gap:6px; padding:14px 16px 14px 18px; border-radius:14px;
+  background:var(--surface); border:1px solid var(--border); box-shadow:var(--mon-schatten);
+  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
+.akq-kpi::before { content:""; position:absolute; left:0; top:12px; bottom:12px; width:3px; border-radius:0 3px 3px 0; background:var(--border); }
+.akq-kpi.akzent::before { background:var(--accent); }
+.akq-kpi.kat-nur_boerse::before { background:#c2410c; }
+.akq-kpi.kat-ohne_website::before { background:#12557F; }
+.akq-kpi.kat-veraltet::before { background:#dc2626; }
+.akq-kpi:hover { transform:translateY(-1px); border-color:var(--accent); }
+.akq-kpi:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.akq-kpi.an { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft), var(--mon-schatten); }
+.akq-kpi-titel { font-size:.72rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--fg-subtle); }
+.akq-kpi-wert { font-size:1.6rem; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; color:var(--fg); }
+
 .akq-knopf {
   display:inline-flex; align-items:center; gap:5px; font:inherit; font-size:.76rem; font-weight:600;
   padding:5px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--fg-muted);
@@ -665,23 +716,56 @@ html, body {
    neben der Seitenleiste ist bei 1280 px schon zu wenig Platz fuer zehn Spalten. */
 .akq-listenblock { padding-top:0; container:akqliste / inline-size; }
 .akq-filter { padding-top:22px; }
+/* Klebende Leiste: eine Zeile mit Suche, Kategorie-Band und Anzahl, darunter
+   die Spaltenkoepfe. Klebt sie, wird sie leicht durchscheinend mit Schatten. */
 .akq-leiste {
   position:sticky; top:0; z-index:20; background:var(--surface);
-  margin:14px -28px 0; padding:12px 28px 0;
-  border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+  margin:16px -28px 0; padding:12px 28px 0; border-bottom:1px solid var(--border);
+  transition:box-shadow .2s ease, background .2s ease;
 }
-.akq-kat-leiste { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
-.akq-suche { width:210px; margin-right:6px; }
+.akq-leiste.klebt {
+  background:color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter:saturate(1.4) blur(12px); -webkit-backdrop-filter:saturate(1.4) blur(12px);
+  box-shadow:0 10px 24px -12px rgba(15,23,42,.22);
+}
+.akq-leiste-zeile { display:flex; align-items:center; gap:10px; min-width:0; padding-bottom:2px; }
+.akq-suche {
+  flex:0 0 220px; display:flex; align-items:center; gap:8px; padding:0 12px; height:36px; border-radius:10px;
+  background:var(--surface-2); border:1px solid transparent; color:var(--fg-subtle); transition:border-color .15s ease, background .15s ease;
+}
+.akq-suche:focus-within { border-color:var(--accent); background:var(--surface); }
+.akq-suche input { all:unset; flex:1; min-width:0; font-size:.86rem; color:var(--fg); }
+.akq-suche input::placeholder { color:var(--fg-subtle); }
+/* Das Band scrollt seitlich statt umzubrechen; die Raender blenden weich aus. */
+.akq-kat-band {
+  flex:1; min-width:0; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:2px;
+  -webkit-mask-image:linear-gradient(to right, transparent 0, #000 8px, #000 calc(100% - 20px), transparent);
+  mask-image:linear-gradient(to right, transparent 0, #000 8px, #000 calc(100% - 20px), transparent);
+}
+.akq-kat-band::-webkit-scrollbar { display:none; }
 .akq-kat-knopf {
-  display:inline-flex; align-items:center; gap:6px; font:inherit; font-size:.78rem; font-weight:600;
-  padding:5px 11px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--fg-muted);
-  cursor:pointer; transition:border-color .15s ease, background .15s ease, color .15s ease;
+  flex:none; display:inline-flex; align-items:center; gap:7px; font:inherit; font-size:.78rem; font-weight:600;
+  padding:6px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--fg-muted);
+  cursor:pointer; white-space:nowrap; transition:border-color .15s ease, background .15s ease, color .15s ease;
 }
-.akq-kat-knopf b { font-weight:700; font-variant-numeric:tabular-nums; opacity:.7; }
-.akq-kat-knopf:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+.akq-kat-knopf i { width:8px; height:8px; border-radius:999px; background:#94a3b8; }
+.akq-kat-knopf.ohne_website i { background:#12557F; }
+.akq-kat-knopf.nur_boerse i { background:#c2410c; }
+.akq-kat-knopf.baukasten i { background:#7c3aed; }
+.akq-kat-knopf.veraltet i { background:#dc2626; }
+.akq-kat-knopf.mittel i { background:#ca8a04; }
+.akq-kat-knopf.gepflegt i { background:#16a34a; }
+.akq-kat-knopf b { font-weight:700; font-variant-numeric:tabular-nums; opacity:.6; }
+.akq-kat-knopf:hover:not(:disabled) { border-color:var(--accent); color:var(--fg); }
 .akq-kat-knopf:disabled { opacity:.4; cursor:default; }
-.akq-kat-knopf.an { background:var(--accent); border-color:var(--accent); color:#fff; }
-.akq-kat-knopf.an b { opacity:.85; }
+.akq-kat-knopf.an { background:var(--fg); border-color:var(--fg); color:var(--surface); }
+.akq-kat-knopf.an b { opacity:.75; }
+.akq-kat-knopf.an i { box-shadow:0 0 0 2px var(--surface); }
+.akq-anzahl { flex:none; font-size:.82rem; color:var(--fg-subtle); font-variant-numeric:tabular-nums; }
+.akq-anzahl b { color:var(--fg); font-weight:700; }
+.akq-sortwahl { display:none; align-items:center; gap:8px; padding:10px 0; font-size:.8rem; color:var(--fg-subtle); }
+.akq-sortwahl label { display:inline-flex; align-items:center; gap:8px; }
+.akq-sortwahl select { width:auto; }
 .akq-anlegen { margin-top:12px; }
 
 .akq-raster {
@@ -690,7 +774,7 @@ html, body {
      sind eigene Raster und muessen trotzdem genau untereinander stehen. */
   grid-template-columns:44px 26px 84px minmax(170px,1.5fr) minmax(120px,1fr) 96px 56px 52px 84px 196px;
 }
-.akq-kopfzeile { margin-top:14px; padding:8px 0 9px; font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; color:var(--fg-subtle); font-weight:600; }
+.akq-kopfzeile { margin-top:10px; padding:8px 0 9px; font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; color:var(--fg-subtle); font-weight:600; }
 .akq-kopfzeile .num, .akq-raster .num { text-align:right; justify-content:flex-end; }
 .akq-kopfzeile > div { display:flex; align-items:center; min-width:0; }
 
@@ -719,17 +803,59 @@ html, body {
 .akq-signalzeile { display:flex; flex-wrap:wrap; gap:5px; padding:8px 0 0 190px; }
 .akq-signal b { margin-left:6px; font-weight:700; font-variant-numeric:tabular-nums; opacity:.75; }
 
-/* Karte im Lagebild. z-index 0 und isolation: Leaflet setzt seine Ebenen
-   auf z-index 400+ – ohne eigenen Stapel lagen sie ueber der festen Leiste. */
-.akq-karte-huelle { display:flex; flex-direction:column; height:100%; }
-.akq-karte { flex:1; height:440px; min-height:360px; border-radius:10px; border:1px solid var(--border); overflow:hidden; position:relative; z-index:0; isolation:isolate; }
-.akq-karte-legende { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin-top:10px; font-size:.76rem; color:var(--fg-muted); }
-.akq-karte-legende i, .akq-karte-popup i { display:inline-block; width:10px; height:10px; border-radius:999px; margin-right:5px; vertical-align:-1px; }
-.akq-karte-popup { display:flex; flex-direction:column; gap:3px; font-family:inherit; font-size:.8rem; line-height:1.4; min-width:200px; }
-.akq-karte-popup b { font-size:.9rem; }
-.akq-karte-popup span { color:#555; }
+/* Karte im Lagebild, Hochformat. z-index 0 und isolation: Leaflet setzt
+   seine Ebenen auf z-index 400+ – ohne eigenen Stapel lagen sie ueber der
+   festen Leiste. Die Kacheln werden entfaerbt, die Punkte tragen die Farbe. */
+.akq-karten-block { padding:0; min-width:0; overflow:hidden; display:flex; }
+.akq-karte-huelle { position:relative; flex:1; display:flex; min-height:560px; }
+.akq-karte { flex:1; min-height:560px; position:relative; z-index:0; isolation:isolate; }
+@media (max-width:1180px) { .akq-karte-huelle, .akq-karte { min-height:440px; } }
+.akq-karte .leaflet-tile-pane { filter:grayscale(.9) brightness(1.04) contrast(.92); }
+.akq-karte .leaflet-control-attribution { font-size:.62rem; background:rgba(255,255,255,.75); }
+/* Die Namensnennung sitzt oben, die Legende braucht den unteren Rand. */
+.akq-karte .leaflet-bottom.leaflet-right { top:0; bottom:auto; }
+.akq-karte .leaflet-bottom.leaflet-right .leaflet-control-attribution { border-radius:0 0 0 8px; }
+.akq-karte .leaflet-top.leaflet-right { top:22px; }
+.akq-karte .leaflet-bar { border:0; box-shadow:0 6px 18px rgba(15,23,42,.14); border-radius:10px; overflow:hidden; }
+.akq-karte .leaflet-bar a { width:32px; height:32px; line-height:32px; color:#0f172a; }
+
+/* Legende als Glasleiste unten – klickbar, filtert wie die Knoepfe. */
+.akq-legende {
+  position:absolute; left:10px; right:10px; bottom:10px; z-index:800; display:flex; flex-direction:column; gap:6px;
+  padding:8px; border-radius:14px; background:rgba(255,255,255,.84); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  box-shadow:0 10px 30px rgba(15,23,42,.16); border:1px solid rgba(15,23,42,.06);
+}
+.akq-legende-knoepfe { display:flex; flex-wrap:wrap; gap:4px; }
+.akq-legende-knoepfe button {
+  all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+  padding:4px 9px; border-radius:999px; font-size:.72rem; font-weight:600; color:#1e293b;
+  transition:background .15s ease, opacity .15s ease;
+}
+.akq-legende-knoepfe button i { width:9px; height:9px; border-radius:999px; box-shadow:0 0 0 2px #fff, 0 0 0 3px rgba(15,23,42,.12); }
+.akq-legende-knoepfe button b { font-weight:700; font-variant-numeric:tabular-nums; color:#64748b; }
+.akq-legende-knoepfe button:hover:not(:disabled) { background:rgba(15,23,42,.06); }
+.akq-legende-knoepfe button.an { background:#0f172a; color:#fff; }
+.akq-legende-knoepfe button.an b { color:rgba(255,255,255,.75); }
+.akq-legende-knoepfe button.gedimmt { opacity:.45; }
+.akq-legende-knoepfe button:disabled { opacity:.3; cursor:default; }
+.akq-legende-knoepfe button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.akq-legende-fuss { margin:0; padding:0 6px; display:flex; align-items:center; gap:8px; font-size:.68rem; color:#64748b; }
+.akq-groessen { display:inline-flex; align-items:center; gap:3px; }
+.akq-groessen i { display:block; border-radius:999px; background:#94a3b8; }
+.akq-groessen i:nth-child(1) { width:6px; height:6px; }
+.akq-groessen i:nth-child(2) { width:9px; height:9px; }
+.akq-groessen i:nth-child(3) { width:13px; height:13px; }
+
+/* Popup und Tooltip der Karte */
+.akq-popup-huelle .leaflet-popup-content-wrapper { border-radius:14px; box-shadow:0 14px 34px rgba(15,23,42,.22); }
+.akq-popup-huelle .leaflet-popup-content { margin:14px 16px; }
+.akq-karte-popup { display:flex; flex-direction:column; gap:3px; font-family:inherit; font-size:.8rem; line-height:1.4; min-width:210px; color:#334155; }
+.akq-karte-popup b { font-size:.95rem; color:#0f172a; }
 .akq-karte-popup a { color:#12557F; }
-.akq-karte-popup button { margin-top:6px; align-self:flex-start; font:inherit; font-size:.76rem; font-weight:600; padding:4px 10px; border-radius:7px; border:1px solid #12557F; background:#12557F; color:#fff; cursor:pointer; }
+.akq-karte-popup-kat { align-self:flex-start; margin-bottom:4px; font-size:.68rem; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff; background:var(--kat); }
+.akq-karte-popup button { margin-top:8px; align-self:flex-start; font:inherit; font-size:.76rem; font-weight:600; padding:6px 12px; border-radius:8px; border:0; background:#12557F; color:#fff; cursor:pointer; }
+.akq-karte-popup button:hover { filter:brightness(1.1); }
+.akq-karte-tooltip { font-family:inherit; font-size:.74rem; font-weight:600; border-radius:8px; border:0; box-shadow:0 6px 16px rgba(15,23,42,.18); }
 
 .akq-nach-oben {
   position:fixed; right:24px; bottom:24px; z-index:40; width:44px; height:44px; border-radius:999px;
@@ -763,9 +889,8 @@ html, body {
   .akq-eintrag .akq-aktionen { grid-area:akt; justify-content:flex-start; }
   /* Ohne Kopfzeile darueber sagt die Zahl selbst, was sie ist. */
   .akq-eintrag .akq-zahl::before { content:attr(data-l) " "; font-size:.7rem; font-weight:500; color:var(--fg-subtle); }
-  .akq-kopfzeile { display:flex; flex-wrap:wrap; gap:6px; }
-  .akq-kopfzeile > div { border:1px solid var(--border); border-radius:999px; padding:3px 9px; }
-  .akq-kopfzeile > .akq-nr, .akq-kopfzeile > div:last-child { display:none; }
+  .akq-kopfzeile { display:none; }
+  .akq-sortwahl { display:flex; }
   .akq-signalzeile { padding-left:94px; }
 }
 /* Ganz schmal (Handy): Website und Zahlen untereinander. */
@@ -786,7 +911,9 @@ html, body {
   .akq-signalzeile { padding-left:0; }
 }
 @media (max-width:700px) {
-  .akq-leiste { margin:0 -18px; padding:14px 18px 0; }
+  .akq-leiste { margin:12px -18px 0; padding:12px 18px 0; }
+  .akq-leiste-zeile { flex-wrap:wrap; }
+  .akq-suche { flex:1 1 100%; }
 }
 
 /* Sortierbare Koepfe: Pfeil fuer die Richtung, Ziffer fuer die Stelle */
@@ -829,11 +956,11 @@ html, body {
    sind die interessanten – die springen ins Auge. */
 .akq-kat { display:inline-block; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:999px; white-space:nowrap; background:var(--surface-2); border:1px solid var(--border); color:var(--fg-muted); }
 .akq-kat.ohne_website { background:rgba(18,85,127,.12); border-color:transparent; color:var(--accent); }
-.akq-kat.nur_boerse { background:rgba(180,83,9,.12); border-color:transparent; color:#b45309; }
-.akq-kat.baukasten { background:rgba(124,58,237,.10); border-color:transparent; color:#6d28d9; }
-.akq-kat.veraltet { background:rgba(220,38,38,.10); border-color:transparent; color:#b91c1c; }
-.akq-kat.mittel { background:rgba(217,154,6,.12); border-color:transparent; color:#9a6b00; }
-.akq-kat.gepflegt { background:rgba(29,138,82,.10); border-color:transparent; color:#1d8a52; }
+.akq-kat.nur_boerse { background:rgba(194,65,12,.12); border-color:transparent; color:#c2410c; }
+.akq-kat.baukasten { background:rgba(124,58,237,.10); border-color:transparent; color:#7c3aed; }
+.akq-kat.veraltet { background:rgba(220,38,38,.10); border-color:transparent; color:#dc2626; }
+.akq-kat.mittel { background:rgba(202,138,4,.12); border-color:transparent; color:#a16207; }
+.akq-kat.gepflegt { background:rgba(22,163,74,.10); border-color:transparent; color:#15803d; }
 .akq-google { font-variant-numeric:tabular-nums; white-space:nowrap; }
 
 /* Signale: Schwaechen grau, Staerken gruen – auf einen Blick, welche Seite
