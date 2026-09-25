@@ -624,6 +624,17 @@ html, body {
 .akq-dubletten-namen small { font-size:.75rem; color:var(--fg-subtle); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 @media (max-width:640px) { .akq-dubletten li { grid-template-columns:1fr; } }
 .akq-kennzahlen { grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
+/* Lagebild oben: Karte links, Kennzahlen rechts als 2×4-Raster. Unter
+   1100 px untereinander, die Kennzahlen dann in einer Reihe. */
+.akq-dashboard { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px; margin-bottom:22px; align-items:stretch; }
+.akq-dashboard .akq-kennzahlen { display:grid; grid-template-columns:1fr 1fr; gap:12px; align-content:start; }
+.akq-dashboard .mon-kachel { padding:14px 16px; }
+.akq-dashboard .mon-kachel-wert { font-size:1.5rem; }
+.akq-karten-block { margin-bottom:0; padding:14px; min-width:0; }
+@media (max-width:1100px) {
+  .akq-dashboard { grid-template-columns:1fr; }
+  .akq-dashboard .akq-kennzahlen { grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); order:-1; }
+}
 .akq-knopf {
   display:inline-flex; align-items:center; gap:5px; font:inherit; font-size:.76rem; font-weight:600;
   padding:5px 10px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--fg-muted);
@@ -650,13 +661,17 @@ html, body {
 /* Liste statt Tabelle: jede Zeile ein Raster mit festen Spalten, darunter
    alle Signale in voller Breite. Kein eigener Scrollkasten mehr – die Seite
    scrollt, und die Leiste mit Filtern und Spaltenkoepfen bleibt oben stehen. */
-.akq-listenblock { padding-top:0; }
+/* Die Liste richtet sich nach ihrer eigenen Breite, nicht nach dem Fenster:
+   neben der Seitenleiste ist bei 1280 px schon zu wenig Platz fuer zehn Spalten. */
+.akq-listenblock { padding-top:0; container:akqliste / inline-size; }
+.akq-filter { padding-top:22px; }
 .akq-leiste {
   position:sticky; top:0; z-index:20; background:var(--surface);
-  margin:0 -28px; padding:18px 28px 0; border-radius:14px 14px 0 0;
-  border-bottom:1px solid var(--border);
+  margin:14px -28px 0; padding:12px 28px 0;
+  border-top:1px solid var(--border); border-bottom:1px solid var(--border);
 }
-.akq-kat-leiste { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:12px; }
+.akq-kat-leiste { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.akq-suche { width:210px; margin-right:6px; }
 .akq-kat-knopf {
   display:inline-flex; align-items:center; gap:6px; font:inherit; font-size:.78rem; font-weight:600;
   padding:5px 11px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--fg-muted);
@@ -704,17 +719,10 @@ html, body {
 .akq-signalzeile { display:flex; flex-wrap:wrap; gap:5px; padding:8px 0 0 190px; }
 .akq-signal b { margin-left:6px; font-weight:700; font-variant-numeric:tabular-nums; opacity:.75; }
 
-/* Umschalter Liste / Karte */
-.akq-ansicht { display:inline-flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; }
-.akq-ansicht button { all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:5px; padding:5px 11px; font-size:.78rem; font-weight:600; color:var(--fg-muted); }
-.akq-ansicht button + button { border-left:1px solid var(--border); }
-.akq-ansicht button:hover { color:var(--accent); }
-.akq-ansicht button.an { background:var(--accent); color:#fff; }
-.akq-ansicht button:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
-
-/* Karte: so hoch wie das Fenster unter der festen Leiste. */
-.akq-karte-huelle { padding-top:16px; }
-.akq-karte { height:calc(100vh - 260px); min-height:420px; border-radius:12px; border:1px solid var(--border); overflow:hidden; z-index:0; }
+/* Karte im Lagebild. z-index 0 und isolation: Leaflet setzt seine Ebenen
+   auf z-index 400+ – ohne eigenen Stapel lagen sie ueber der festen Leiste. */
+.akq-karte-huelle { display:flex; flex-direction:column; height:100%; }
+.akq-karte { flex:1; height:440px; min-height:360px; border-radius:10px; border:1px solid var(--border); overflow:hidden; position:relative; z-index:0; isolation:isolate; }
 .akq-karte-legende { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin-top:10px; font-size:.76rem; color:var(--fg-muted); }
 .akq-karte-legende i, .akq-karte-popup i { display:inline-block; width:10px; height:10px; border-radius:999px; margin-right:5px; vertical-align:-1px; }
 .akq-karte-popup { display:flex; flex-direction:column; gap:3px; font-family:inherit; font-size:.8rem; line-height:1.4; min-width:200px; }
@@ -730,21 +738,52 @@ html, body {
 }
 .akq-nach-oben:hover { filter:brightness(1.08); }
 
-/* Schmale Fenster: Zeilen umbrechen statt quetschen. Name und Nummer
-   oben, darunter Kennzahlen und Knoepfe; die Kopfzeile wird zur Reihe
-   von Sortierknoepfen. */
-@media (max-width:1180px) {
-  .akq-raster { display:flex; flex-wrap:wrap; gap:8px 14px; }
-  .akq-eintrag .akq-betrieb { flex:1 1 220px; order:-1; }
-  .akq-eintrag .akq-nr, .akq-eintrag .akq-stern { order:-2; }
-  .akq-eintrag .akq-aktionen { flex:1 1 100%; justify-content:flex-start; }
-  .akq-eintrag .akq-website { flex:0 1 220px; }
-  .akq-kopfzeile { gap:6px; }
-  .akq-kopfzeile > div { border:1px solid var(--border); border-radius:999px; padding:3px 9px; }
-  .akq-kopfzeile > .akq-nr, .akq-kopfzeile > div:last-child { display:none; }
-  .akq-signalzeile { padding-left:0; }
+/* Schmale Liste (neben der Seitenleiste unter ~1300 px Fensterbreite):
+   jede Zeile in drei festen Reihen – oben Nummer, Stern, Name und
+   Prioritaet, darunter Website, Kategorie und Zahlen, dann die Knoepfe.
+   Die Kopfzeile wird zur Reihe von Sortierknoepfen. */
+@container akqliste (max-width:1060px) {
+  .akq-eintrag > .akq-raster {
+    grid-template-columns:40px 26px minmax(0,1fr) auto auto auto auto;
+    grid-template-areas:
+      "nr stern betrieb betrieb betrieb prio prio"
+      ".  .     web     kat     sw      sb   google"
+      ".  .     akt     akt     akt     akt  akt";
+    gap:6px 14px;
+  }
+  .akq-eintrag .akq-nr { grid-area:nr; }
+  .akq-eintrag .akq-stern { grid-area:stern; }
+  .akq-eintrag .akq-betrieb { grid-area:betrieb; }
+  .akq-eintrag .akq-c-prio { grid-area:prio; justify-self:end; }
+  .akq-eintrag .akq-website { grid-area:web; }
+  .akq-eintrag .akq-c-kat { grid-area:kat; }
+  .akq-eintrag .akq-c-sw { grid-area:sw; }
+  .akq-eintrag .akq-c-sb { grid-area:sb; }
+  .akq-eintrag .akq-google { grid-area:google; }
+  .akq-eintrag .akq-aktionen { grid-area:akt; justify-content:flex-start; }
   /* Ohne Kopfzeile darueber sagt die Zahl selbst, was sie ist. */
   .akq-eintrag .akq-zahl::before { content:attr(data-l) " "; font-size:.7rem; font-weight:500; color:var(--fg-subtle); }
+  .akq-kopfzeile { display:flex; flex-wrap:wrap; gap:6px; }
+  .akq-kopfzeile > div { border:1px solid var(--border); border-radius:999px; padding:3px 9px; }
+  .akq-kopfzeile > .akq-nr, .akq-kopfzeile > div:last-child { display:none; }
+  .akq-signalzeile { padding-left:94px; }
+}
+/* Ganz schmal (Handy): Website und Zahlen untereinander. */
+@container akqliste (max-width:560px) {
+  .akq-eintrag > .akq-raster {
+    grid-template-columns:34px 24px minmax(0,1fr) auto;
+    grid-template-areas:
+      "nr stern betrieb prio"
+      ".  .     web     web"
+      ".  .     kat     kat"
+      ".  .     sw      sw"
+      ".  .     sb      sb"
+      ".  .     google  google"
+      ".  .     akt     akt";
+    gap:4px 10px;
+  }
+  .akq-eintrag .akq-c-sw, .akq-eintrag .akq-c-sb { text-align:left; }
+  .akq-signalzeile { padding-left:0; }
 }
 @media (max-width:700px) {
   .akq-leiste { margin:0 -18px; padding:14px 18px 0; }
@@ -806,9 +845,10 @@ html, body {
 .akq-signal.betrieb { background:rgba(29,138,82,.10); border-color:transparent; color:#1d8a52; }
 
 /* Aufgeklappte Zeile */
-.akq-details { padding:16px 0 6px 190px; }
-@media (max-width:1180px) { .akq-details { padding-left:0; } }
-.akq-details-raster { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px 24px; align-items:start; }
+.akq-details { padding:16px 0 6px; }
+.akq-details-raster { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:18px 28px; align-items:start; }
+/* Breit genug fuer vier Spalten: "Betrieb" (Adresse, E-Mail, Zeiten) bekommt mehr Platz. */
+@container akqliste (min-width:1000px) { .akq-details-raster { grid-template-columns:1fr .85fr 1.5fr 1fr; } }
 .akq-details-raster > div { min-width:0; }
 .akq-dt { margin:0 0 8px; font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-subtle); }
 .akq-dl { margin:0; display:grid; grid-template-columns:auto minmax(0,1fr); gap:5px 12px; font-size:.82rem; }

@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpToLine, ChevronDown, ChevronUp, Download, List, Mail, Map as KarteIcon, MapPin, Plus, RotateCcw, Star, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpToLine, ChevronDown, ChevronUp, Download, Mail, MapPin, Plus, RotateCcw, Star, Trash2 } from "lucide-react";
 import AdminShell, { api, datum, InfoTipp } from "@/components/admin/AdminShell";
 import Karte from "./Karte";
 
@@ -320,11 +320,10 @@ type Sortierung = { schluessel: SortSchluessel; ab: boolean };
 type Filter = {
   q: string; kat: string[]; art: string; web: string; gep: string; sig: string[];
   prio: string; region: string; auswahl: boolean; papierkorb: boolean; sort: Sortierung[];
-  ansicht: "liste" | "karte";
 };
 const FILTER_LEER: Filter = {
   q: "", kat: [], art: "alle", web: "alle", gep: "alle", sig: [], prio: "", region: "alle",
-  auswahl: false, papierkorb: false, sort: [{ schluessel: "prioritaet", ab: true }], ansicht: "liste",
+  auswahl: false, papierkorb: false, sort: [{ schluessel: "prioritaet", ab: true }],
 };
 const SORT_SCHLUESSEL: SortSchluessel[] = ["auswahl", "prioritaet", "name", "website", "kategorie", "score_website", "score_betrieb", "google", "geprueft"];
 // Text-Spalten steigen beim ersten Klick, Zahlen fallen – so, wie man es
@@ -345,7 +344,6 @@ function filterAusUrl(search: string): Filter {
     gep: p.get("gep") || "alle", sig: liste("sig"), prio: p.get("prio") || "", region: p.get("region") || "alle",
     auswahl: p.get("auswahl") === "1", papierkorb: p.get("papierkorb") === "1",
     sort: sort.length ? sort : FILTER_LEER.sort,
-    ansicht: p.get("ansicht") === "karte" ? "karte" : "liste",
   };
 }
 
@@ -361,7 +359,6 @@ function filterInUrl(f: Filter) {
   if (f.region !== "alle") p.set("region", f.region);
   if (f.auswahl) p.set("auswahl", "1");
   if (f.papierkorb) p.set("papierkorb", "1");
-  if (f.ansicht === "karte") p.set("ansicht", "karte");
   const sortStd = f.sort.length === 1 && f.sort[0].schluessel === "prioritaet" && f.sort[0].ab;
   if (!sortStd) p.set("sort", f.sort.map(s => `${s.schluessel}:${s.ab ? "ab" : "auf"}`).join(","));
   const s = p.toString();
@@ -930,24 +927,23 @@ function AkquiseCockpit() {
   }, [liste]);
   const katSchalten = (k: string) => setzeFilter({ kat: filter.kat.includes(k) ? filter.kat.filter(x => x !== k) : [...filter.kat, k] });
 
-  // Aus dem Karten-Popup: zur Liste wechseln, Zeile oeffnen und hinscrollen.
-  // Das Ziel steht in einem Ref: gescrollt wird erst, wenn die Liste nach dem
-  // Umschalten gezeichnet ist (Effekt nach dem Rendern).
+  // Aus dem Karten-Popup: Zeile in der Liste oeffnen und hinscrollen.
+  // Das Ziel steht in einem Ref: gescrollt wird erst, wenn die Zeile nach dem
+  // Aufklappen gezeichnet ist (Effekt nach dem Rendern).
   const springeZu = useRef<number | null>(null);
   const detailsAusKarte = useCallback((id: number) => {
     springeZu.current = id;
-    setFilter(f => ({ ...f, ansicht: "liste" }));
     aufklappen(id, true);
   }, [aufklappen]);
   useEffect(() => {
     const id = springeZu.current;
-    if (id == null || filter.ansicht !== "liste") return;
+    if (id == null) return;
     const el = document.getElementById(`betrieb-${id}`);
     if (!el) return;
     springeZu.current = null;
     const leiste = document.querySelector(".akq-leiste")?.getBoundingClientRect().height || 0;
     window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - leiste - 12, behavior: "smooth" });
-  }, [filter.ansicht, offen]);
+  }, [offen]);
 
   // "Nach oben" erscheint, sobald die Liste weiter gescrollt ist.
   const [weitUnten, setWeitUnten] = useState(false);
@@ -998,15 +994,24 @@ function AkquiseCockpit() {
     <>
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
-      <div className="mon-kennzahlen akq-kennzahlen">
-        <Kachel titel="Betriebe" wert={zahl(stand?.betriebe)} />
-        <Kachel titel="Mit Website" wert={zahl(stand?.mitWebsite)} />
-        <Kachel titel="Ohne Website" wert={zahl(stand?.ohneWebsite)} />
-        <Kachel titel="Nur Börse" wert={zahl(stand?.nurBoerse)} />
-        <Kachel titel="Geprüft" wert={zahl(stand?.geprueft)} unter={faellig ? `${zahl(faellig)} fällig` : undefined} />
-        <Kachel titel="Priorität ≥ 60" wert={zahl(stand?.prioHoch)} />
-        <Kachel titel="Auswahl" wert={zahl(stand?.auswahl)} />
-        <Kachel titel="Papierkorb" wert={zahl(stand?.papierkorb)} />
+      {/* Oben das Lagebild: Karte mit allen sichtbaren Betrieben (dieselben
+          Filter wie die Liste) und daneben die Kennzahlen. */}
+      <div className="akq-dashboard">
+        <section className="mon-block akq-karten-block">
+          {laedt
+            ? <p className="mon-leer">Karte wird geladen …</p>
+            : <Karte betriebe={filter.papierkorb ? [] : sichtbar} onDetails={detailsAusKarte} />}
+        </section>
+        <div className="akq-kennzahlen">
+          <Kachel titel="Betriebe" wert={zahl(stand?.betriebe)} />
+          <Kachel titel="Priorität ≥ 60" wert={zahl(stand?.prioHoch)} />
+          <Kachel titel="Ohne Website" wert={zahl(stand?.ohneWebsite)} />
+          <Kachel titel="Nur Börse" wert={zahl(stand?.nurBoerse)} />
+          <Kachel titel="Mit Website" wert={zahl(stand?.mitWebsite)} />
+          <Kachel titel="Geprüft" wert={zahl(stand?.geprueft)} unter={faellig ? `${zahl(faellig)} fällig` : undefined} />
+          <Kachel titel="Auswahl" wert={zahl(stand?.auswahl)} />
+          <Kachel titel="Papierkorb" wert={zahl(stand?.papierkorb)} />
+        </div>
       </div>
 
       {/* Steuerung: Suche links, Sammellaeufe rechts */}
@@ -1117,10 +1122,7 @@ function AkquiseCockpit() {
           beim Scrollen oben stehen; die Liste selbst scrollt mit der Seite,
           nicht in einem eigenen Kasten – das war am Trackpad fummelig. */}
       <section className="mon-block akq-listenblock">
-        <div className="akq-leiste">
-          <div className="akq-steuerung">
-            <input value={filter.q} onChange={e => setzeFilter({ q: e.target.value })} placeholder="Name, Ort oder Domain"
-                   className="field px-3 py-2 text-sm" style={{ width: 200 }} />
+        <div className="akq-steuerung akq-filter">
             <select value={filter.art} onChange={e => setzeFilter({ art: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Art">
               <option value="alle">Alle Arten</option>
               <option value="car">Autohaus</option>
@@ -1166,10 +1168,27 @@ function AkquiseCockpit() {
                 <Plus size={13} /> Betrieb anlegen
               </button>
             )}
-          </div>
+        </div>
 
-          {/* Kategorie als Knoepfe: ein Klick filtert, mehrere zugleich gehen. */}
-          <div className="akq-kat-leiste" role="group" aria-label="Kategorie">
+        {formOffen && !filter.papierkorb && (
+          <form onSubmit={anlegen} className="akq-steuerung akq-anlegen">
+            <input required value={neu.name} onChange={e => setNeu({ ...neu, name: e.target.value })} placeholder="Name"
+                   className="field px-3 py-2 text-sm" style={{ width: 220 }} />
+            <input value={neu.website} onChange={e => setNeu({ ...neu, website: e.target.value })} placeholder="Website"
+                   className="field px-3 py-2 text-sm" style={{ width: 220 }} />
+            <input value={neu.ort} onChange={e => setNeu({ ...neu, ort: e.target.value })} placeholder="Ort"
+                   className="field px-3 py-2 text-sm" style={{ width: 160 }} />
+            <button type="submit" className="btn-primary px-4 py-2 text-sm">Anlegen</button>
+            <button type="button" onClick={() => setFormOffen(false)} className="akq-knopf">Abbrechen</button>
+          </form>
+        )}
+
+        {/* Beim Scrollen bleiben nur Suche, Kategorie und Spaltenkoepfe oben –
+            so bleibt Platz fuer die Liste. */}
+        <div className="akq-leiste">
+          <div className="akq-kat-leiste" role="group" aria-label="Suche und Kategorie">
+            <input value={filter.q} onChange={e => setzeFilter({ q: e.target.value })} placeholder="Name, Ort oder Domain"
+                   className="field px-3 py-1.5 text-sm akq-suche" aria-label="Suche" />
             <button type="button" className={`akq-kat-knopf${filter.kat.length ? "" : " an"}`} onClick={() => setzeFilter({ kat: [] })}>
               Alle <b>{zahl(liste.length)}</b>
             </button>
@@ -1179,45 +1198,32 @@ function AkquiseCockpit() {
                 {k.label} <b>{zahl(katZahlen[k.wert] || 0)}</b>
               </button>
             ))}
-            <InfoTipp breite={320}>{ERKLAERUNG.kat}</InfoTipp>
+            <InfoTipp breite={340}>
+              <span className="flex flex-col gap-1.5">
+                <span>{ERKLAERUNG.prio}</span>
+                <span>{ERKLAERUNG.schwaeche}</span>
+                <span>{ERKLAERUNG.staerke}</span>
+                <span>{ERKLAERUNG.kat}</span>
+              </span>
+            </InfoTipp>
             <span className="akq-trenner" aria-hidden="true" />
             <span className="akq-hinweis">{zahl(sichtbar.length)} von {zahl(liste.length)}</span>
-            <span className="akq-ansicht" role="group" aria-label="Ansicht">
-              <button type="button" className={filter.ansicht === "liste" ? "an" : ""} onClick={() => setzeFilter({ ansicht: "liste" })} aria-pressed={filter.ansicht === "liste"}>
-                <List size={14} /> Liste
-              </button>
-              <button type="button" className={filter.ansicht === "karte" ? "an" : ""} onClick={() => setzeFilter({ ansicht: "karte" })} aria-pressed={filter.ansicht === "karte"}>
-                <KarteIcon size={14} /> Karte
-              </button>
-            </span>
             {filterAktiv(filter) && (
-              <button onClick={() => setFilter(f => ({ ...FILTER_LEER, papierkorb: f.papierkorb, sort: f.sort, ansicht: f.ansicht }))} className="akq-knopf">Filter zurücksetzen</button>
+              <button onClick={() => setFilter(f => ({ ...FILTER_LEER, papierkorb: f.papierkorb, sort: f.sort }))} className="akq-knopf">Filter zurücksetzen</button>
             )}
           </div>
 
-          {formOffen && !filter.papierkorb && (
-            <form onSubmit={anlegen} className="akq-steuerung akq-anlegen">
-              <input required value={neu.name} onChange={e => setNeu({ ...neu, name: e.target.value })} placeholder="Name"
-                     className="field px-3 py-2 text-sm" style={{ width: 220 }} />
-              <input value={neu.website} onChange={e => setNeu({ ...neu, website: e.target.value })} placeholder="Website"
-                     className="field px-3 py-2 text-sm" style={{ width: 220 }} />
-              <input value={neu.ort} onChange={e => setNeu({ ...neu, ort: e.target.value })} placeholder="Ort"
-                     className="field px-3 py-2 text-sm" style={{ width: 160 }} />
-              <button type="submit" className="btn-primary px-4 py-2 text-sm">Anlegen</button>
-              <button type="button" onClick={() => setFormOffen(false)} className="akq-knopf">Abbrechen</button>
-            </form>
-          )}
 
-          {sichtbar.length > 0 && filter.ansicht === "liste" && (
+          {sichtbar.length > 0 && (
             <div className="akq-raster akq-kopfzeile" role="row">
               <div className="akq-nr">#</div>
               {kopf("auswahl", <Star size={12} />, "akq-stern-kopf")}
-              {kopf("prioritaet", "Priorität", undefined, ERKLAERUNG.prio)}
+              {kopf("prioritaet", "Priorität")}
               {kopf("name", "Betrieb")}
               {kopf("website", "Website")}
               {kopf("kategorie", "Kategorie")}
-              {kopf("score_website", "Schwäche", "num", ERKLAERUNG.schwaeche)}
-              {kopf("score_betrieb", "Stärke", "num", ERKLAERUNG.staerke)}
+              {kopf("score_website", "Schwäche", "num")}
+              {kopf("score_betrieb", "Stärke", "num")}
               {kopf("google", "Google")}
               <div />
             </div>
@@ -1230,8 +1236,6 @@ function AkquiseCockpit() {
           <p className="mon-leer py-6 text-center">{filter.papierkorb ? "Der Papierkorb ist leer." : "Noch keine Betriebe. Region wählen und suchen."}</p>
         ) : sichtbar.length === 0 ? (
           <p className="mon-leer py-6 text-center">Kein Betrieb passt zu den Filtern.</p>
-        ) : filter.ansicht === "karte" ? (
-          <Karte betriebe={sichtbar} onDetails={detailsAusKarte} />
         ) : (
           <div className="akq-liste" role="table" aria-label="Betriebe">
             {sichtbar.map((b, nr) => {
@@ -1257,7 +1261,7 @@ function AkquiseCockpit() {
                         <Star size={16} />
                       </button>
                     </div>
-                    <div><Prio wert={b.prioritaet} /></div>
+                    <div className="akq-c-prio"><Prio wert={b.prioritaet} /></div>
                     <div className="akq-betrieb">
                       <button type="button" className="akq-name" onClick={() => aufklappen(b.id)}>{b.name}</button>
                       <span className="akq-unter">
@@ -1275,9 +1279,9 @@ function AkquiseCockpit() {
                         </>
                       ) : <span className="text-[var(--fg-subtle)]">keine</span>}
                     </div>
-                    <div><KategorieChip wert={b.kategorie} /></div>
-                    <div className="num akq-zahl" data-l="Schwäche">{zahl(b.score_website)}</div>
-                    <div className="num akq-zahl stark" data-l="Stärke">{zahl(b.score_betrieb)}</div>
+                    <div className="akq-c-kat"><KategorieChip wert={b.kategorie} /></div>
+                    <div className="num akq-zahl akq-c-sw" data-l="Schwäche">{zahl(b.score_website)}</div>
+                    <div className="num akq-zahl stark akq-c-sb" data-l="Stärke">{zahl(b.score_betrieb)}</div>
                     <div className="akq-google">
                       {b.google_anzahl != null || b.google_bewertung != null
                         ? <span title={b.google_stand ? `Stand ${datum(b.google_stand)}` : undefined}>★ {note(b.google_bewertung)} · {zahl(b.google_anzahl)}</span>
@@ -1330,6 +1334,11 @@ function AkquiseCockpit() {
                       <div className="akq-details-raster">
                         <div>
                           <p className="akq-dt">Prüfung</p>
+                          {boerse ? (
+                            <p className="mon-leer text-sm">Nur eine Börsen-Seite – dort gibt es nichts zu prüfen. Bewertet wird, dass eine eigene Website fehlt.</p>
+                          ) : !b.website ? (
+                            <p className="mon-leer text-sm">Keine Website – nichts zu prüfen.</p>
+                          ) : (
                           <dl className="akq-dl">
                             <dt>Zeitpunkt</dt><dd>{lp ? datum(lp.zeitpunkt) : "—"}</dd>
                             <dt>Erreichbar</dt><dd>{lp ? (lp.erreichbar ? "ja" : "nein") : "—"}</dd>
@@ -1341,6 +1350,7 @@ function AkquiseCockpit() {
                             {voll?.antwort_ms != null && <><dt>Antwort</dt><dd>{zahl(voll.antwort_ms)} ms · {zahl(voll.groesse_kb)} KB</dd></>}
                             {lp?.fehler && <><dt>Fehler</dt><dd className="akq-lang">{lp.fehler}</dd></>}
                           </dl>
+                          )}
                         </div>
 
                         <div>
@@ -1366,9 +1376,8 @@ function AkquiseCockpit() {
                             <dt>Quelle</dt><dd>{b.quelle === "osm" ? `OSM${b.region ? ` · ${b.region}` : ""}` : "manuell"}</dd>
                             <dt>Status</dt>
                             <dd>
-                              <span className={`akq-status ${b.status}`}>{STATUS.find(x => x.wert === b.status)?.label || b.status}</span>
                               <select value={b.status} onChange={e => statusSetzen(b.id, e.target.value)}
-                                      className="field px-2 py-1 text-xs ml-2" style={{ width: "auto", display: "inline-block" }} aria-label={`Status von ${b.name}`}>
+                                      className="field px-2 py-1 text-xs" style={{ width: "auto", display: "inline-block" }} aria-label={`Status von ${b.name}`}>
                                 {STATUS.map(x => <option key={x.wert} value={x.wert}>{x.label}</option>)}
                               </select>
                             </dd>
