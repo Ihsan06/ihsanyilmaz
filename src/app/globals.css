@@ -857,6 +857,66 @@ html, body {
 .akq-karte-popup button:hover { filter:brightness(1.1); }
 .akq-karte-tooltip { font-family:inherit; font-size:.74rem; font-weight:600; border-radius:8px; border:0; box-shadow:0 6px 16px rgba(15,23,42,.18); }
 
+/* Papierkorb: eigener Kopf ueber der Liste, gedaempfte Zeilen, leerer Zustand */
+.akq-korb-knopf b { margin-left:2px; padding:0 6px; border-radius:999px; background:var(--mon-off); color:var(--fg-muted); font-variant-numeric:tabular-nums; }
+.akq-korb-knopf.an { border-color:#b91c1c; color:#b91c1c; background:color-mix(in srgb, #dc2626 7%, var(--surface)); }
+.akq-korb-knopf.an b { background:color-mix(in srgb, #dc2626 14%, transparent); color:#b91c1c; }
+.akq-knopf.gefahr:hover:not(:disabled) { border-color:#dc2626; color:#dc2626; }
+.akq-korb-kopf {
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:-4px 0 16px; padding:14px 16px;
+  border-radius:14px; border:1px solid color-mix(in srgb, #dc2626 22%, var(--border));
+  background:linear-gradient(135deg, color-mix(in srgb, #dc2626 7%, var(--surface)), var(--surface) 70%);
+}
+.akq-korb-symbol {
+  flex:none; width:40px; height:40px; border-radius:12px; display:grid; place-items:center;
+  color:#b91c1c; background:color-mix(in srgb, #dc2626 12%, var(--surface));
+}
+.akq-korb-text { flex:1; min-width:200px; }
+.akq-korb-text p { margin:0; font-size:.8rem; color:var(--fg-subtle); }
+.akq-korb-text .akq-korb-titel { display:flex; align-items:center; gap:8px; font-size:1rem; font-weight:700; color:var(--fg); }
+.akq-korb-titel b { font-size:.74rem; font-weight:700; padding:1px 8px; border-radius:999px; background:color-mix(in srgb, #dc2626 12%, transparent); color:#b91c1c; font-variant-numeric:tabular-nums; }
+.akq-korb-aktionen { display:flex; flex-wrap:wrap; gap:6px; }
+.akq-korb-aktionen .akq-knopf { padding:7px 12px; }
+.akq-knopf.gefahr { color:#b91c1c; }
+.akq-korb-aktionen .akq-knopf.gefahr { border-color:color-mix(in srgb, #dc2626 35%, var(--border)); }
+.akq-korb-leer { display:flex; flex-direction:column; align-items:center; gap:10px; padding:44px 0 36px; }
+.akq-korb-leer .akq-korb-symbol { width:56px; height:56px; border-radius:18px; color:var(--fg-subtle); background:var(--mon-off); }
+.akq-korb-leer p { margin:0; font-size:.9rem; color:var(--fg-muted); }
+.akq-eintrag.im-korb > .akq-raster > div:not(.akq-aktionen):not(.akq-nr),
+.akq-eintrag.im-korb > .akq-signalzeile { opacity:.55; filter:grayscale(.6); transition:opacity .15s ease, filter .15s ease; }
+.akq-eintrag.im-korb:hover > .akq-raster > div, .akq-eintrag.im-korb.offen > .akq-raster > div,
+.akq-eintrag.im-korb:hover > .akq-signalzeile { opacity:1; filter:none; }
+.akq-eintrag.im-korb .akq-name { text-decoration:line-through; text-decoration-color:color-mix(in srgb, var(--fg) 35%, transparent); }
+.akq-eintrag.im-korb:hover .akq-name { text-decoration:none; }
+.akq-geloescht-am { display:inline-block; margin-right:6px; padding:0 6px; border-radius:6px; font-size:.68rem; font-weight:600; color:#b91c1c; background:color-mix(in srgb, #dc2626 10%, transparent); }
+.akq-stern button:disabled { opacity:.35; cursor:default; }
+.akq-knopf.akq-zurueck { border-color:var(--accent); color:var(--accent); }
+.akq-knopf.akq-zurueck:hover { background:var(--accent); color:#fff; }
+.akq-karte-hinweis {
+  position:absolute; left:12px; top:12px; z-index:800; display:inline-flex; align-items:center; gap:6px;
+  padding:5px 11px; border-radius:999px; font-size:.72rem; font-weight:700; color:#fff; background:#b91c1c;
+  box-shadow:0 6px 18px rgba(185,28,28,.3);
+}
+
+/* Meldung unten in der Mitte, etwa "liegt im Papierkorb · Rueckgaengig" */
+.akq-toast {
+  position:fixed; left:50%; bottom:24px; z-index:60; transform:translateX(-50%);
+  display:flex; align-items:center; gap:10px; max-width:calc(100vw - 32px);
+  padding:10px 10px 10px 16px; border-radius:14px; background:#0f172a; color:#f8fafc;
+  font-size:.84rem; box-shadow:0 16px 40px rgba(15,23,42,.35); animation:akq-toast-rein .2s ease-out;
+}
+.akq-toast > span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.akq-toast-knopf {
+  all:unset; cursor:pointer; flex:none; display:inline-flex; align-items:center; gap:6px; padding:6px 11px; border-radius:9px;
+  font-weight:700; color:#0f172a; background:#f8fafc;
+}
+.akq-toast-knopf:hover { background:#e2e8f0; }
+.akq-toast-zu { all:unset; cursor:pointer; flex:none; width:26px; height:26px; display:grid; place-items:center; border-radius:8px; color:#94a3b8; font-size:1.1rem; }
+.akq-toast-zu:hover { color:#fff; background:rgba(255,255,255,.1); }
+.akq-toast button:focus-visible { outline:2px solid #60a5fa; outline-offset:2px; }
+@keyframes akq-toast-rein { from { opacity:0; transform:translate(-50%, 10px); } to { opacity:1; transform:translate(-50%, 0); } }
+@media (prefers-reduced-motion:reduce) { .akq-toast { animation:none; } }
+
 .akq-nach-oben {
   position:fixed; right:24px; bottom:24px; z-index:40; width:44px; height:44px; border-radius:999px;
   display:flex; align-items:center; justify-content:center; cursor:pointer;

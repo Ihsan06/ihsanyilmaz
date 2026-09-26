@@ -12,6 +12,10 @@
 // POST   { name, website?, ort?, plz?, telefon? }  → quelle 'manuell'
 // POST   { id, aktion:'wiederherstellen' }         → aus dem Papierkorb
 // DELETE { id }                    → in den Papierkorb (geloescht = jetzt)
+// DELETE { alle:true, endgueltig:true } → Papierkorb leeren (ohne Betriebe mit verschickten Briefen)
+// POST { aktion:'alle_wiederherstellen' } → ganzen Papierkorb zurueckholen
+// Endgueltig Geloeschtes bleibt als Quellschluessel in akquise_ausgeschlossen –
+// sonst legte der naechste Suchlauf den Betrieb wieder an.
 // DELETE { id, endgueltig:true }   → wirklich loeschen, Pruefungen mit
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
 import { websiteNormalisieren, kategorieOhnePruefung, kategorieErmitteln, KATEGORIEN, jsonLesen, betriebLaden, letztePruefungLaden, pruefungNeuBewerten } from '../../../_lib/akquise.js';
@@ -173,6 +177,15 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   let body;
   try { body = await request.json(); } catch { return json({ ok: false, error: 'Ungültiger Body.' }, 400); }
 
+  // Ganzen Papierkorb zurueckholen. Zusammengefuehrte Dubletten sind zwar
+  // auch "geloescht", gehoeren aber nicht dazu und bleiben unsichtbar.
+  if (body?.aktion === 'alle_wiederherstellen') {
+    const { meta } = await env.DB.prepare(
+      "UPDATE akquise_betriebe SET geloescht = NULL, geaendert = datetime('now') WHERE geloescht IS NOT NULL AND zusammengefuehrt_in IS NULL",
+    ).run();
+    return json({ ok: true, wiederhergestellt: Number(meta?.changes || 0) });
+  }
+
   if (body?.aktion === 'wiederherstellen') {
     const id = Number(body?.id);
     if (!id) return json({ ok: false, error: 'ID fehlt.' }, 400);
@@ -205,9 +218,37 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   return json({ ok: true, id: meta?.last_row_id });
 });
 
+// Quellschluessel der Betriebe aus "ids" (Unterabfrage) festhalten: OSM-ID
+// bzw. Google-ID des Eintrags und die verknuepfte Place-ID.
+function ausschliessen(env, ids, werte = []) {
+  return [
+    env.DB.prepare(`INSERT OR IGNORE INTO akquise_ausgeschlossen (quelle, quelle_id)
+      SELECT quelle, quelle_id FROM akquise_betriebe WHERE id IN (${ids}) AND quelle IN ('osm', 'google') AND quelle_id IS NOT NULL`).bind(...werte),
+    env.DB.prepare(`INSERT OR IGNORE INTO akquise_ausgeschlossen (quelle, quelle_id)
+      SELECT 'google', google_place_id FROM akquise_betriebe WHERE id IN (${ids}) AND google_place_id IS NOT NULL`).bind(...werte),
+  ];
+}
+
 export const onRequestDelete = nurAngemeldet(async ({ request, env }) => {
   let body;
   try { body = await request.json(); } catch { return json({ ok: false, error: 'Ungültiger Body.' }, 400); }
+  // Papierkorb leeren: alles endgueltig weg, ausser Betrieben mit
+  // verschickten Briefen (deren persoenliche Seite braucht den Eintrag).
+  // Mengenweise in einem Batch – bindet keine IDs, passt also fuer jede Groesse.
+  if (body?.alle === true && body?.endgueltig === true) {
+    const imKorb = `SELECT id FROM akquise_betriebe b WHERE b.geloescht IS NOT NULL AND b.zusammengefuehrt_in IS NULL
+      AND NOT EXISTS (SELECT 1 FROM akquise_briefe br WHERE br.betrieb_id = b.id AND br.status IN ('gesendet', 'zugestellt'))`;
+    const vorher = await env.DB.prepare('SELECT COUNT(*) AS n FROM akquise_betriebe WHERE geloescht IS NOT NULL AND zusammengefuehrt_in IS NULL').first();
+    const erg = await env.DB.batch([
+      ...ausschliessen(env, imKorb),
+      env.DB.prepare(`DELETE FROM akquise_pruefungen WHERE betrieb_id IN (${imKorb})`),
+      env.DB.prepare(`DELETE FROM akquise_betriebe WHERE id IN (${imKorb})`),
+    ]);
+    const geloescht = Number(erg.at(-1)?.meta?.changes || 0);
+    const behalten = Math.max(0, Number(vorher?.n || 0) - geloescht);
+    return json({ ok: true, geloescht, behalten });
+  }
+
   const id = Number(body?.id);
   if (!id) return json({ ok: false, error: 'ID fehlt.' }, 400);
 
@@ -219,6 +260,7 @@ export const onRequestDelete = nurAngemeldet(async ({ request, env }) => {
     ).bind(id).first();
     if (Number(offen?.n || 0) > 0) return json({ ok: false, error: 'Zu diesem Betrieb gibt es verschickte Briefe – erst unter Post löschen.' }, 409);
     await env.DB.batch([
+      ...ausschliessen(env, 'SELECT ?', [id]),
       env.DB.prepare('DELETE FROM akquise_pruefungen WHERE betrieb_id = ?').bind(id),
       env.DB.prepare('DELETE FROM akquise_betriebe WHERE id = ?').bind(id),
     ]);

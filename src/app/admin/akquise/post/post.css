@@ -1,4 +1,4 @@
-/* Akquise → Post: Reiter, Brieftabelle, Editor mit A4-Vorschau.
+/* Akquise → Post: Reiter, Brieftabelle, Editor, links die A4-Vorschau.
    Baut auf den Admin-Klassen aus globals.css auf (.mon-block, .mon-tabelle,
    .akq-knopf, .field); hier nur, was dort fehlt. Alle Klassen mit post-. */
 
@@ -42,9 +42,38 @@
 .post-gewaehlt p { margin:2px 0 0; font-size:.84rem; color:var(--fg-muted); }
 .post-gewaehlt .post-aktionen { justify-content:flex-end; }
 
-/* Editor: links Befunde/Text, rechts das Blatt */
-.post-editor { display:grid; grid-template-columns:minmax(320px, 1fr) minmax(320px, 560px); gap:26px; align-items:start; }
-@media (max-width:1100px) { .post-editor { grid-template-columns:1fr; } }
+/* Arbeitsflaeche wie bei „Content erstellen“: links die Vorschau – sie
+   klebt beim Scrollen –, rechts der Reiter. Schmal: Vorschau darunter. */
+.post-arbeit { display:grid; grid-template-columns:minmax(320px, 440px) minmax(0, 1fr); gap:24px; align-items:start; }
+.post-arbeit.ohne-schau { grid-template-columns:minmax(0, 1fr); }
+.post-inhalt { min-width:0; }
+.post-schau { position:sticky; top:16px; max-height:calc(100vh - 32px); overflow:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:22px; }
+.post-schau-kopf { display:flex; align-items:center; gap:8px; min-width:0; }
+.post-schau-titel { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-subtle); }
+.post-schau-chip { flex:none; font-size:.7rem; font-weight:700; padding:2px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent); white-space:nowrap; }
+.post-schau-name { flex:1; min-width:0; font-size:.84rem; font-weight:600; color:var(--fg); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.post-schau-fuss { display:flex; justify-content:flex-end; gap:6px; }
+@media (max-width:1100px) {
+  .post-arbeit { grid-template-columns:minmax(0, 1fr); }
+  .post-schau { position:static; max-height:none; order:2; width:100%; max-width:560px; }
+}
+
+/* Vorschau gross ueber der Seite */
+.post-gross { position:fixed; inset:0; z-index:80; display:flex; justify-content:center; align-items:flex-start; overflow:auto; padding:32px 16px; background:rgba(7,26,43,.55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+.post-gross-blatt { position:relative; width:min(860px, 100%); }
+.post-gross-zu { position:absolute; top:10px; right:10px; z-index:1; width:34px; height:34px; border-radius:999px; border:0; display:grid; place-items:center; cursor:pointer; background:#fff; color:#0f172a; box-shadow:0 6px 18px rgba(0,0,0,.25); }
+.post-gross-zu:hover { background:#f1f5f9; }
+
+/* Brieftabelle: Zeile waehlt, was die Vorschau zeigt */
+.post-tabelle tbody tr { cursor:pointer; }
+.post-tabelle tbody tr.gewaehlt td { background:color-mix(in srgb, var(--accent) 7%, transparent); }
+.post-tabelle tbody tr.gewaehlt td:first-child { box-shadow:inset 3px 0 0 var(--accent); }
+.post-name { all:unset; cursor:pointer; font-weight:600; color:var(--fg); line-height:1.35; }
+.post-name:hover, .post-name[aria-pressed="true"] { color:var(--accent); }
+.post-name:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+.post-unter { display:block; margin-top:2px; font-size:.74rem; color:var(--fg-subtle); white-space:nowrap; }
+.post-demo { color:#1d8a52; font-weight:600; }
+
 .post-editor-kopf { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin-bottom:16px; }
 .post-editor-kopf h2 { margin:0; font-size:1.05rem; font-weight:700; color:var(--fg); }
 .post-abschnitt { margin-bottom:18px; }

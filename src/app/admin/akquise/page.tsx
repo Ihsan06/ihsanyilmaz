@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpToLine, Check, ChevronDown, ChevronUp, CircleAlert, Download, Loader2, Mail, Plus, RefreshCw, RotateCcw, Search, Star, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpToLine, Check, ChevronDown, ChevronUp, CircleAlert, Download, Loader2, Mail, Plus, RefreshCw, RotateCcw, Search, Star, Trash2, Undo2 } from "lucide-react";
 import AdminShell, { api, datum, InfoTipp } from "@/components/admin/AdminShell";
 import Karte from "./Karte";
 
@@ -61,7 +61,7 @@ type Betrieb = {
 type Lauf = { id: number; art: string; region: string | null; gefunden: number | null; neu: number | null; fehler: string | null; zeitpunkt: string };
 type Stand = {
   betriebe: number; mitWebsite: number; ohneWebsite: number; nurBoerse: number; geprueft: number;
-  prioHoch: number; auswahl: number; papierkorb: number; nachStatus: Record<string, number>; laeufe: Lauf[];
+  prioHoch: number; auswahl: number; papierkorb: number; nachStatus: Record<string, number>; nachKategorie?: Record<string, number>; laeufe: Lauf[];
   google?: { eingerichtet: boolean; monat?: string; genutzt?: number; grenze?: number; frei?: number };
 };
 
@@ -521,6 +521,9 @@ function AkquiseCockpit() {
   const [betriebe, setBetriebe] = useState<Betrieb[] | null>(null);
   const [stand, setStand] = useState<Stand | null>(null);
   const [fehler, setFehler] = useState("");
+  // Kurze Meldung unten in der Mitte – nach dem Papierkorb mit "Rueckgaengig".
+  const [meldung, setMeldung] = useState<{ text: string; zurueck?: Betrieb } | null>(null);
+  const meldungTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Filter und Sortierung stehen in der URL, damit Reload und Teilen sie behalten.
   const [filter, setFilter] = useState<Filter>(() => filterAusUrl(suchparameter.toString()));
@@ -993,26 +996,65 @@ function AkquiseCockpit() {
     patch({ id: b.id, website: null }).then(d => { patchUebernehmen(b.id, d); ladeStand(); }).catch(e => setFehler(e.message));
   };
 
+  const melden = (text: string, zurueck?: Betrieb) => {
+    if (meldungTimer.current) clearTimeout(meldungTimer.current);
+    setMeldung({ text, zurueck });
+    meldungTimer.current = setTimeout(() => setMeldung(null), zurueck ? 8000 : 5000);
+  };
+  useEffect(() => () => { if (meldungTimer.current) clearTimeout(meldungTimer.current); }, []);
+
+  // In den Papierkorb: sofort aus der Liste, unten erscheint "Rueckgaengig".
   const inPapierkorb = (b: Betrieb) => {
     setBetriebe(liste => (liste ? liste.filter(x => x.id !== b.id) : liste));
+    melden(`„${b.name}“ liegt im Papierkorb.`, b);
     api("/api/admin/akquise/betriebe", { method: "DELETE", body: JSON.stringify({ id: b.id }) })
       .then(() => ladeStand())
       .catch(e => setFehler(e.message));
   };
 
+  const rueckgaengig = async () => {
+    const b = meldung?.zurueck;
+    if (!b) return;
+    setMeldung(null);
+    try {
+      await api("/api/admin/akquise/betriebe", { method: "POST", body: JSON.stringify({ id: b.id, aktion: "wiederherstellen" }) });
+      await Promise.all([ladeListe(filter.papierkorb), ladeStand()]);
+    } catch (e) { setFehler(e instanceof Error ? e.message : "Wiederherstellen ging nicht."); }
+  };
+
   const wiederherstellen = (b: Betrieb) => {
     setBetriebe(liste => (liste ? liste.filter(x => x.id !== b.id) : liste));
     api("/api/admin/akquise/betriebe", { method: "POST", body: JSON.stringify({ id: b.id, aktion: "wiederherstellen" }) })
-      .then(() => ladeStand())
-      .catch(e => setFehler(e.message));
+      .then(() => { ladeStand(); melden(`„${b.name}“ ist wieder in der Liste.`); })
+      .catch(e => { setFehler(e.message); ladeListe(true); });
   };
 
   const endgueltigLoeschen = (b: Betrieb) => {
-    if (!confirm(`„${b.name}“ endgültig löschen? Das lässt sich nicht rückgängig machen.`)) return;
+    if (!confirm(`„${b.name}“ endgültig löschen? Das lässt sich nicht rückgängig machen – Suchläufe legen den Betrieb auch nicht neu an.`)) return;
     setBetriebe(liste => (liste ? liste.filter(x => x.id !== b.id) : liste));
     api("/api/admin/akquise/betriebe", { method: "DELETE", body: JSON.stringify({ id: b.id, endgueltig: true }) })
       .then(() => ladeStand())
-      .catch(e => setFehler(e.message));
+      .catch(e => { setFehler(e.message); ladeListe(true); });
+  };
+
+  const alleWiederherstellen = async () => {
+    const n = betriebe?.length || 0;
+    if (!n || !confirm(`Alle ${n} Betriebe aus dem Papierkorb zurück in die Liste?`)) return;
+    try {
+      const d = await api("/api/admin/akquise/betriebe", { method: "POST", body: JSON.stringify({ aktion: "alle_wiederherstellen" }) });
+      melden(`${zahl(d.wiederhergestellt)} Betriebe sind wieder in der Liste.`);
+      await Promise.all([ladeListe(true), ladeStand()]);
+    } catch (e) { setFehler(e instanceof Error ? e.message : "Ging nicht."); }
+  };
+
+  const korbLeeren = async () => {
+    const n = betriebe?.length || 0;
+    if (!n || !confirm(`Papierkorb leeren? ${n} Betriebe werden endgültig gelöscht, samt Prüfungen. Suchläufe legen sie auch danach nicht neu an.`)) return;
+    try {
+      const d = await api("/api/admin/akquise/betriebe", { method: "DELETE", body: JSON.stringify({ alle: true, endgueltig: true }) });
+      melden(`${zahl(d.geloescht)} endgültig gelöscht${d.behalten ? ` · ${zahl(d.behalten)} bleiben, weil es verschickte Briefe gibt` : ""}.`);
+      await Promise.all([ladeListe(true), ladeStand()]);
+    } catch (e) { setFehler(e instanceof Error ? e.message : "Ging nicht."); }
   };
 
   const anlegen = async (e: React.FormEvent) => {
@@ -1112,13 +1154,18 @@ function AkquiseCockpit() {
     URL.revokeObjectURL(url);
   };
 
+  const korbLeer = filter.papierkorb && !laedt && liste.length === 0;
   const faellig = filter.papierkorb ? 0 : liste.filter(b => brauchtPruefung(b) || brauchtPsi(b) || (googleEingerichtet && brauchtGoogle(b))).length;
   const letzterLauf = stand?.laeufe?.[0];
   const unsichereDoppelte = (dubletten || []).filter(g => !g.sicher).length;
 
   // Kennzahlen oben filtern per Klick – ein zweiter Klick hebt den Filter auf.
-  const nurKat = (k: string[]) => filter.kat.length === k.length && k.every(x => filter.kat.includes(x));
-  const katKachel = (k: string[]) => setzeFilter({ kat: nurKat(k) ? [] : k });
+  // Die Kacheln zaehlen immer die aktive Liste. Im Papierkorb fuehrt ein
+  // Klick darauf zurueck in die Liste, gleich mit dem Filter.
+  const kachelKat = filter.papierkorb ? stand?.nachKategorie || {} : katZahlen;
+  const nurKat = (k: string[]) => !filter.papierkorb && filter.kat.length === k.length && k.every(x => filter.kat.includes(x));
+  const ausKorb = (aenderung: Partial<Filter>) => { setBetriebe(null); setFilter(f => ({ ...FILTER_LEER, sort: f.sort, ...aenderung })); };
+  const katKachel = (k: string[]) => (filter.papierkorb ? ausKorb({ kat: k }) : setzeFilter({ kat: nurKat(k) ? [] : k }));
 
   // Sortierbarer Spaltenkopf – Pfeil zeigt die Richtung, die kleine Zahl
   // die Stelle bei Zweit- und Drittsortierung.
@@ -1147,14 +1194,16 @@ function AkquiseCockpit() {
         <div className="akq-oben-links">
           <section className="mon-block akq-lauf">
             <div className="akq-lauf-kopf">
-              <div>
-                <p className="akq-eyebrow">Suchlauf</p>
-                <p className="akq-lauf-titel">OpenStreetMap und Google Maps, automatisch zusammengeführt und geprüft</p>
-              </div>
+              <p className="akq-eyebrow">Suchlauf</p>
               <InfoTipp breite={340}>
-                Ein Klick erledigt alles: Betriebe aus OpenStreetMap holen, dieselbe Gegend bei Google Maps absuchen,
-                beides abgleichen, Doppelte zusammenführen, jede Website prüfen und PageSpeed messen. Bestehende Einträge
-                behalten Stern, Notiz und Papierkorb.
+                <span className="flex flex-col gap-1.5">
+                  <b className="text-[var(--fg)]">OpenStreetMap und Google Maps, automatisch zusammengeführt und geprüft.</b>
+                  <span>
+                    Ein Klick erledigt alles: Betriebe aus OpenStreetMap holen, dieselbe Gegend bei Google Maps absuchen,
+                    beides abgleichen, Doppelte zusammenführen, jede Website prüfen und PageSpeed messen.
+                  </span>
+                  <span>Bestehende Einträge behalten Stern, Notiz und Papierkorb.</span>
+                </span>
               </InfoTipp>
             </div>
 
@@ -1267,24 +1316,24 @@ function AkquiseCockpit() {
 
           <div className="akq-kennzahlen">
             <KpiKachel titel="Betriebe" wert={zahl(stand?.betriebe)} aktiv={!filterAktiv(filter) && !filter.papierkorb}
-                       onClick={() => setFilter(f => ({ ...FILTER_LEER, sort: f.sort }))} />
-            <KpiKachel titel="Priorität ≥ 60" wert={zahl(stand?.prioHoch)} akzent aktiv={filter.prio === "60"}
-                       onClick={() => setzeFilter({ prio: filter.prio === "60" ? "" : "60" })} />
-            <KpiKachel titel="Nur Börse" wert={zahl(katZahlen.nur_boerse || 0)} farbe="nur_boerse" aktiv={nurKat(["nur_boerse"])}
+                       onClick={() => { if (filter.papierkorb) setBetriebe(null); setFilter(f => ({ ...FILTER_LEER, sort: f.sort })); }} />
+            <KpiKachel titel="Priorität ≥ 60" wert={zahl(stand?.prioHoch)} akzent aktiv={!filter.papierkorb && filter.prio === "60"}
+                       onClick={() => (filter.papierkorb ? ausKorb({ prio: "60" }) : setzeFilter({ prio: filter.prio === "60" ? "" : "60" }))} />
+            <KpiKachel titel="Nur Börse" wert={zahl(kachelKat.nur_boerse || 0)} farbe="nur_boerse" aktiv={nurKat(["nur_boerse"])}
                        onClick={() => katKachel(["nur_boerse"])} />
-            <KpiKachel titel="Ohne Website" wert={zahl(katZahlen.ohne_website || 0)} farbe="ohne_website" aktiv={nurKat(["ohne_website"])}
+            <KpiKachel titel="Ohne Website" wert={zahl(kachelKat.ohne_website || 0)} farbe="ohne_website" aktiv={nurKat(["ohne_website"])}
                        onClick={() => katKachel(["ohne_website"])} />
-            <KpiKachel titel="Veraltet & Baukasten" wert={zahl((katZahlen.veraltet || 0) + (katZahlen.baukasten || 0))} farbe="veraltet"
+            <KpiKachel titel="Veraltet & Baukasten" wert={zahl((kachelKat.veraltet || 0) + (kachelKat.baukasten || 0))} farbe="veraltet"
                        aktiv={nurKat(["veraltet", "baukasten"])} onClick={() => katKachel(["veraltet", "baukasten"])} />
-            <KpiKachel titel="Auswahl" wert={zahl(stand?.auswahl)} aktiv={filter.auswahl}
-                       onClick={() => setzeFilter({ auswahl: !filter.auswahl })} />
+            <KpiKachel titel="Auswahl" wert={zahl(stand?.auswahl)} aktiv={!filter.papierkorb && filter.auswahl}
+                       onClick={() => (filter.papierkorb ? ausKorb({ auswahl: true }) : setzeFilter({ auswahl: !filter.auswahl }))} />
           </div>
         </div>
 
         <section className="mon-block akq-karten-block">
           {laedt
             ? <p className="mon-leer">Karte wird geladen …</p>
-            : <Karte betriebe={filter.papierkorb ? [] : sichtbar} onDetails={detailsAusKarte}
+            : <Karte betriebe={sichtbar} onDetails={detailsAusKarte} hinweis={filter.papierkorb ? "Papierkorb" : undefined}
                      kategorien={katZahlen} aktiv={filter.kat} onKategorie={katSchalten} />}
         </section>
       </div>
@@ -1292,7 +1341,26 @@ function AkquiseCockpit() {
       {/* Filter und Liste. Die Leiste mit Filtern und Spaltenkoepfen bleibt
           beim Scrollen oben stehen; die Liste selbst scrollt mit der Seite,
           nicht in einem eigenen Kasten – das war am Trackpad fummelig. */}
-      <section className="mon-block akq-listenblock">
+      <section className={`mon-block akq-listenblock${filter.papierkorb ? " im-korb" : ""}`}>
+        {filter.papierkorb && (
+          <div className="akq-korb-kopf">
+            <span className="akq-korb-symbol" aria-hidden="true"><Trash2 size={18} /></span>
+            <div className="akq-korb-text">
+              <p className="akq-korb-titel">Papierkorb{!laedt && liste.length > 0 && <b>{zahl(liste.length)}</b>}</p>
+              <p>Suchläufe legen diese Betriebe nicht neu an.</p>
+            </div>
+            <div className="akq-korb-aktionen">
+              <button type="button" onClick={() => papierkorbSchalten(false)} className="akq-knopf"><ArrowLeft size={13} /> Zur Liste</button>
+              {liste.length > 0 && (
+                <>
+                  <button type="button" onClick={alleWiederherstellen} className="akq-knopf"><RotateCcw size={13} /> Alle wiederherstellen</button>
+                  <button type="button" onClick={korbLeeren} className="akq-knopf gefahr"><Trash2 size={13} /> Papierkorb leeren</button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        {!korbLeer && (<>
         <div className="akq-steuerung akq-filter">
             <select value={filter.art} onChange={e => setzeFilter({ art: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Art">
               <option value="alle">Alle Arten</option>
@@ -1327,9 +1395,10 @@ function AkquiseCockpit() {
             <label className="akq-inline">
               <input type="checkbox" checked={filter.auswahl} onChange={e => setzeFilter({ auswahl: e.target.checked })} /> nur Auswahl
             </label>
-            <label className="akq-inline">
-              <input type="checkbox" checked={filter.papierkorb} onChange={e => papierkorbSchalten(e.target.checked)} /> Papierkorb
-            </label>
+            <button type="button" onClick={() => papierkorbSchalten(!filter.papierkorb)} aria-pressed={filter.papierkorb}
+                    className={`akq-knopf akq-korb-knopf${filter.papierkorb ? " an" : ""}`}>
+              <Trash2 size={13} /> Papierkorb{stand?.papierkorb ? <b>{zahl(stand.papierkorb)}</b> : null}
+            </button>
             <span className="akq-trenner" aria-hidden="true" />
             <button onClick={csvExport} disabled={!sichtbar.length} className="akq-knopf" title="Gefilterte Liste als CSV">
               <Download size={13} /> CSV
@@ -1419,11 +1488,17 @@ function AkquiseCockpit() {
             </>
           )}
         </div>
+        </>)}
 
         {laedt ? (
           <p className="mon-leer py-6">Wird geladen …</p>
+        ) : liste.length === 0 && filter.papierkorb ? (
+          <div className="akq-korb-leer">
+            <span className="akq-korb-symbol" aria-hidden="true"><Trash2 size={22} /></span>
+            <p>Der Papierkorb ist leer.</p>
+          </div>
         ) : liste.length === 0 ? (
-          <p className="mon-leer py-6 text-center">{filter.papierkorb ? "Der Papierkorb ist leer." : "Noch keine Betriebe. Region wählen und suchen."}</p>
+          <p className="mon-leer py-6 text-center">Noch keine Betriebe. Region wählen und suchen.</p>
         ) : sichtbar.length === 0 ? (
           <p className="mon-leer py-6 text-center">Kein Betrieb passt zu den Filtern.</p>
         ) : (
@@ -1439,14 +1514,14 @@ function AkquiseCockpit() {
               const schwaechen = signale.filter(x => x.seite === "website");
               const staerken = signale.filter(x => x.seite === "betrieb");
               return (
-                <div key={b.id} id={`betrieb-${b.id}`} role="rowgroup" className={`akq-eintrag${istOffen ? " offen" : ""}${b.auswahl ? " gewaehlt" : ""}`}>
+                <div key={b.id} id={`betrieb-${b.id}`} role="rowgroup" className={`akq-eintrag${istOffen ? " offen" : ""}${b.auswahl ? " gewaehlt" : ""}${b.geloescht ? " im-korb" : ""}`}>
                   <div className="akq-raster" role="row">
                     <div className="akq-nr" title={`ID ${b.id}`}>
                       <b>{nr + 1}</b>
                       <small>ID {b.id}</small>
                     </div>
                     <div className="akq-stern">
-                      <button type="button" onClick={() => auswahlSchalten(b)} className={b.auswahl ? "an" : ""}
+                      <button type="button" onClick={() => auswahlSchalten(b)} className={b.auswahl ? "an" : ""} disabled={!!b.geloescht}
                               aria-pressed={!!b.auswahl} aria-label={b.auswahl ? "Aus der Auswahl nehmen" : "In die Auswahl"}>
                         <Star size={16} />
                       </button>
@@ -1455,6 +1530,7 @@ function AkquiseCockpit() {
                     <div className="akq-betrieb">
                       <button type="button" className="akq-name" onClick={() => aufklappen(b.id)}>{b.name}</button>
                       <span className="akq-unter">
+                        {b.geloescht && <span className="akq-geloescht-am">Gelöscht {datum(b.geloescht)}</span>}
                         {[b.art === "car_repair" ? "Werkstatt" : "Autohaus", b.ort, b.marken].filter(Boolean).join(" · ")}
                       </span>
                       {hinweis && <span className={`akq-zeilenhinweis${hinweis.fehler ? " fehler" : ""}`}>{hinweis.text}</span>}
@@ -1480,8 +1556,12 @@ function AkquiseCockpit() {
                     <div className="akq-aktionen">
                       {filter.papierkorb ? (
                         <>
-                          <button onClick={() => wiederherstellen(b)} className="akq-knopf" title="Wiederherstellen"><RotateCcw size={13} /> Zurück</button>
-                          <button onClick={() => endgueltigLoeschen(b)} className="akq-knopf" title="Endgültig löschen"><Trash2 size={14} /> Endgültig</button>
+                          <button onClick={() => wiederherstellen(b)} className="akq-knopf akq-zurueck" title="Zurück in die Liste">
+                            <RotateCcw size={13} /> Wiederherstellen
+                          </button>
+                          <button onClick={() => endgueltigLoeschen(b)} className="akq-knopf akq-symbol gefahr" title="Endgültig löschen" aria-label={`${b.name} endgültig löschen`}>
+                            <Trash2 size={14} />
+                          </button>
                         </>
                       ) : (
                         <>
@@ -1638,6 +1718,16 @@ function AkquiseCockpit() {
           </div>
         )}
       </section>
+
+      {meldung && (
+        <div className="akq-toast" role="status">
+          <span>{meldung.text}</span>
+          {meldung.zurueck && (
+            <button type="button" onClick={rueckgaengig} className="akq-toast-knopf"><Undo2 size={14} /> Rückgängig</button>
+          )}
+          <button type="button" onClick={() => setMeldung(null)} className="akq-toast-zu" aria-label="Meldung schließen">×</button>
+        </div>
+      )}
 
       {weitUnten && (
         <button type="button" className="akq-nach-oben" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Nach oben">

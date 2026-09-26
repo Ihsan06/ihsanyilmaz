@@ -235,3 +235,13 @@ ALTER TABLE akquise_betriebe ADD COLUMN zusammengefuehrt_in INTEGER;
 -- Automatisch auslesen verbieten die AGB von mobile.de und AutoScout24.
 ALTER TABLE akquise_betriebe ADD COLUMN fahrzeuge INTEGER;
 ALTER TABLE akquise_betriebe ADD COLUMN gruendungsjahr INTEGER;
+
+-- Endgueltig geloeschte Betriebe: nur der Quellschluessel bleibt (OSM-ID bzw.
+-- Google-Place-ID, kein Name, keine Adresse), damit der naechste Suchlauf sie
+-- nicht wieder anlegt.
+CREATE TABLE IF NOT EXISTS akquise_ausgeschlossen (
+  quelle TEXT NOT NULL,                           -- osm | google
+  quelle_id TEXT NOT NULL,
+  angelegt TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (quelle, quelle_id)
+);

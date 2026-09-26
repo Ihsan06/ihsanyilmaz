@@ -13,7 +13,8 @@
 //
 // Bestehende Betriebe (gleiche quelle_id) bekommen nur Adresse, Website und
 // Telefon aufgefrischt – Status, Notiz, Auswahl und Scores bleiben, sonst
-// waere die Arbeit des Nutzers nach jedem Suchlauf weg.
+// waere die Arbeit des Nutzers nach jedem Suchlauf weg. Endgueltig geloeschte
+// (akquise_ausgeschlossen) kommen nicht wieder.
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
 import { websiteNormalisieren, kategorieOhnePruefung } from '../../../_lib/akquise.js';
 
@@ -206,14 +207,20 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   const zeilen = doppelteEntfernen(elements.map(zeileAus).filter(Boolean));
 
   try {
-    // Welche gibt es schon? Nur die ID-Spalte, das bleibt klein.
-    const { results } = await env.DB.prepare("SELECT quelle_id FROM akquise_betriebe WHERE quelle = 'osm'").all();
-    const bekannt = new Set((results ?? []).map(r => r.quelle_id));
-    const neu = zeilen.filter(z => !bekannt.has(z.quelle_id)).length;
+    // Welche gibt es schon, welche sind endgueltig geloescht? Nur die
+    // ID-Spalten, das bleibt klein.
+    const [da, aus] = await env.DB.batch([
+      env.DB.prepare("SELECT quelle_id FROM akquise_betriebe WHERE quelle = 'osm'"),
+      env.DB.prepare("SELECT quelle_id FROM akquise_ausgeschlossen WHERE quelle = 'osm'"),
+    ]);
+    const bekannt = new Set((da.results ?? []).map(r => r.quelle_id));
+    const ausgeschlossen = new Set((aus.results ?? []).map(r => r.quelle_id));
+    const rein = zeilen.filter(z => !ausgeschlossen.has(z.quelle_id));
+    const neu = rein.filter(z => !bekannt.has(z.quelle_id)).length;
 
     const st = env.DB.prepare(UPSERT);
-    for (let i = 0; i < zeilen.length; i += BLOCK) {
-      await env.DB.batch(zeilen.slice(i, i + BLOCK).map(z => st.bind(
+    for (let i = 0; i < rein.length; i += BLOCK) {
+      await env.DB.batch(rein.slice(i, i + BLOCK).map(z => st.bind(
         z.quelle_id, z.name, z.art, z.marken, z.strasse, z.plz, z.ort, z.lat, z.lng,
         z.telefon, z.email, z.website, z.website_quelle, z.kategorie, z.oeffnungszeiten, regionName,
       )));

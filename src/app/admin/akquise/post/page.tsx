@@ -3,9 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDocument, PageSizes, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
-import { ExternalLink, FileText, RefreshCw, Trash2 } from "lucide-react";
+import { ExternalLink, FileText, Maximize2, RefreshCw, Trash2, X } from "lucide-react";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
-import { briefAufbauen, briefFuellen, datumDeutsch, landingLink } from "../../../../../functions/_lib/brief.js";
+import { BEFUNDE_BEISPIEL, briefAufbauen, briefFuellen, datumDeutsch, empfaengerBlock, landingLink } from "../../../../../functions/_lib/brief.js";
 import "./post.css";
 
 // Akquise → Post: Briefe an Betriebe. Der Server (functions/api/admin/akquise/
@@ -43,6 +43,8 @@ type Stand = { eingerichtet: boolean; modus: string; anbieter: string; guthaben_
 type Sperre = { id: number; betrieb_id: number | null; name: string | null; ort: string | null; grund: string | null; angelegt: string };
 type Editor = { brief: Brief; betrieb: BetriebKurz | null; kandidaten: Kandidat[] };
 type Reiter = "briefe" | "brief" | "vorlage" | "sperrliste";
+// Was links in der Vorschau steht: chip sagt, woher (Entwurf, Beispiel …).
+type Schau = { chip: string; titel: string; text: string; empfaenger: string; absender: Absender; link: string; datumText: string; briefId?: number };
 
 const STATUS_LABEL: Record<string, string> = {
   entwurf: "Entwurf", freigegeben: "Freigegeben", gesendet: "Gesendet", zugestellt: "Zugestellt", fehler: "Fehler", storniert: "Storniert",
@@ -53,8 +55,19 @@ const KATEGORIE_LABEL: Record<string, string> = {
   ohne_website: "ohne Website", nur_boerse: "nur Börse", baukasten: "Baukasten", veraltet: "veraltet", mittel: "mittel", gepflegt: "gepflegt",
 };
 const PREIS_FALLBACK = "≈ 0,90 €";
+// Solange kein echter Betrieb gewaehlt ist, zeigt die Vorschau diesen.
+const BEISPIEL = { name: "Autohaus Beispiel GmbH", strasse: "Hauptstraße 1", plz: "97070", ort: "Würzburg" };
+// Platzhalter fuer den Link, bevor ein Entwurf seinen Token hat.
+const VORSCHAU_TOKEN = "vorschau0000";
 
 const zahl = (n: number | null | undefined) => (n == null ? "—" : n.toLocaleString("de-DE"));
+
+// Datum auf dem Blatt: bei verschickten Briefen der Versandtag.
+function datumAus(wert: string | null | undefined, sonst: string) {
+  if (!wert) return sonst;
+  const d = new Date(wert.includes("T") ? wert : `${wert.replace(" ", "T")}Z`);
+  return isNaN(d.getTime()) ? sonst : (datumDeutsch(d) as string);
+}
 
 function anschriftVollstaendig(e: string) {
   const zeilen = e.split("\n").map(z => z.trim()).filter(Boolean);
@@ -285,6 +298,23 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr }: {
   );
 }
 
+// Die Vorschau gross, ueber der Seite – Klick daneben oder Esc schliesst.
+function GrossAnsicht({ schau, qr, onZu }: { schau: Schau; qr: string; onZu: () => void }) {
+  useEffect(() => {
+    const taste = (e: KeyboardEvent) => { if (e.key === "Escape") onZu(); };
+    window.addEventListener("keydown", taste);
+    return () => window.removeEventListener("keydown", taste);
+  }, [onZu]);
+  return (
+    <div className="post-gross" role="dialog" aria-modal="true" aria-label="Vorschau groß" onClick={onZu}>
+      <div className="post-gross-blatt" onClick={e => e.stopPropagation()}>
+        <button type="button" className="post-gross-zu" onClick={onZu} aria-label="Schließen"><X size={18} /></button>
+        <Blatt text={schau.text} empfaenger={schau.empfaenger} absender={schau.absender} link={schau.link} datumText={schau.datumText} qr={qr} />
+      </div>
+    </div>
+  );
+}
+
 // ------------------------------------------------------------------ Seite
 
 export default function PostSeite() {
@@ -307,10 +337,14 @@ export default function PostSeite() {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [text, setText] = useState("");
   const [empf, setEmpf] = useState("");
-  // QR-Code zum Link – gespeichert mit dem Link, zu dem er gehoert, damit
-  // nach einem Wechsel nie der alte Code neben dem neuen Link steht.
   const [qrStand, setQrStand] = useState<{ link: string; url: string } | null>(null);
   const [pdfLauf, setPdfLauf] = useState(false);
+  // Vorschau: Befunde zum gewaehlten Betrieb (noch ohne Entwurf), gewaehlte
+  // Zeile der Briefliste, grosse Ansicht.
+  const [gewaehltInfo, setGewaehltInfo] = useState<{ id: number; kandidaten: Kandidat[]; gesperrt: boolean } | null>(null);
+  const [vorschauId, setVorschauId] = useState<number | null>(null);
+  const [gross, setGross] = useState(false);
+  const [heute] = useState(() => datumDeutsch(new Date()) as string);
 
   // Vorlage & Absender
   const [absenderForm, setAbsenderForm] = useState<Absender | null>(null);
@@ -366,11 +400,75 @@ export default function PostSeite() {
   }, [suche]);
 
   const link = useMemo(() => (editor && einst ? landingLink(einst.landing_basis, editor.brief.token) : ""), [editor, einst]);
+
+  // Befunde fuer den gewaehlten Betrieb – dieselben, die ein Entwurf bekaeme.
+  const gewaehltId = gewaehlt?.id;
   useEffect(() => {
-    if (!link) return;
-    QRCode.toDataURL(link, { margin: 0, width: 256, errorCorrectionLevel: "M" }).then(url => setQrStand({ link, url })).catch(() => {});
-  }, [link]);
-  const qr = qrStand && qrStand.link === link ? qrStand.url : "";
+    if (!gewaehltId) return;
+    let weg = false;
+    api(`/api/admin/akquise/briefe?kandidaten=${gewaehltId}`)
+      .then(d => { if (!weg) setGewaehltInfo({ id: gewaehltId, kandidaten: d.kandidaten || [], gesperrt: !!d.gesperrt }); })
+      .catch(() => { if (!weg) setGewaehltInfo({ id: gewaehltId, kandidaten: [], gesperrt: false }); });
+    return () => { weg = true; };
+  }, [gewaehltId]);
+  const infoZuGewaehlt = gewaehltInfo && gewaehltInfo.id === gewaehltId ? gewaehltInfo : null;
+
+  const sichtbar = useMemo(() => briefe.filter(b => statusFilter === "alle" || b.status === statusFilter), [briefe, statusFilter]);
+
+  // Was die Vorschau links zeigt – je nach Reiter: den offenen Entwurf (live),
+  // den Entwurf, der fuer den gewaehlten Betrieb entstuende, die Vorlage mit
+  // Beispielbetrieb (live), den gewaehlten Brief der Liste oder ein Beispiel.
+  const schau = useMemo<Schau | null>(() => {
+    if (!einst) return null;
+    const beispiel = (vorlage: string, absender: Absender, basis: string, chip: string): Schau => {
+      const l = landingLink(basis, VORSCHAU_TOKEN);
+      return {
+        chip, titel: BEISPIEL.name, absender, link: l, datumText: heute, empfaenger: empfaengerBlock(BEISPIEL) as string,
+        text: briefFuellen(vorlage, { firma: BEISPIEL.name, ort: BEISPIEL.ort, befunde: BEFUNDE_BEISPIEL, link: l, absender, datum: heute }) as string,
+      };
+    };
+    if (reiter === "vorlage" && absenderForm) return beispiel(vorlageForm, absenderForm, basisForm, "Vorlage");
+    if (reiter === "brief" && editor) {
+      return {
+        chip: STATUS_LABEL[editor.brief.status] || editor.brief.status,
+        titel: editor.brief.art === "test" ? "Testbrief an mich" : editor.betrieb?.name || editor.brief.betrieb_name || "",
+        text, empfaenger: empf, absender: einst.absender, link, datumText: heute,
+      };
+    }
+    if (reiter === "brief" && gewaehlt) {
+      const l = landingLink(einst.landing_basis, VORSCHAU_TOKEN);
+      const befunde = infoZuGewaehlt ? infoZuGewaehlt.kandidaten.filter(k => k.vorgewaehlt) : [];
+      return {
+        chip: infoZuGewaehlt ? "Noch kein Entwurf" : "Lädt …", titel: gewaehlt.name, absender: einst.absender, link: l, datumText: heute,
+        empfaenger: empfaengerBlock(gewaehlt) as string,
+        text: briefFuellen(einst.vorlage, { firma: gewaehlt.name, ort: gewaehlt.ort, befunde, link: l, absender: einst.absender, datum: heute }) as string,
+      };
+    }
+    if (reiter === "briefe") {
+      const b = sichtbar.find(x => x.id === vorschauId) || sichtbar[0];
+      if (b) {
+        return {
+          chip: STATUS_LABEL[b.status] || b.status, titel: b.betrieb_name || `Betrieb ${b.betrieb_id}`, briefId: b.id,
+          text: b.text || "", empfaenger: b.empfaenger || "", absender: einst.absender,
+          link: landingLink(einst.landing_basis, b.token), datumText: datumAus(b.gesendet_am, heute),
+        };
+      }
+    }
+    return beispiel(einst.vorlage, einst.absender, einst.landing_basis, "Beispiel");
+  }, [einst, reiter, absenderForm, vorlageForm, basisForm, editor, text, empf, link, gewaehlt, infoZuGewaehlt, sichtbar, vorschauId, heute]);
+
+  // QR-Code zum Link der Vorschau – gespeichert mit dem Link, zu dem er
+  // gehoert, damit nach einem Wechsel nie der alte Code neben dem neuen steht.
+  const schauLink = schau?.link || "";
+  useEffect(() => {
+    if (!schauLink) return;
+    let weg = false;
+    QRCode.toDataURL(schauLink, { margin: 0, width: 256, errorCorrectionLevel: "M" })
+      .then(url => { if (!weg) setQrStand({ link: schauLink, url }); }).catch(() => {});
+    return () => { weg = true; };
+  }, [schauLink]);
+  const qr = qrStand && qrStand.link === schauLink ? qrStand.url : "";
+  const grossZu = useCallback(() => setGross(false), []);
 
   const editorSetzen = (e: Editor | null) => {
     setEditor(e);
@@ -540,7 +638,6 @@ export default function PostSeite() {
 
   // ---- Anzeige
 
-  const sichtbar = briefe.filter(b => statusFilter === "alle" || b.status === statusFilter);
   const gesendetGesamt = (zaehler?.gesendet || 0) + (zaehler?.zugestellt || 0);
   const gewaehlteCodes = new Set(editor?.brief.befunde.map(b => b.code) || []);
   const imEntwurf = editor?.brief.status === "entwurf";
@@ -551,7 +648,7 @@ export default function PostSeite() {
     const pdfLink = b.pdf_schluessel ? `/api/admin/akquise/briefe?pdf=${b.id}` : null;
     return (
       <span className="post-aktionen">
-        <button className="akq-knopf" onClick={() => briefOeffnen(b.id)} disabled={busy}>Vorschau</button>
+        <button className="akq-knopf" onClick={() => briefOeffnen(b.id)} disabled={busy}>Öffnen</button>
         {pdfLink && <a className="akq-knopf" href={pdfLink} target="_blank" rel="noopener noreferrer"><FileText size={13} /> PDF</a>}
         {(b.status === "entwurf" || b.status === "fehler") && (
           <button className="akq-knopf" onClick={() => statusSetzen(b, "freigegeben")} disabled={busy || !b.pdf_schluessel}
@@ -611,6 +708,30 @@ export default function PostSeite() {
         ))}
       </div>
 
+      {/* Wie bei „Content erstellen“: links die Vorschau, sie bleibt beim
+          Scrollen stehen; rechts der Reiter. Nur die Sperrliste braucht keine. */}
+      {reiter !== "sperrliste" && (
+      <div className={`post-arbeit${schau ? "" : " ohne-schau"}`}>
+        {schau && (
+          <aside className="post-schau" aria-label="Vorschau">
+            <div className="post-schau-kopf">
+              <span className="post-schau-titel">Vorschau</span>
+              <span className="post-schau-chip">{schau.chip}</span>
+              <span className="post-schau-name" title={schau.titel}>{schau.titel}</span>
+              <button type="button" className="akq-knopf akq-symbol" onClick={() => setGross(true)} title="Groß ansehen" aria-label="Vorschau groß ansehen">
+                <Maximize2 size={14} />
+              </button>
+            </div>
+            <Blatt text={schau.text} empfaenger={schau.empfaenger} absender={schau.absender} link={schau.link} datumText={schau.datumText} qr={qr} />
+            {reiter === "briefe" && schau.briefId != null && (
+              <div className="post-schau-fuss">
+                <button type="button" className="akq-knopf" onClick={() => briefOeffnen(schau.briefId as number)}>Öffnen</button>
+              </div>
+            )}
+          </aside>
+        )}
+        <div className="post-inhalt">
+
       {/* ---------------- Briefe */}
       {reiter === "briefe" && (
         <section className="mon-block">
@@ -630,30 +751,33 @@ export default function PostSeite() {
               <div className="post-huelle">
                 <table className="mon-tabelle post-tabelle">
                   <thead>
-                    <tr>
-                      <th>Betrieb</th><th>Ort</th><th>Art</th><th>Status</th><th>Angelegt</th><th>Gesendet</th>
-                      <th className="num">Aufrufe</th><th>Demo</th><th className="num">Kosten</th><th></th>
-                    </tr>
+                    <tr><th>Betrieb</th><th>Status</th><th className="num">Aufrufe</th><th className="num">Kosten</th><th></th></tr>
                   </thead>
                   <tbody>
-                    {sichtbar.map(b => (
-                      <tr key={b.id}>
-                        <td className="post-betrieb">
-                          <b className="text-[var(--fg)] font-semibold">{b.betrieb_name || `Betrieb ${b.betrieb_id}`}</b>
-                          {b.betrieb_status && <span className="block text-[0.74rem] text-[var(--fg-subtle)]">Betrieb: {BETRIEB_STATUS[b.betrieb_status] || b.betrieb_status}</span>}
-                          {b.status === "fehler" && b.fehler && <span className="block post-fehlertext">{b.fehler}</span>}
-                        </td>
-                        <td>{b.betrieb_ort || "—"}</td>
-                        <td>{ART_LABEL[b.art] || b.art}</td>
-                        <td><StatusBadge status={b.status} /></td>
-                        <td>{datum(b.angelegt)}</td>
-                        <td>{b.gesendet_am ? datum(b.gesendet_am) : "—"}</td>
-                        <td className="num">{zahl(b.aufrufe)}</td>
-                        <td>{b.demo_angefordert ? datum(b.demo_angefordert) : "—"}</td>
-                        <td className="num">{b.kosten_cent != null ? euro(b.kosten_cent) : "—"}</td>
-                        <td>{aktionen(b)}</td>
-                      </tr>
-                    ))}
+                    {sichtbar.map(b => {
+                      const an = schau?.briefId === b.id;
+                      return (
+                        <tr key={b.id} className={an ? "gewaehlt" : undefined} onClick={() => setVorschauId(b.id)}>
+                          <td className="post-betrieb">
+                            <button type="button" className="post-name" onClick={() => setVorschauId(b.id)} aria-pressed={an}
+                                    title="In der Vorschau zeigen">{b.betrieb_name || `Betrieb ${b.betrieb_id}`}</button>
+                            <span className="post-unter">{[b.betrieb_ort, ART_LABEL[b.art] || b.art].filter(Boolean).join(" · ")}</span>
+                            {b.betrieb_status && <span className="post-unter">Betrieb: {BETRIEB_STATUS[b.betrieb_status] || b.betrieb_status}</span>}
+                            {b.status === "fehler" && b.fehler && <span className="block post-fehlertext">{b.fehler}</span>}
+                          </td>
+                          <td>
+                            <StatusBadge status={b.status} />
+                            <span className="post-unter">{b.gesendet_am ? `gesendet ${datum(b.gesendet_am)}` : `angelegt ${datum(b.angelegt)}`}</span>
+                          </td>
+                          <td className="num">
+                            {zahl(b.aufrufe)}
+                            {b.demo_angefordert && <span className="post-unter post-demo">Demo {datum(b.demo_angefordert)}</span>}
+                          </td>
+                          <td className="num">{b.kosten_cent != null ? euro(b.kosten_cent) : "—"}</td>
+                          <td onClick={e => e.stopPropagation()}>{aktionen(b)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -691,15 +815,16 @@ export default function PostSeite() {
                   {" · "}Status {BETRIEB_STATUS[gewaehlt.status] || gewaehlt.status}
                 </p>
                 {!gewaehlt.geprueft_am && <p className="post-warnung">Ohne Prüfung gibt es keine Befunde. Erst unter Betriebe prüfen.</p>}
+                {infoZuGewaehlt?.gesperrt && <p className="post-warnung">Steht auf der Sperrliste – nur der Testbrief an mich geht.</p>}
               </div>
               <div className="post-aktionen">
-                <button className="btn-primary px-4 py-2 text-sm" onClick={() => entwurfAnlegen(gewaehlt, "brief")}>Entwurf anlegen</button>
-                <button className="akq-knopf" onClick={() => entwurfAnlegen(gewaehlt, "nachfass")}>Nachfass</button>
+                <button className="btn-primary px-4 py-2 text-sm disabled:opacity-60" onClick={() => entwurfAnlegen(gewaehlt, "brief")} disabled={!!infoZuGewaehlt?.gesperrt}>Entwurf anlegen</button>
+                <button className="akq-knopf" onClick={() => entwurfAnlegen(gewaehlt, "nachfass")} disabled={!!infoZuGewaehlt?.gesperrt}>Nachfass</button>
                 <button className="akq-knopf" onClick={() => entwurfAnlegen(gewaehlt, "test")} title="Gleicher Brief, aber an meine Anschrift">Testbrief an mich</button>
               </div>
             </div>
           )}
-          <p className="post-hinweis">Ein Entwurf bekommt Anschrift, die drei stärksten Befunde der letzten Prüfung und den Text aus der Vorlage. Alles lässt sich danach ändern.</p>
+          <p className="post-hinweis">Ein Entwurf bekommt Anschrift, die drei stärksten Befunde der letzten Prüfung und den Text aus der Vorlage – so, wie links in der Vorschau. Danach lässt sich alles ändern.</p>
         </section>
       )}
 
@@ -800,11 +925,6 @@ export default function PostSeite() {
                 )}
               </div>
             </div>
-
-            <div>
-              <p className="post-abschnitt-titel">Vorschau <small>(DIN A4, Anschrift im Fenster, Falzmarken)</small></p>
-              <Blatt text={text} empfaenger={empf} absender={einst.absender} link={link} datumText={datumDeutsch(new Date()) as string} qr={qr} />
-            </div>
           </div>
         </section>
       )}
@@ -843,6 +963,11 @@ export default function PostSeite() {
           </div>
         </form>
       )}
+        </div>
+      </div>
+      )}
+
+      {gross && schau && <GrossAnsicht schau={schau} qr={qr} onZu={grossZu} />}
 
       {/* ---------------- Sperrliste */}
       {reiter === "sperrliste" && (

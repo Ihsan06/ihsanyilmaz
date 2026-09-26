@@ -7,6 +7,8 @@
 // GET  ?pdf=<id>           → das PDF aus R2 (inline)
 // GET  ?stand=1            → { ok, eingerichtet, modus, anbieter, guthaben_cent?, preis_cent? }
 // GET  ?sperrliste=1       → { ok, sperrliste:[…] }
+// GET  ?kandidaten=<betrieb> → { ok, betrieb, kandidaten, gesperrt }  (Vorschau
+//                            vor dem Entwurf, legt nichts an)
 // POST JSON { betrieb_id, art?, befunde?:[code] }   → Entwurf anlegen
 // POST JSON { aktion:'senden', id, test? }          → Versand
 // POST JSON { aktion:'status', id }                 → Status beim Anbieter
@@ -133,6 +135,15 @@ export async function onRequestGet({ request, env }) {
          ORDER BY s.angelegt DESC, s.id DESC LIMIT 500`,
       ).all();
       return json({ ok: true, sperrliste: results ?? [] });
+    }
+
+    // Vorschau vor dem Entwurf: dieselben Befunde, die ein Entwurf bekaeme,
+    // ohne etwas anzulegen – dazu, ob der Betrieb gesperrt ist.
+    if (q.get('kandidaten')) {
+      const betrieb = await betriebLaden(env, idLesen(q.get('kandidaten')));
+      if (!betrieb) return json({ ok: false, error: 'Betrieb nicht gefunden.' }, 404);
+      const [kandidaten, sperre] = await Promise.all([kandidatenErmitteln(env, betrieb), gesperrt(env, betrieb.id, betrieb.name)]);
+      return json({ ok: true, betrieb: betriebKurz(betrieb), kandidaten, gesperrt: sperre });
     }
 
     if (q.get('id')) {

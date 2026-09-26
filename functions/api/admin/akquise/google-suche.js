@@ -13,7 +13,8 @@
 //   gleiche Place-ID schon da        → Google-Werte auffrischen
 //   OSM-Betrieb in <300 m mit Namen  → verknuepfen (Place-ID, Website, Bewertung)
 //   sonst                            → neuer Betrieb, Quelle "google"
-// Dauerhaft geschlossene Betriebe fallen weg.
+// Dauerhaft geschlossene Betriebe fallen weg, endgueltig geloeschte
+// (akquise_ausgeschlossen) auch.
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
 import { istBoersenSeite, kategorieOhnePruefung } from '../../../_lib/akquise.js';
 import {
@@ -90,7 +91,7 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   // Kandidaten in einem Zug laden: alles mit einer der Place-IDs, dazu alle
   // noch nicht verknuepften Betriebe im Feld (mit Rand).
   const ids = [...new Set(offen.map(p => String(p.id)))];
-  const [mitId, imFeld] = await env.DB.batch([
+  const [mitId, imFeld, aus] = await env.DB.batch([
     ids.length
       // Zusammengefuehrte zuerst, aktive zuletzt – in der Map gewinnt der aktive.
       ? env.DB.prepare(`SELECT id, google_place_id, website, website_quelle FROM akquise_betriebe WHERE google_place_id IN (${ids.map(() => '?').join(',')}) ORDER BY (zusammengefuehrt_in IS NULL)`).bind(...ids)
@@ -98,8 +99,12 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     env.DB.prepare(`SELECT id, name, plz, ort, lat, lng, website, website_quelle FROM akquise_betriebe
       WHERE google_place_id IS NULL AND zusammengefuehrt_in IS NULL AND lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?`)
       .bind(bbox[0] - RAND_GRAD, bbox[2] + RAND_GRAD, bbox[1] - RAND_GRAD, bbox[3] + RAND_GRAD),
+    ids.length
+      ? env.DB.prepare(`SELECT quelle_id FROM akquise_ausgeschlossen WHERE quelle = 'google' AND quelle_id IN (${ids.map(() => '?').join(',')})`).bind(...ids)
+      : env.DB.prepare('SELECT quelle_id FROM akquise_ausgeschlossen WHERE 0'),
   ]);
   const nachId = new Map((mitId.results ?? []).map(r => [r.google_place_id, r]));
+  const ausgeschlossen = new Set((aus.results ?? []).map(r => r.quelle_id));
   const kandidaten = imFeld.results ?? [];
   const vergeben = new Set();
 
@@ -123,6 +128,8 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     const website = websiteAusPlace(p);
 
     const schon = nachId.get(String(p.id));
+    // Endgueltig geloescht: weder neu anlegen noch mit OSM verknuepfen.
+    if (!schon && ausgeschlossen.has(String(p.id))) continue;
     if (schon) {
       const w = websiteFuer(schon.website, schon.website_quelle, website);
       befehle.push(env.DB.prepare(

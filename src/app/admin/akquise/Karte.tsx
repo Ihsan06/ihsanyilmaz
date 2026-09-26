@@ -86,12 +86,13 @@ function einpassen(z: Zustand) {
   z.m.fitBounds(z.L.latLngBounds(z.punkte), { paddingTopLeft: [24, 24], paddingBottomRight: [24, 110], maxZoom: 13 });
 }
 
-export default function Karte({ betriebe, onDetails, kategorien, aktiv, onKategorie }: {
+export default function Karte({ betriebe, onDetails, kategorien, aktiv, onKategorie, hinweis }: {
   betriebe: KartenBetrieb[];
   onDetails: (id: number) => void;
   kategorien: Record<string, number>;
   aktiv: string[];
   onKategorie: (k: string) => void;
+  hinweis?: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const zustand = useRef<Zustand | null>(null);
@@ -156,8 +157,9 @@ export default function Karte({ betriebe, onDetails, kategorien, aktiv, onKatego
 
   const ohneKoordinate = betriebe.filter(b => b.lat == null || b.lng == null).length;
   return (
-    <div className="akq-karte-huelle">
+    <div className={`akq-karte-huelle${hinweis ? " mit-hinweis" : ""}`}>
       <div ref={box} className="akq-karte" />
+      {hinweis && <span className="akq-karte-hinweis">{hinweis}</span>}
       {/* Legende unten als Glasleiste: Kategorien zum Anklicken, darunter die
           Groessen-Erklaerung. Unten, weil die Karte hoch ist und breit wenig Platz hat. */}
       <div className="akq-legende" role="group" aria-label="Kategorie auf der Karte">
