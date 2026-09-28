@@ -102,11 +102,13 @@ const RUECK = {
   demoTitel: "Demo selbst ansehen",
   demoText: (link: string) => `QR-Code scannen oder ${link.replace(/^https?:\/\//, "")} öffnen. Dort können Sie sich einen Demo-Zugang schicken lassen.`,
   hinweis: "Abbildungen: Demo-Website „Autohaus Mustermann“ mit Beispieldaten.",
-  bilder: { desktop: "/leistungen/web-fahrzeuge.jpg", handy1: "/leistungen/handy-start.jpg", handy2: "/leistungen/handy-finanzierung.jpg" },
+  bilder: { desktop: "/leistungen/web-fahrzeuge.jpg", handy1: "/leistungen/handy-start.jpg", handy2: "/leistungen/handy-finanzierung.jpg", handyDuo: "/leistungen/handy-fahrzeuge.jpg" },
   // Positionen in mm (x, y oben, Breite, Hoehe)
   handy1: [127, 23, 28, 60.7], handy2: [160, 23, 28, 60.7],
-  browser: [32, 112, 146, 6], // x, y, Breite, Leistenhoehe – Bild 146 × 91,25 darunter
-  qr: [25, 221, 28],
+  // Feld 2 als Duo: Desktop rechts hinten, dieselbe Seite als Handy links davor.
+  browser: [48, 111, 140, 6], // x, y, Breite, Leistenhoehe – Bild 140 × 87,5 darunter
+  handyDuo: [28, 127, 34, 73.7],
+  qr: [91, 214, 28], // mittig: (210 − 28) / 2; Titel und Text zentriert darunter
 };
 const FARBE = { dunkel: rgb(0.06, 0.09, 0.16), text: rgb(0.2, 0.25, 0.33), akzent: rgb(0x12 / 255, 0x55 / 255, 0x7f / 255), rahmen: rgb(0.12, 0.16, 0.23) };
 // Abgerundetes Rechteck als SVG-Pfad (Punkte, y nach unten) fuer drawSvgPath.
@@ -278,13 +280,13 @@ async function pdfErzeugen(d: PdfDaten): Promise<Uint8Array> {
 
   // ---- Rueckseite
   {
-    const [desk, h1, h2] = await Promise.all([bildLaden(RUECK.bilder.desktop), bildLaden(RUECK.bilder.handy1), bildLaden(RUECK.bilder.handy2)]);
-    const [bDesk, bH1, bH2] = await Promise.all([pdf.embedJpg(desk), pdf.embedJpg(h1), pdf.embedJpg(h2)]);
+    const [desk, h1, h2, h3] = await Promise.all([RUECK.bilder.desktop, RUECK.bilder.handy1, RUECK.bilder.handy2, RUECK.bilder.handyDuo].map(bildLaden));
+    const [bDesk, bH1, bH2, bH3] = await Promise.all([desk, h1, h2, h3].map(b => pdf.embedJpg(b)));
     seite = pdf.addPage(PageSizes.A4);
     const bild = (b: typeof bDesk, x: number, yTop: number, w: number, h: number) =>
       seite.drawImage(b, { x: mm(x), y: A4_H - mm(yTop + h), width: mm(w), height: mm(h) });
-    const form = (x: number, yTop: number, w: number, h: number, r: number, color: ReturnType<typeof rgb>) =>
-      seite.drawSvgPath(rund(mm(w), mm(h), mm(r)), { x: mm(x), y: A4_H - mm(yTop), color });
+    const form = (x: number, yTop: number, w: number, h: number, r: number, color: ReturnType<typeof rgb>, opacity = 1) =>
+      seite.drawSvgPath(rund(mm(w), mm(h), mm(r)), { x: mm(x), y: A4_H - mm(yTop), color, opacity });
 
     // Feld 1: Text links, zwei Handys rechts
     text(RUECK.eyebrow, LAYOUT.textX, 22, 8, fett, FARBE.akzent);
@@ -310,16 +312,24 @@ async function pdfErzeugen(d: PdfDaten): Promise<Uint8Array> {
       form(x - 1.2, y, w + 2.4, leiste + h + 1.2, 3, FARBE.rahmen);
       [0, 1, 2].forEach(i => seite.drawCircle({ x: mm(x + 3 + i * 3.4), y: A4_H - mm(y + leiste / 2), size: mm(0.9), color: rgb(0.45, 0.5, 0.58) }));
       bild(bDesk, x, y + leiste, w, h);
+      // Handy davor, mit weichem Schatten (zwei versetzte, halbdurchsichtige Flaechen)
+      const [hx, hy, hw, hh] = RUECK.handyDuo;
+      form(hx - 0.2, hy + 0.2, hw + 3.2, hh + 3.6, 5, rgb(0, 0, 0), 0.12);
+      form(hx - 0.6, hy - 0.2, hw + 2.8, hh + 2.8, 4.6, rgb(0, 0, 0), 0.12);
+      form(hx - 1.2, hy - 1.2, hw + 2.4, hh + 2.4, 4, FARBE.rahmen);
+      bild(bH3, hx, hy, hw, hh);
     }
 
-    // Feld 3: QR und Hinweis
+    // Feld 3: QR mittig, darunter Titel und Text zentriert
     {
       const [x, y, g] = RUECK.qr;
+      const mitte = (t: string, yTop: number, size: number, f: PDFFont, farbe: ReturnType<typeof rgb>) =>
+        seite.drawText(sauber(t), { x: (mm(210) - f.widthOfTextAtSize(sauber(t), size)) / 2, y: basis(yTop, size), size, font: f, color: farbe });
       seite.drawImage(qr, { x: mm(x), y: A4_H - mm(y + g), width: mm(g), height: mm(g) });
-      text(RUECK.demoTitel, x + g + 6, y + 1, 11, fett, FARBE.dunkel);
-      let y2 = y + 8;
-      for (const l of umbrechen(RUECK.demoText(d.link), 10, mm(210 - LAYOUT.textRechts - (x + g + 6)))) { text(l, x + g + 6, y2, 10, font, FARBE.text); y2 += 4.8; }
-      text(RUECK.hinweis, LAYOUT.textX, 262, 7.5, font, grau);
+      mitte(RUECK.demoTitel, y + g + 4, 11, fett, FARBE.dunkel);
+      let y2 = y + g + 10.5;
+      for (const l of umbrechen(RUECK.demoText(d.link), 10, mm(140))) { mitte(l, y2, 10, font, FARBE.text); y2 += 4.8; }
+      mitte(RUECK.hinweis, 270, 7.5, font, grau);
     }
     const a = d.absender;
     text([a.name, a.strasse, a.plz_ort, a.telefon, a.email, a.web].filter(Boolean).join(" · "), LAYOUT.textX, LAYOUT.fussY, 7.5, font, grau);
@@ -410,6 +420,7 @@ function Rueckseite({ link, qr, fuss }: { link: string; qr: string; fuss: string
   const pos = (x: number, y: number, w: number, h?: number): React.CSSProperties =>
     ({ left: `${x}mm`, top: `${y}mm`, width: `${w}mm`, ...(h != null ? { height: `${h}mm` } : {}) });
   const [bx, by, bw, bl] = RUECK.browser;
+  const [dx, dy, dw, dh] = RUECK.handyDuo;
   const [qx, qy, qg] = RUECK.qr;
   /* eslint-disable @next/next/no-img-element -- Bilder im skalierten Blatt, next/image bringt hier nichts */
   return (
@@ -431,8 +442,11 @@ function Rueckseite({ link, qr, fuss }: { link: string; qr: string; fuss: string
           <span className="post-r-leiste" style={{ height: `${bl}mm` }}><i /><i /><i /></span>
           <img src={RUECK.bilder.desktop} alt="" />
         </div>
+        <div className="post-r-handy post-r-duo" style={pos(dx - 1.2, dy - 1.2, dw + 2.4, dh + 2.4)}>
+          <img src={RUECK.bilder.handyDuo} alt="" />
+        </div>
         {qr && <img className="post-r-qr" src={qr} alt="QR-Code zum Link" style={pos(qx, qy, qg, qg)} />}
-        <div className="post-r-demo" style={pos(qx + qg + 6, qy, 210 - 20 - (qx + qg + 6))}>
+        <div className="post-r-demo" style={pos(35, qy + qg + 3.2, 140)}>
           <b>{RUECK.demoTitel}</b>
           <p>{RUECK.demoText(link)}</p>
         </div>
