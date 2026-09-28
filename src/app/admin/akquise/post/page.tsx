@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { ExternalLink, FileText, Mail, Maximize2, RefreshCw, Trash2, X } from "lucide-react";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
 import { BEFUNDE_BEISPIEL, briefAufbauen, briefFuellen, datumDeutsch, empfaengerBlock, landingLink } from "../../../../../functions/_lib/brief.js";
+import { LOGO_BREIT, LOGO_FARBE, LOGO_HOCH, LOGO_PFADE } from "./briefLogo";
 import "./post.css";
 
 // Akquise → Post: Briefe an Betriebe. Der Server (functions/api/admin/akquise/
@@ -14,7 +15,9 @@ import "./post.css";
 // wird hochgeladen. Versand und Statusabfrage laufen dann ueber den Server.
 //
 // Layout des Blatts (mm) nach DIN 5008 Form B und den LetterXpress-Vorgaben:
-// Anschriftenfeld 20/45 mm, 85 × 45 mm (nur Ruecksendezeile + Empfaenger),
+// Logo oben links auf der Textkante, Absender rechtsbuendig an der rechten
+// Textkante (wie das Datum), Anschriftenfeld 20/45 mm, 85 × 45 mm (nur
+// Ruecksendezeile + Empfaenger),
 // Text ab 98,5 mm, Raender 25/20 mm, Falzmarken 105/210 mm. Die Vorschau
 // (post.css) nutzt dieselben Zahlen.
 
@@ -79,7 +82,8 @@ function anschriftVollstaendig(e: string) {
 const LAYOUT = {
   fensterX: 20, fensterY: 45, fensterB: 85,
   textX: 25, textRechts: 20, textY: 98.5,
-  falz: [105, 210], qr: 25, fussY: 283, absenderX: 120, absenderY: 18, datumY: 90,
+  falz: [105, 210], qr: 25, fussY: 283, absenderY: 16, datumY: 90,
+  logoX: 25, logoY: 14, logoH: 15,
   zeile: 5.2, absatz: 4, hinweisZeile: 3.6, seitenEnde: 276,
 };
 const A4_H = PageSizes.A4[1];
@@ -152,13 +156,27 @@ async function pdfErzeugen(d: PdfDaten): Promise<Uint8Array> {
   };
   rahmen();
 
-  // Absender oben rechts – ausserhalb des Anschriftenfelds.
+  // Logo oben links. drawSvgPath liest SVG-Koordinaten (y nach unten) ab
+  // der oberen linken Ecke.
+  {
+    const skala = mm(LAYOUT.logoH) / LOGO_HOCH;
+    const farbe = rgb(0x12 / 255, 0x55 / 255, 0x7f / 255);
+    for (const pfad of LOGO_PFADE) {
+      seite.drawSvgPath(pfad, { x: mm(LAYOUT.logoX), y: A4_H - mm(LAYOUT.logoY), scale: skala, color: farbe });
+    }
+  }
+
+  // Absender oben rechts, rechtsbuendig an der Textkante – ausserhalb des
+  // Anschriftenfelds.
   {
     const a = d.absender;
+    const rechts = mm(210 - LAYOUT.textRechts);
+    const zeile = (t: string, yTop: number, size: number, f: PDFFont, farbe = schwarz) =>
+      seite.drawText(sauber(t), { x: rechts - f.widthOfTextAtSize(sauber(t), size), y: basis(yTop, size), size, font: f, color: farbe });
     let y = LAYOUT.absenderY;
-    text(a.name, LAYOUT.absenderX, y, 10); y += 5;
+    zeile(a.name, y, 10, fett); y += 5;
     for (const z of [a.zusatz, a.strasse, a.plz_ort, a.telefon, a.email, a.web].filter(Boolean)) {
-      text(z, LAYOUT.absenderX, y, 8.5, font, rgb(0.13, 0.13, 0.13)); y += 4;
+      zeile(z, y, 8.5, font, rgb(0.13, 0.13, 0.13)); y += 4;
     }
   }
 
@@ -265,6 +283,10 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr }: {
     <div ref={huelle} className="post-blatt-huelle" style={{ height: 297 * 96 / 25.4 * skala + 28 }}>
       <div className="post-blatt-skala" style={{ transform: `scale(${skala})` }}>
         <div className="post-blatt" aria-label="Vorschau des Briefs">
+          <svg className="post-b-logo" viewBox={`0 0 ${LOGO_BREIT} ${LOGO_HOCH}`} style={{ height: `${LAYOUT.logoH}mm`, left: `${LAYOUT.logoX}mm`, top: `${LAYOUT.logoY}mm` }}
+               fill={LOGO_FARBE} aria-label="AIY Ihsan Yilmaz" role="img">
+            {LOGO_PFADE.map((d, i) => <path key={i} d={d} />)}
+          </svg>
           <div className="post-b-absender">
             <b>{absender.name}</b>
             {[absender.zusatz, absender.strasse, absender.plz_ort, absender.telefon, absender.email, absender.web].filter(Boolean).map((z, i) => <div key={i}>{z}</div>)}

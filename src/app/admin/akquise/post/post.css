@@ -102,8 +102,9 @@
   font-family:"Inter Brief", Inter, system-ui, sans-serif; font-size:11pt; line-height:5.2mm;
 }
 .post-blatt * { box-sizing:border-box; }
-.post-blatt .post-b-absender { position:absolute; left:120mm; top:18mm; width:70mm; font-size:8.5pt; line-height:4mm; color:#222; }
-.post-blatt .post-b-absender b { display:block; font-size:10pt; font-weight:400; margin-bottom:1mm; color:#000; }
+.post-blatt .post-b-logo { position:absolute; width:auto; display:block; }
+.post-blatt .post-b-absender { position:absolute; right:20mm; top:16mm; width:80mm; text-align:right; font-size:8.5pt; line-height:4mm; color:#222; }
+.post-blatt .post-b-absender b { display:block; font-size:10pt; font-weight:600; margin-bottom:1mm; color:#000; }
 .post-blatt .post-b-fenster { position:absolute; left:20mm; top:45mm; width:85mm; height:45mm; border:0.2mm dashed #cfd6dd; }
 .post-blatt .post-b-ruecksende { position:absolute; left:2mm; top:1.5mm; width:81mm; font-size:7pt; line-height:3.2mm; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .post-blatt .post-b-anschrift { position:absolute; left:2mm; top:8mm; width:81mm; font-size:11pt; line-height:4.6mm; white-space:pre-line; }
