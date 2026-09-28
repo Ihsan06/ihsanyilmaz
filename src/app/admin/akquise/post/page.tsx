@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PDFDocument, PageSizes, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
-import { ExternalLink, FileText, Maximize2, RefreshCw, Trash2, X } from "lucide-react";
+import { ExternalLink, FileText, Mail, Maximize2, RefreshCw, Trash2, X } from "lucide-react";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
 import { BEFUNDE_BEISPIEL, briefAufbauen, briefFuellen, datumDeutsch, empfaengerBlock, landingLink } from "../../../../../functions/_lib/brief.js";
 import "./post.css";
@@ -589,6 +589,12 @@ export default function PostSeite() {
     setMeldung(`Anbieter meldet: ${d.anbieter_status || "—"}${d.item_status ? ` / ${d.item_status}` : ""}`);
   });
 
+  // Test ohne Post: das PDF als E-Mail ans eigene Postfach.
+  const mailTest = (b: Brief) => mitSperre(b.id, async () => {
+    const d = await api("/api/admin/akquise/briefe", { method: "POST", body: JSON.stringify({ aktion: "mailtest", id: b.id }) });
+    setMeldung(`Test-E-Mail mit PDF an ${d.an} geschickt.`);
+  });
+
   const stornieren = (b: Brief) => {
     if (!confirm("Stornieren? Geht nur innerhalb von 15 Minuten nach dem Senden.")) return;
     return mitSperre(b.id, async () => {
@@ -650,6 +656,7 @@ export default function PostSeite() {
       <span className="post-aktionen">
         <button className="akq-knopf" onClick={() => briefOeffnen(b.id)} disabled={busy}>Öffnen</button>
         {pdfLink && <a className="akq-knopf" href={pdfLink} target="_blank" rel="noopener noreferrer"><FileText size={13} /> PDF</a>}
+        {pdfLink && <button className="akq-knopf" onClick={() => mailTest(b)} disabled={busy} title="PDF als E-Mail an mich – nichts wird gedruckt"><Mail size={13} /> Test-Mail</button>}
         {(b.status === "entwurf" || b.status === "fehler") && (
           <button className="akq-knopf" onClick={() => statusSetzen(b, "freigegeben")} disabled={busy || !b.pdf_schluessel}
                   title={b.pdf_schluessel ? "" : "Erst das PDF erzeugen"}>Freigeben</button>
@@ -892,6 +899,10 @@ export default function PostSeite() {
                   {editor.brief.pdf_schluessel ? (
                     <a className="akq-knopf" href={`/api/admin/akquise/briefe?pdf=${editor.brief.id}`} target="_blank" rel="noopener noreferrer"><FileText size={13} /> PDF liegt vor – öffnen</a>
                   ) : <span className="post-leise">Noch kein PDF.</span>}
+                  {editor.brief.pdf_schluessel && (
+                    <button className="akq-knopf" onClick={() => mailTest(editor.brief)} disabled={beschaeftigt.has(editor.brief.id)}
+                            title="PDF als E-Mail an mich – nichts wird gedruckt"><Mail size={13} /> Test per E-Mail</button>
+                  )}
                   {imEntwurf && (
                     <button className="akq-knopf" disabled={!editor.brief.pdf_schluessel || beschaeftigt.has(editor.brief.id)} onClick={() => statusSetzen(editor.brief, "freigegeben")}>Freigeben</button>
                   )}
@@ -914,7 +925,7 @@ export default function PostSeite() {
                     </>
                   )}
                 </div>
-                {!stand?.eingerichtet && <p className="post-hinweis">Versand nicht eingerichtet – Schlüssel in Cloudflare hinterlegen. PDF und Freigabe gehen trotzdem.</p>}
+                {!stand?.eingerichtet && <p className="post-hinweis">Briefversand nicht eingerichtet. PDF, Freigabe und „Test per E-Mail“ gehen trotzdem.</p>}
                 {editor.brief.art !== "test" && editor.betrieb && imEntwurf && (
                   <p className="post-hinweis">
                     <button type="button" className="akq-link" style={{ background: "none", border: 0, padding: 0, cursor: "pointer", font: "inherit" }}

@@ -13,6 +13,8 @@
 // POST JSON { aktion:'senden', id, test? }          → Versand
 // POST JSON { aktion:'status', id }                 → Status beim Anbieter
 // POST JSON { aktion:'stornieren', id }             → Storno (15 Minuten)
+// POST JSON { aktion:'mailtest', id }               → PDF per E-Mail an mich (Resend),
+//                                                     Status bleibt, nichts wird gedruckt
 // POST JSON { aktion:'sperren', betrieb_id, grund } / { aktion:'entsperren', id }
 // POST multipart (pdf, id)                          → PDF nach R2
 // PATCH { id, text?, befunde?, empfaenger?, status? }
@@ -196,6 +198,7 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     case 'senden': return senden(body, env);
     case 'status': return statusAbfragen(body, env);
     case 'stornieren': return stornieren(body, env);
+    case 'mailtest': return mailTest(body, env);
     case 'sperren': return sperren(body, env);
     case 'entsperren': return entsperren(body, env);
     default: return json({ ok: false, error: 'Unbekannte Aktion.' }, 400);
@@ -278,6 +281,52 @@ async function pdfHochladen(request, env) {
   await env.BILDER.put(schluessel, bytes, { httpMetadata: { contentType: 'application/pdf' } });
   await env.DB.prepare('UPDATE akquise_briefe SET pdf_schluessel = ? WHERE id = ?').bind(schluessel, id).run();
   return json({ ok: true, pdf_schluessel: schluessel, groesse: bytes.length });
+}
+
+// Testversand ohne Post: das PDF als Anhang ans eigene Postfach (wie das
+// Kontaktformular: CONTACT_TO, sonst kontakt@). Der Brief bleibt, wie er ist.
+async function mailTest(body, env) {
+  const id = Number(body?.id);
+  if (!id) return json({ ok: false, error: 'ID fehlt.' }, 400);
+  if (!env.RESEND_API_KEY) return json({ ok: false, error: 'E-Mail nicht eingerichtet: RESEND_API_KEY fehlt.' }, 400);
+  if (!env.BILDER) return json({ ok: false, error: 'Dateispeicher nicht verbunden.' }, 503);
+  const brief = await briefLaden(env, id);
+  if (!brief) return json({ ok: false, error: 'Brief nicht gefunden.' }, 404);
+  if (!brief.pdf_schluessel) return json({ ok: false, error: 'Erst das PDF erzeugen.' }, 409);
+  const objekt = await env.BILDER.get(brief.pdf_schluessel);
+  if (!objekt) return json({ ok: false, error: 'PDF nicht gefunden.' }, 404);
+
+  const bytes = new Uint8Array(await objekt.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  const betrieb = await betriebLaden(env, brief.betrieb_id);
+  const name = betrieb?.name || `Betrieb ${brief.betrieb_id}`;
+  const an = env.CONTACT_TO || 'kontakt@ihsan-yilmaz.de';
+  const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  let r;
+  try {
+    r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: env.MAIL_FROM || 'Akquise <onboarding@resend.dev>',
+        to: an,
+        subject: `Testbrief: ${name}`,
+        html: `<p>Testversand aus Akquise → Post – nichts wurde gedruckt oder verschickt.</p>
+          <p><b>An:</b><br>${esc(brief.empfaenger).replace(/\n/g, '<br>')}</p>
+          <p>Das PDF hängt an, so wie es an LetterXpress ginge.</p>`,
+        attachments: [{ filename: `brief-${brief.token}.pdf`, content: btoa(bin) }],
+      }),
+    });
+  } catch {
+    return json({ ok: false, error: 'E-Mail-Dienst nicht erreichbar.' }, 502);
+  }
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    return json({ ok: false, error: `E-Mail ging nicht raus: ${String(d?.message || r.status).slice(0, 160)}` }, 502);
+  }
+  return json({ ok: true, an });
 }
 
 async function senden(body, env) {
