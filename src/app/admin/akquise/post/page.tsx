@@ -6,7 +6,7 @@ import QRCode from "qrcode";
 import { ExternalLink, FileText, Mail, Maximize2, RefreshCw, Trash2, X } from "lucide-react";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
 import { BEFUNDE_BEISPIEL, briefAufbauen, briefFuellen, datumDeutsch, empfaengerBlock, landingLink } from "../../../../../functions/_lib/brief.js";
-import { LOGO_BREIT, LOGO_FARBE, LOGO_HOCH, LOGO_PFADE } from "./briefLogo";
+import { LOGO_BREIT, LOGO_FARBE, LOGO_HOCH, LOGO_PFADE, LOGO_X0 } from "./briefLogo";
 import "./post.css";
 
 // Akquise → Post: Briefe an Betriebe. Der Server (functions/api/admin/akquise/
@@ -195,7 +195,7 @@ async function pdfErzeugen(d: PdfDaten): Promise<Uint8Array> {
     const skala = mm(LAYOUT.logoH) / LOGO_HOCH;
     const farbe = rgb(0x12 / 255, 0x55 / 255, 0x7f / 255);
     for (const pfad of LOGO_PFADE) {
-      seite.drawSvgPath(pfad, { x: mm(LAYOUT.logoX), y: A4_H - mm(LAYOUT.logoY), scale: skala, color: farbe });
+      seite.drawSvgPath(pfad, { x: mm(LAYOUT.logoX) - LOGO_X0 * skala, y: A4_H - mm(LAYOUT.logoY), scale: skala, color: farbe });
     }
   }
 
@@ -367,7 +367,7 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr }: {
     <div ref={huelle} className="post-blatt-huelle" style={{ height: (297 * 2 + 12) * 96 / 25.4 * skala + 28 }}>
       <div className="post-blatt-skala" style={{ transform: `scale(${skala})` }}>
         <div className="post-blatt" aria-label="Vorschau des Briefs">
-          <svg className="post-b-logo" viewBox={`0 0 ${LOGO_BREIT} ${LOGO_HOCH}`} style={{ height: `${LAYOUT.logoH}mm`, left: `${LAYOUT.logoX}mm`, top: `${LAYOUT.logoY}mm` }}
+          <svg className="post-b-logo" viewBox={`${LOGO_X0} 0 ${LOGO_BREIT} ${LOGO_HOCH}`} style={{ height: `${LAYOUT.logoH}mm`, left: `${LAYOUT.logoX}mm`, top: `${LAYOUT.logoY}mm` }}
                fill={LOGO_FARBE} aria-label="AIY Ihsan Yilmaz" role="img">
             {LOGO_PFADE.map((d, i) => <path key={i} d={d} />)}
           </svg>
