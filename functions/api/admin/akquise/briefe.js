@@ -123,7 +123,7 @@ export async function onRequestGet({ request, env }) {
       const eingerichtet = lxp.konfiguriert(env);
       const antwort = { ok: true, eingerichtet, modus: lxp.modus(env), anbieter: 'LetterXpress' };
       if (eingerichtet) {
-        const [guthaben, preis] = await Promise.all([lxp.guthabenCent(env), lxp.preisCent(env, 1)]);
+        const [guthaben, preis] = await Promise.all([lxp.guthabenCent(env), lxp.preisCent(env, 2)]);
         if (guthaben != null) antwort.guthaben_cent = guthaben;
         if (preis != null) antwort.preis_cent = preis;
       }

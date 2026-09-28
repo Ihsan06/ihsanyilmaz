@@ -57,7 +57,9 @@ const BETRIEB_STATUS: Record<string, string> = { neu: "Neu", beobachten: "Beobac
 const KATEGORIE_LABEL: Record<string, string> = {
   ohne_website: "ohne Website", nur_boerse: "nur Börse", baukasten: "Baukasten", veraltet: "veraltet", mittel: "mittel", gepflegt: "gepflegt",
 };
-const PREIS_FALLBACK = "≈ 0,90 €";
+// Farbig, beidseitig (Vorderseite Brief, Rueckseite Demo): 1,00 € netto
+// laut LetterXpress-Preisliste 02/2026, 1,19 € brutto.
+const PREIS_FALLBACK = "≈ 1,00 € netto";
 // Solange kein echter Betrieb gewaehlt ist, zeigt die Vorschau diesen.
 const BEISPIEL = { name: "Autohaus Beispiel GmbH", strasse: "Hauptstraße 1", plz: "97070", ort: "Würzburg" };
 // Platzhalter fuer den Link, bevor ein Entwurf seinen Token hat.
@@ -87,6 +89,37 @@ const LAYOUT = {
   zeile: 5.2, absatz: 4, hinweisZeile: 3.6, seitenEnde: 276,
 };
 const A4_H = PageSizes.A4[1];
+
+// Rueckseite (farbig, beidseitig gedruckt): Screenshots der eigenen
+// Autohaus-Demo – nie Inhalte des angeschriebenen Betriebs (§ 16 UrhG).
+// Aufgeteilt in die drei Falzfelder (0–105, 105–210, 210–297 mm), damit
+// kein Bild ueber einen Knick laeuft. PDF und Vorschau lesen dieselben Werte.
+const RUECK = {
+  eyebrow: "SO KANN ES AUSSEHEN",
+  titel: ["So kann Ihre neue", "Website aussehen"],
+  text: "Beispiel aus meiner Demo „Autohaus Mustermann“ – zum Anschauen und Ausprobieren.",
+  punkte: ["Fahrzeuge direkt aus dem mobile.de-Bestand", "Finanzierungsrechner und WhatsApp-Kontakt", "Schnell und gut lesbar auf dem Handy"],
+  demoTitel: "Demo selbst ansehen",
+  demoText: (link: string) => `QR-Code scannen oder ${link.replace(/^https?:\/\//, "")} öffnen. Dort können Sie sich einen Demo-Zugang schicken lassen.`,
+  hinweis: "Abbildungen: Demo-Website „Autohaus Mustermann“ mit Beispieldaten.",
+  bilder: { desktop: "/leistungen/web-fahrzeuge.jpg", handy1: "/leistungen/handy-start.jpg", handy2: "/leistungen/handy-finanzierung.jpg" },
+  // Positionen in mm (x, y oben, Breite, Hoehe)
+  handy1: [127, 23, 28, 60.7], handy2: [160, 23, 28, 60.7],
+  browser: [32, 112, 146, 6], // x, y, Breite, Leistenhoehe – Bild 146 × 91,25 darunter
+  qr: [25, 221, 28],
+};
+const FARBE = { dunkel: rgb(0.06, 0.09, 0.16), text: rgb(0.2, 0.25, 0.33), akzent: rgb(0x12 / 255, 0x55 / 255, 0x7f / 255), rahmen: rgb(0.12, 0.16, 0.23) };
+// Abgerundetes Rechteck als SVG-Pfad (Punkte, y nach unten) fuer drawSvgPath.
+const rund = (w: number, h: number, r: number) =>
+  `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`;
+const bildDaten: Record<string, Promise<ArrayBuffer>> = {};
+const bildLaden = (url: string) => {
+  if (!bildDaten[url]) {
+    bildDaten[url] = fetch(url).then(r => { if (!r.ok) throw new Error("Demo-Bild nicht ladbar."); return r.arrayBuffer(); });
+    bildDaten[url].catch(() => { delete bildDaten[url]; });
+  }
+  return bildDaten[url];
+};
 const mm = (v: number) => (v * 72) / 25.4;
 
 // Zwei statische Schnitte von Inter als TTF (aus public/fonts/inter-latin.woff2
@@ -243,7 +276,58 @@ async function pdfErzeugen(d: PdfDaten): Promise<Uint8Array> {
     y += LAYOUT.absatz;
   }
 
-  return pdf.save();
+  // ---- Rueckseite
+  {
+    const [desk, h1, h2] = await Promise.all([bildLaden(RUECK.bilder.desktop), bildLaden(RUECK.bilder.handy1), bildLaden(RUECK.bilder.handy2)]);
+    const [bDesk, bH1, bH2] = await Promise.all([pdf.embedJpg(desk), pdf.embedJpg(h1), pdf.embedJpg(h2)]);
+    seite = pdf.addPage(PageSizes.A4);
+    const bild = (b: typeof bDesk, x: number, yTop: number, w: number, h: number) =>
+      seite.drawImage(b, { x: mm(x), y: A4_H - mm(yTop + h), width: mm(w), height: mm(h) });
+    const form = (x: number, yTop: number, w: number, h: number, r: number, color: ReturnType<typeof rgb>) =>
+      seite.drawSvgPath(rund(mm(w), mm(h), mm(r)), { x: mm(x), y: A4_H - mm(yTop), color });
+
+    // Feld 1: Text links, zwei Handys rechts
+    text(RUECK.eyebrow, LAYOUT.textX, 22, 8, fett, FARBE.akzent);
+    RUECK.titel.forEach((z, i) => text(z, LAYOUT.textX, 28 + i * 8, 18, fett, FARBE.dunkel));
+    let yy = 49;
+    for (const l of umbrechen(RUECK.text, 10, mm(92))) { text(l, LAYOUT.textX, yy, 10, font, FARBE.text); yy += 4.8; }
+    yy += 3;
+    for (const pkt of RUECK.punkte) {
+      form(LAYOUT.textX, yy + 0.9, 2, 2, 1, FARBE.akzent);
+      for (const l of umbrechen(pkt, 10, mm(86))) { text(l, LAYOUT.textX + 5, yy, 10, font, FARBE.dunkel); yy += 4.8; }
+      yy += 1.6;
+    }
+    for (const [b, pos] of [[bH1, RUECK.handy1], [bH2, RUECK.handy2]] as const) {
+      const [x, y, w, h] = pos;
+      form(x - 1.2, y - 1.2, w + 2.4, h + 2.4, 4, FARBE.rahmen);
+      bild(b, x, y, w, h);
+    }
+
+    // Feld 2: Desktop im Browserfenster
+    {
+      const [x, y, w, leiste] = RUECK.browser;
+      const h = w * 875 / 1400;
+      form(x - 1.2, y, w + 2.4, leiste + h + 1.2, 3, FARBE.rahmen);
+      [0, 1, 2].forEach(i => seite.drawCircle({ x: mm(x + 3 + i * 3.4), y: A4_H - mm(y + leiste / 2), size: mm(0.9), color: rgb(0.45, 0.5, 0.58) }));
+      bild(bDesk, x, y + leiste, w, h);
+    }
+
+    // Feld 3: QR und Hinweis
+    {
+      const [x, y, g] = RUECK.qr;
+      seite.drawImage(qr, { x: mm(x), y: A4_H - mm(y + g), width: mm(g), height: mm(g) });
+      text(RUECK.demoTitel, x + g + 6, y + 1, 11, fett, FARBE.dunkel);
+      let y2 = y + 8;
+      for (const l of umbrechen(RUECK.demoText(d.link), 10, mm(210 - LAYOUT.textRechts - (x + g + 6)))) { text(l, x + g + 6, y2, 10, font, FARBE.text); y2 += 4.8; }
+      text(RUECK.hinweis, LAYOUT.textX, 262, 7.5, font, grau);
+    }
+    const a = d.absender;
+    text([a.name, a.strasse, a.plz_ort, a.telefon, a.email, a.web].filter(Boolean).join(" · "), LAYOUT.textX, LAYOUT.fussY, 7.5, font, grau);
+  }
+
+  // Ohne Objektstroeme: der Server zaehlt die Seiten im PDF (farbig und
+  // beidseitig nur, wenn es eine Rueckseite gibt).
+  return pdf.save({ useObjectStreams: false });
 }
 
 // ------------------------------------------------------------------ Bausteine
@@ -280,7 +364,7 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr }: {
   const { betreff, absaetze } = briefAufbauen(text) as { betreff: string; absaetze: { art: string; zeilen: string[] }[] };
   const ort = absender.plz_ort.replace(/^\d{5}\s+/, "");
   return (
-    <div ref={huelle} className="post-blatt-huelle" style={{ height: 297 * 96 / 25.4 * skala + 28 }}>
+    <div ref={huelle} className="post-blatt-huelle" style={{ height: (297 * 2 + 12) * 96 / 25.4 * skala + 28 }}>
       <div className="post-blatt-skala" style={{ transform: `scale(${skala})` }}>
         <div className="post-blatt" aria-label="Vorschau des Briefs">
           <svg className="post-b-logo" viewBox={`0 0 ${LOGO_BREIT} ${LOGO_HOCH}`} style={{ height: `${LAYOUT.logoH}mm`, left: `${LAYOUT.logoX}mm`, top: `${LAYOUT.logoY}mm` }}
@@ -315,9 +399,49 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr }: {
           </div>
           <div className="post-b-fuss">{[absender.name, absender.strasse, absender.plz_ort, absender.telefon, absender.email, absender.web].filter(Boolean).join(" · ")}</div>
         </div>
+        <Rueckseite link={link} qr={qr} fuss={[absender.name, absender.strasse, absender.plz_ort, absender.telefon, absender.email, absender.web].filter(Boolean).join(" · ")} />
       </div>
     </div>
   );
+}
+
+// Rueckseite in der Vorschau – Positionen wie im PDF (RUECK).
+function Rueckseite({ link, qr, fuss }: { link: string; qr: string; fuss: string }) {
+  const pos = (x: number, y: number, w: number, h?: number): React.CSSProperties =>
+    ({ left: `${x}mm`, top: `${y}mm`, width: `${w}mm`, ...(h != null ? { height: `${h}mm` } : {}) });
+  const [bx, by, bw, bl] = RUECK.browser;
+  const [qx, qy, qg] = RUECK.qr;
+  /* eslint-disable @next/next/no-img-element -- Bilder im skalierten Blatt, next/image bringt hier nichts */
+  return (
+    <>
+      <p className="post-b-seitenmarke">Rückseite · farbig</p>
+      <div className="post-blatt post-rueck" aria-label="Vorschau der Rückseite">
+        <div className="post-r-text">
+          <p className="post-r-eyebrow">{RUECK.eyebrow}</p>
+          <p className="post-r-titel">{RUECK.titel.join(" ")}</p>
+          <p className="post-r-absatz">{RUECK.text}</p>
+          <ul className="post-r-punkte">{RUECK.punkte.map(p => <li key={p}>{p}</li>)}</ul>
+        </div>
+        {[RUECK.handy1, RUECK.handy2].map(([x, y, w, h], i) => (
+          <div key={i} className="post-r-handy" style={pos(x - 1.2, y - 1.2, w + 2.4, h + 2.4)}>
+            <img src={i ? RUECK.bilder.handy2 : RUECK.bilder.handy1} alt="" />
+          </div>
+        ))}
+        <div className="post-r-browser" style={pos(bx - 1.2, by, bw + 2.4, bl + bw * 875 / 1400 + 1.2)}>
+          <span className="post-r-leiste" style={{ height: `${bl}mm` }}><i /><i /><i /></span>
+          <img src={RUECK.bilder.desktop} alt="" />
+        </div>
+        {qr && <img className="post-r-qr" src={qr} alt="QR-Code zum Link" style={pos(qx, qy, qg, qg)} />}
+        <div className="post-r-demo" style={pos(qx + qg + 6, qy, 210 - 20 - (qx + qg + 6))}>
+          <b>{RUECK.demoTitel}</b>
+          <p>{RUECK.demoText(link)}</p>
+        </div>
+        <p className="post-r-hinweis">{RUECK.hinweis}</p>
+        <div className="post-b-fuss">{fuss}</div>
+      </div>
+    </>
+  );
+  /* eslint-enable @next/next/no-img-element */
 }
 
 // Die Vorschau gross, ueber der Seite – Klick daneben oder Esc schliesst.
@@ -722,7 +846,7 @@ export default function PostSeite() {
           <>
             <span>Versand eingerichtet · {stand.anbieter} · {stand.modus === "live" ? "Live" : "Testmodus (Postbox, kein Druck)"}</span>
             {stand.guthaben_cent != null && <span>Guthaben {euro(stand.guthaben_cent)}</span>}
-            <span>Brief s/w einseitig: {preisText}</span>
+            <span>Brief farbig, beidseitig: {preisText}</span>
           </>
         ) : (
           <span>Versand nicht eingerichtet – LETTERXPRESS_USER und LETTERXPRESS_KEY in Cloudflare hinterlegen.</span>

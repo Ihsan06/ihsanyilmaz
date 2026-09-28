@@ -85,6 +85,21 @@ export function base64Aus(bytes) {
   return btoa(s);
 }
 
+// Seiten eines PDFs zaehlen (Seitenobjekte "/Type /Page", nicht "/Pages").
+// Unser PDF wird ohne Objektstroeme gespeichert, daher stehen sie im Klartext;
+// findet sich nichts, gilt eine Seite.
+export function seitenZaehlen(bytes) {
+  let text = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return (text.match(/\/Type\s*\/Page(?![a-zA-Z])/g) || []).length || 1;
+}
+
+// Mit Rueckseite (ab 2 Seiten): farbig und beidseitig, sonst s/w einseitig.
+// LXP: color '1' = s/w, '4' = farbig; mode 'simplex' | 'duplex'.
+export function druckart(seiten) {
+  return seiten >= 2 ? { color: '4', mode: 'duplex' } : { color: '1', mode: 'simplex' };
+}
+
 // POST /v3/printjobs – Auftrag anlegen.
 // → { ok:true, id, kosten_cent, adresse, status } oder { ok:false, fehler }
 export async function auftragAnlegen(env, { pdfBytes, dateiname, notiz }) {
@@ -94,7 +109,7 @@ export async function auftragAnlegen(env, { pdfBytes, dateiname, notiz }) {
     letter: {
       base64_file: b64,
       base64_file_checksum: md5(b64),
-      specification: { color: '1', mode: 'simplex', shipping: 'national' },
+      specification: { ...druckart(seitenZaehlen(pdfBytes)), shipping: 'national' },
       filename_original: dateiname || 'brief.pdf',
       notice: String(notiz || '').slice(0, 255),
     },
@@ -149,11 +164,12 @@ export async function guthabenCent(env) {
   return a.ok && Number.isFinite(wert) ? Math.round(wert * 100) : null;
 }
 
-// GET /v3/price → Nettopreis in Cent fuer einen s/w-Brief mit n Seiten, oder null.
+// GET /v3/price → Nettopreis in Cent fuer einen Brief mit n Seiten (ab 2
+// Seiten farbig und beidseitig, wie beim Versand), oder null.
 export async function preisCent(env, seiten = 1) {
   if (!konfiguriert(env)) return null;
   const a = await anfrage(env, 'GET', '/price', {
-    letter: { specification: { color: '1', mode: 'simplex', shipping: 'national', pages: seiten } },
+    letter: { specification: { ...druckart(seiten), shipping: 'national', pages: seiten } },
   });
   const wert = Number(a.daten?.data?.price);
   return a.ok && Number.isFinite(wert) ? Math.round(wert * 100) : null;

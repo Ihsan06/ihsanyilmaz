@@ -98,7 +98,7 @@
 .post-blatt-huelle { position:relative; width:100%; overflow:hidden; border:1px solid var(--border); border-radius:10px; background:#e9edf1; padding:14px; }
 .post-blatt-skala { position:relative; width:210mm; height:297mm; transform-origin:top left; }
 .post-blatt {
-  position:absolute; inset:0; background:#fff; color:#111; box-shadow:0 8px 26px rgba(7,26,43,.18);
+  position:absolute; left:0; top:0; width:210mm; height:297mm; background:#fff; color:#111; box-shadow:0 8px 26px rgba(7,26,43,.18);
   font-family:"Inter Brief", Inter, system-ui, sans-serif; font-size:11pt; line-height:5.2mm;
 }
 .post-blatt * { box-sizing:border-box; }
@@ -121,6 +121,29 @@
 .post-blatt .post-b-qr { position:absolute; right:0; width:25mm; height:25mm; }
 .post-blatt .post-b-qr img { display:block; width:100%; height:100%; }
 .post-blatt .post-b-fuss { position:absolute; left:25mm; right:20mm; top:283mm; font-size:7.5pt; line-height:3.6mm; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Rueckseite: zweites Blatt unter der Vorderseite, 12 mm Abstand */
+.post-blatt-skala { height:606mm; }
+.post-b-seitenmarke { position:absolute; left:0; top:299mm; margin:0; font:600 3.4mm/1 system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase; color:#64748b; }
+.post-blatt.post-rueck { top:309mm; bottom:auto; height:297mm; }
+.post-rueck .post-r-text { position:absolute; left:25mm; top:21mm; width:92mm; }
+.post-rueck .post-r-eyebrow { margin:0 0 3mm; font-size:8pt; font-weight:600; letter-spacing:.04em; color:#12557F; }
+.post-rueck .post-r-titel { margin:0 0 5mm; font-size:18pt; font-weight:600; line-height:8mm; color:#0f172a; max-width:80mm; }
+.post-rueck .post-r-absatz { margin:0 0 3mm; font-size:10pt; line-height:4.8mm; color:#334155; }
+.post-rueck .post-r-punkte { list-style:none; margin:0; padding:0; font-size:10pt; line-height:4.8mm; color:#0f172a; }
+.post-rueck .post-r-punkte li { position:relative; padding-left:5mm; margin-bottom:1.6mm; }
+.post-rueck .post-r-punkte li::before { content:""; position:absolute; left:0; top:0.9mm; width:2mm; height:2mm; border-radius:1mm; background:#12557F; }
+.post-rueck .post-r-handy { position:absolute; border-radius:4mm; background:#1e293b; padding:1.2mm; }
+.post-rueck .post-r-handy img { display:block; width:100%; height:100%; object-fit:cover; }
+.post-rueck .post-r-browser { position:absolute; border-radius:3mm; background:#1e293b; padding:0 1.2mm 1.2mm; overflow:hidden; }
+.post-rueck .post-r-leiste { display:flex; align-items:center; gap:2.5mm; padding-left:1.8mm; }
+.post-rueck .post-r-leiste i { width:1.8mm; height:1.8mm; border-radius:50%; background:#737f94; }
+.post-rueck .post-r-browser img { display:block; width:100%; }
+.post-rueck .post-r-qr { position:absolute; display:block; }
+.post-rueck .post-r-demo { position:absolute; font-size:10pt; line-height:4.8mm; color:#334155; }
+.post-rueck .post-r-demo b { display:block; font-size:11pt; font-weight:600; color:#0f172a; margin:0.6mm 0 2.4mm; }
+.post-rueck .post-r-demo p { margin:0; }
+.post-rueck .post-r-hinweis { position:absolute; left:25mm; top:262mm; margin:0; font-size:7.5pt; color:#555; }
 
 /* Vorlage & Absender */
 .post-form { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px 16px; }
