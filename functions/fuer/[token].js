@@ -8,7 +8,7 @@
 // wird nur "aufgerufen" am Brief – hoechstens einmal je Minute, damit ein
 // Scanner oder ein Vorschau-Bot die Zahl nicht aufblaest.
 // Suchmaschinen bleiben draussen (X-Robots-Tag + Meta), nichts wird gecacht.
-import { TOKEN_RE } from '../_lib/brief.js';
+import { TOKEN_RE, CHECK_LABELS } from '../_lib/brief.js';
 import { postEinstellungenLaden } from '../api/admin/akquise/post-einstellungen.js';
 
 const STARTSEITE = 'https://ihsan-yilmaz.de';
@@ -42,6 +42,8 @@ const CSS = `
   ul.befunde li { position:relative; padding:10px 0 10px 26px; border-bottom:1px solid #243039; color:#E6EBEF; }
   ul.befunde li:last-child { border-bottom:0; }
   ul.befunde li::before { content:""; position:absolute; left:4px; top:19px; width:8px; height:8px; border-radius:50%; background:#4DA3E0; }
+  ul.befunde li.gruen::before { background:#2F9E5F; }
+  ul.befunde li b { color:#F2F5F7; margin-right:6px; }
   p { margin:0 0 12px; color:#B4BFC9; }
   .knopf { display:inline-block; padding:12px 22px; border-radius:999px; background:#1B6FA8; color:#fff; text-decoration:none; font-weight:600; border:0; font:inherit; font-weight:600; cursor:pointer; }
   .knopf:hover { background:#2380c0; }
@@ -136,7 +138,10 @@ export async function onRequestGet({ params, env, waitUntil }) {
   const firma = brief.name || 'Ihren Betrieb';
 
   const befundeHtml = brief.befunde.length
-    ? `<ul class="befunde">${brief.befunde.map(b => `<li>${esc(b.text)}</li>`).join('')}</ul>`
+    ? `<ul class="befunde">${brief.befunde.map(b => {
+        const label = CHECK_LABELS[b.code];
+        return `<li${b.code === 'google_note' ? ' class="gruen"' : ''}>${label ? `<b>${esc(label)}</b>` : ''}${esc(b.text)}</li>`;
+      }).join('')}</ul>`
     : '<p>Die Punkte stehen in Ihrem Brief.</p>';
 
   const inhalt = `

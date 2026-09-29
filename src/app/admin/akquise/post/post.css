@@ -51,6 +51,7 @@
 .post-schau-kopf { display:flex; align-items:center; gap:8px; min-width:0; }
 .post-schau-titel { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-subtle); }
 .post-schau-chip { flex:none; font-size:.7rem; font-weight:700; padding:2px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent); white-space:nowrap; }
+.post-schau-chip.warn { background:rgba(220,38,38,.12); color:#b91c1c; }
 .post-schau-name { flex:1; min-width:0; font-size:.84rem; font-weight:600; color:var(--fg); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .post-schau-fuss { display:flex; justify-content:flex-end; gap:6px; }
 @media (max-width:1100px) {
@@ -96,55 +97,88 @@
 @font-face { font-family:"Inter Brief"; src:url("/fonts/inter-brief.ttf") format("truetype"); font-weight:400; font-display:swap; }
 @font-face { font-family:"Inter Brief"; src:url("/fonts/inter-brief-semibold.ttf") format("truetype"); font-weight:600; font-display:swap; }
 .post-blatt-huelle { position:relative; width:100%; overflow:hidden; border:1px solid var(--border); border-radius:10px; background:#e9edf1; padding:14px; }
-.post-blatt-skala { position:relative; width:210mm; height:297mm; transform-origin:top left; }
+.post-blatt-skala { position:relative; width:210mm; height:606mm; transform-origin:top left; }
 .post-blatt {
   position:absolute; left:0; top:0; width:210mm; height:297mm; background:#fff; color:#111; box-shadow:0 8px 26px rgba(7,26,43,.18);
-  font-family:"Inter Brief", Inter, system-ui, sans-serif; font-size:11pt; line-height:5.2mm;
+  font-family:"Inter Brief", Inter, system-ui, sans-serif; font-size:10.5pt; line-height:4.9mm;
 }
 .post-blatt * { box-sizing:border-box; }
 .post-blatt .post-b-logo { position:absolute; width:auto; display:block; }
+.post-blatt .post-b-portraet { position:absolute; right:20mm; top:14mm; width:18mm; height:18mm; border-radius:50%; display:block; }
 .post-blatt .post-b-absender { position:absolute; right:20mm; top:16mm; width:80mm; text-align:right; font-size:8.5pt; line-height:4mm; color:#222; }
+.post-blatt .post-b-absender.mit-portraet { top:35.5mm; }
 .post-blatt .post-b-absender b { display:block; font-size:10pt; font-weight:600; margin-bottom:1mm; color:#000; }
 .post-blatt .post-b-fenster { position:absolute; left:20mm; top:45mm; width:85mm; height:45mm; border:0.2mm dashed #cfd6dd; }
 .post-blatt .post-b-ruecksende { position:absolute; left:2mm; top:1.5mm; width:81mm; font-size:7pt; line-height:3.2mm; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.post-blatt .post-b-anschrift { position:absolute; left:2mm; top:8mm; width:81mm; font-size:11pt; line-height:4.6mm; white-space:pre-line; }
-.post-blatt .post-b-falz { position:absolute; left:3mm; width:5mm; height:0; border-top:0.2mm solid #999; }
-.post-blatt .post-b-datum { position:absolute; right:20mm; top:90mm; font-size:10pt; line-height:4mm; }
+.post-blatt .post-b-anschrift { position:absolute; left:2mm; top:8mm; width:81mm; font-size:11pt; line-height:4.6mm; white-space:pre-line; color:#000; }
+.post-blatt .post-b-falz { position:absolute; left:5mm; width:5mm; height:0; border-top:0.2mm solid #555; }
+.post-blatt .post-b-datum { position:absolute; right:20mm; top:90mm; font-size:10pt; line-height:4mm; color:#000; }
+.post-blatt .post-b-strich { position:absolute; left:25mm; top:94.5mm; width:10mm; height:0.6mm; background:#12557F; }
 .post-blatt .post-b-text { position:absolute; left:25mm; right:20mm; top:98.5mm; }
-.post-blatt .post-b-betreff { font-size:11pt; font-weight:600; margin:0 0 10.4mm; line-height:5.2mm; }
-.post-blatt .post-b-absatz { margin:0 0 4mm; }
+.post-blatt .post-b-betreff { font-size:15pt; font-weight:600; line-height:5.8mm; margin:0 0 3.5mm; color:#0F172A; }
+.post-blatt .post-b-absatz { margin:0 0 2.6mm; position:relative; }
 .post-blatt .post-b-absatz.mit-qr { padding-right:31mm; min-height:25mm; }
-.post-blatt ul.post-b-liste { margin:0 0 4mm; padding:0 0 0 5mm; list-style:none; }
-.post-blatt ul.post-b-liste li { position:relative; }
-.post-blatt ul.post-b-liste li::before { content:"–"; position:absolute; left:-5mm; }
-.post-blatt .post-b-hinweis { font-size:7.5pt; line-height:3.6mm; color:#555; margin:6mm 0 0; }
-.post-blatt .post-b-qr { position:absolute; right:0; width:25mm; height:25mm; }
+.post-blatt .post-b-qr { position:absolute; right:0; top:0; width:25mm; height:25mm; }
 .post-blatt .post-b-qr img { display:block; width:100%; height:100%; }
-.post-blatt .post-b-fuss { position:absolute; left:25mm; right:20mm; top:283mm; font-size:7.5pt; line-height:3.6mm; color:#555; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* Befund-Kasten: Ziffer · Stichwort · Satz; die Kante links als eigenes Kind,
+   damit die Toenung eckige Innenecken behaelt (wie im PDF). */
+.post-blatt .post-b-kasten { position:relative; display:grid; grid-template-columns:5.5mm 33mm 1fr; row-gap:1.6mm; margin:0 0 2.6mm; padding:2.5mm 3mm 2.5mm 4.5mm; background:#E8F0F6; border-radius:0 1.5mm 1.5mm 0; }
+.post-blatt .post-b-kasten .kante { position:absolute; left:0; top:0; bottom:0; width:1.2mm; background:#12557F; border-radius:1.5mm 0 0 1.5mm; }
+.post-blatt .post-b-kasten .ziffer { font-weight:600; color:#12557F; }
+.post-blatt .post-b-kasten .label { font-weight:600; color:#0F172A; }
+.post-blatt .post-b-kasten .label.gruen { color:#2F9E5F; }
+.post-blatt .post-b-kasten .satz { color:#111; }
+.post-blatt .post-b-kasten .satz.breit { grid-column:2 / span 2; }
+.post-blatt .post-b-quelle { margin:-1.1mm 0 2.6mm; font-size:7pt; line-height:3mm; color:#64748B; }
+.post-blatt .post-b-unterschrift { position:relative; height:8mm; margin:0 0 2.6mm; }
+.post-blatt .post-b-unterschrift img { position:absolute; left:0; top:2mm; width:36mm; height:8.5mm; }
+.post-blatt .post-b-name { margin:0 0 2.6mm; }
+.post-blatt .post-b-zusatz { display:block; font-size:8.5pt; line-height:3.8mm; color:#64748B; }
+.post-blatt .post-b-ps { margin:0 0 2.6mm; }
+.post-blatt .post-b-ps b { font-weight:600; }
+/* Fester Handlungsblock im dritten Falzfeld */
+.post-blatt .post-b-cta { position:absolute; left:25mm; top:241mm; width:165mm; height:26mm; border:0.35mm solid #12557F; border-radius:2mm; }
+.post-blatt .post-b-cta .qr { position:absolute; left:3.65mm; top:2.65mm; width:20mm; height:20mm; display:block; }
+.post-blatt .post-b-cta .text { position:absolute; left:28.65mm; top:0; width:132mm; height:100%; }
+.post-blatt .post-b-cta .link { position:absolute; top:4.15mm; font-size:12.5pt; font-weight:600; line-height:5mm; color:#0F172A; white-space:nowrap; }
+.post-blatt .post-b-cta .scan { position:absolute; top:10.15mm; margin:0; font-size:9pt; line-height:4.2mm; color:#334155; }
+.post-blatt .post-b-cta .anruf { position:absolute; top:19.65mm; font-size:10pt; font-weight:600; line-height:4.5mm; color:#0F172A; white-space:nowrap; }
+.post-blatt .post-b-hinweis { position:absolute; left:25mm; right:20mm; top:270.5mm; margin:0; font-size:7pt; line-height:3mm; color:#555; }
+.post-blatt .post-b-fuss { position:absolute; left:25mm; right:20mm; top:285mm; font-size:7pt; line-height:3mm; color:#555; display:flex; justify-content:space-between; gap:6mm; white-space:nowrap; overflow:hidden; }
+.post-blatt .post-b-teaser { font-weight:600; color:#12557F; }
 
-/* Rueckseite: zweites Blatt unter der Vorderseite, 12 mm Abstand */
-.post-blatt-skala { height:606mm; }
+/* Rueckseite: zweites Blatt unter der Vorderseite, 12 mm Abstand. Ein Bild je
+   Falzfeld; Schatten hart und doppelt wie im PDF (kein Weichzeichner). */
 .post-b-seitenmarke { position:absolute; left:0; top:299mm; margin:0; font:600 3.4mm/1 system-ui, sans-serif; letter-spacing:.06em; text-transform:uppercase; color:#64748b; }
-.post-blatt.post-rueck { top:309mm; bottom:auto; height:297mm; }
-.post-rueck .post-r-text { position:absolute; left:25mm; top:21mm; width:92mm; }
-.post-rueck .post-r-eyebrow { margin:0 0 3mm; font-size:8pt; font-weight:600; letter-spacing:.04em; color:#12557F; }
-.post-rueck .post-r-titel { margin:0 0 5mm; font-size:18pt; font-weight:600; line-height:8mm; color:#0f172a; max-width:80mm; }
-.post-rueck .post-r-absatz { margin:0 0 3mm; font-size:10pt; line-height:4.8mm; color:#334155; }
-.post-rueck .post-r-punkte { list-style:none; margin:0; padding:0; font-size:10pt; line-height:4.8mm; color:#0f172a; }
-.post-rueck .post-r-punkte li { position:relative; padding-left:5mm; margin-bottom:1.6mm; }
-.post-rueck .post-r-punkte li::before { content:""; position:absolute; left:0; top:0.9mm; width:2mm; height:2mm; border-radius:1mm; background:#12557F; }
-.post-rueck .post-r-handy { position:absolute; border-radius:4mm; background:#1e293b; padding:1.2mm; }
-.post-rueck .post-r-handy img { display:block; width:100%; height:100%; object-fit:cover; }
-.post-rueck .post-r-duo { z-index:1; box-shadow:0 1.5mm 4mm rgba(0,0,0,.25); }
-.post-rueck .post-r-browser { position:absolute; border-radius:3mm; background:#1e293b; padding:0 1.2mm 1.2mm; overflow:hidden; }
-.post-rueck .post-r-leiste { display:flex; align-items:center; gap:2.5mm; padding-left:1.8mm; }
-.post-rueck .post-r-leiste i { width:1.8mm; height:1.8mm; border-radius:50%; background:#737f94; }
-.post-rueck .post-r-browser img { display:block; width:100%; }
-.post-rueck .post-r-qr { position:absolute; display:block; }
-.post-rueck .post-r-demo { position:absolute; text-align:center; font-size:10pt; line-height:4.8mm; color:#334155; }
-.post-rueck .post-r-demo b { display:block; font-size:11pt; font-weight:600; color:#0f172a; margin:0 0 2.2mm; }
-.post-rueck .post-r-demo p { margin:0; }
-.post-rueck .post-r-hinweis { position:absolute; left:0; right:0; top:269.3mm; margin:0; text-align:center; font-size:7.5pt; color:#555; }
+.post-blatt.post-rueck { top:309mm; }
+.post-rueck .post-r-titel { position:absolute; left:25mm; top:20mm; margin:0; font-size:20pt; font-weight:600; line-height:8.5mm; color:#0F172A; }
+.post-rueck .post-r-absatz { position:absolute; left:25mm; top:38mm; width:100mm; margin:0; font-size:10pt; line-height:4.8mm; color:#334155; }
+.post-rueck .post-r-checks { position:absolute; left:25mm; top:60mm; width:108mm; margin:0; padding:0; list-style:none; }
+.post-rueck .post-r-checks li { position:relative; height:8mm; padding-left:6.5mm; font-size:10pt; line-height:3.6mm; color:#334155; white-space:nowrap; }
+.post-rueck .post-r-checks li i { position:absolute; left:0; top:0; width:3.6mm; height:3.6mm; border-radius:50%; background:#2F9E5F; }
+.post-rueck .post-r-checks li i svg { display:block; width:100%; height:100%; }
+.post-rueck .post-r-checks li b { font-weight:600; color:#0F172A; }
+.post-rueck .post-r-sockel { position:absolute; border-radius:6mm; background:#E8F0F6; }
+.post-rueck .post-r-handy { position:absolute; border-radius:4.2mm; background:#1E293B; padding:1.6mm; box-shadow:0.4mm 0.6mm 0 rgba(0,0,0,.1), 0.8mm 1.2mm 0 rgba(0,0,0,.1); }
+.post-rueck .post-r-handy::before { content:""; position:absolute; inset:1.2mm; border:0.4mm solid #64748B; border-radius:3.2mm; pointer-events:none; }
+.post-rueck .post-r-handy img { display:block; width:100%; height:100%; object-fit:cover; border-radius:2.8mm; }
+.post-rueck .post-r-browser { position:absolute; border-radius:3mm; background:#E2E8F0; border:0.3mm solid #CBD5E1; box-shadow:0.4mm 0.6mm 0 rgba(0,0,0,.1), 0.8mm 1.2mm 0 rgba(0,0,0,.1); }
+.post-rueck .post-r-leiste { position:absolute; left:3mm; top:0; height:6.5mm; display:flex; align-items:center; gap:1.6mm; }
+.post-rueck .post-r-leiste i { width:1.8mm; height:1.8mm; border-radius:50%; background:#94A3B8; }
+.post-rueck .post-r-pille { position:absolute; left:26.9mm; top:0.75mm; width:86mm; height:4.4mm; border-radius:2.2mm; background:#fff; border:0.25mm solid #CBD5E1; font-size:7.5pt; font-weight:600; line-height:3.9mm; text-align:center; color:#334155; white-space:nowrap; }
+.post-rueck .post-r-browser img { position:absolute; left:0.9mm; top:6.2mm; width:138mm; height:86.25mm; display:block; }
+.post-rueck .post-r-panel { position:absolute; border-radius:3mm; background:#E8F0F6; }
+.post-rueck .post-r-qrbox { position:absolute; border-radius:1.5mm; background:#fff; }
+.post-rueck .post-r-qrbox img { position:absolute; left:4mm; top:4mm; width:28mm; height:28mm; display:block; }
+.post-rueck .post-r-titel3 { position:absolute; left:66mm; top:222mm; margin:0; font-size:13pt; font-weight:600; line-height:5mm; color:#0F172A; }
+.post-rueck .post-r-schritt { position:absolute; left:66mm; width:120mm; margin:0; padding-left:6mm; font-size:9.5pt; line-height:4.5mm; color:#334155; white-space:nowrap; }
+.post-rueck .post-r-schritt .ziffer { position:absolute; left:0; font-weight:600; color:#12557F; }
+.post-rueck .post-r-schritt.post-r-anruf { font-size:10pt; font-weight:600; color:#0F172A; }
+.post-rueck .post-r-link { position:absolute; left:72mm; top:234.5mm; font-size:11pt; font-weight:600; line-height:4.5mm; color:#12557F; white-space:nowrap; }
+.post-rueck .post-r-rueckruf { position:absolute; left:72mm; top:253mm; width:114mm; margin:0; font-size:9.5pt; line-height:4.5mm; color:#334155; }
+.post-rueck .post-r-name { position:absolute; left:72mm; top:263.5mm; margin:0; font-size:8pt; line-height:3.2mm; color:#64748B; white-space:nowrap; }
+.post-rueck .post-r-hinweis { position:absolute; left:25mm; right:20mm; top:272mm; margin:0; font-size:7pt; line-height:3mm; color:#555; }
+.post-rueck .post-b-fuss { justify-content:flex-start; }
 
 /* Vorlage & Absender */
 .post-form { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px 16px; }

@@ -27,8 +27,9 @@
 import { json, nurAngemeldet, istAngemeldet } from '../../../_lib/auth.js';
 import {
   tokenErzeugen, empfaengerBlock, absenderBlock, anschriftVollstaendig,
-  befundeAusPruefung, BEFUNDE_BEISPIEL, briefFuellen, landingLink,
+  befundeAusPruefung, BEFUNDE_BEISPIEL, briefFuellen, landingLink, googleZeile,
 } from '../../../_lib/brief.js';
+import { boersenName } from '../../../_lib/akquise.js';
 import * as lxp from '../../../_lib/letterxpress.js';
 import { postEinstellungenLaden } from './post-einstellungen.js';
 
@@ -73,17 +74,22 @@ async function kandidatenErmitteln(env, betrieb) {
     'SELECT * FROM akquise_pruefungen WHERE betrieb_id = ? ORDER BY zeitpunkt DESC, id DESC LIMIT 1',
   ).bind(betrieb.id).first();
   const signale = parse(p?.signale, []);
-  const liste = befundeAusPruefung(signale, p);
+  const boerse = boersenName(betrieb.website);
+  const liste = befundeAusPruefung(signale, { ...(p || {}), boerse });
   const hat = code => liste.some(k => k.code === code);
   if (!betrieb.website && !hat('keine_website')) {
     liste.unshift({ code: 'keine_website', text: befundeAusPruefung([{ code: 'keine_website', seite: 'website', punkte: 100 }])[0].text, punkte: 100, vorgewaehlt: true });
   }
   if (betrieb.kategorie === 'nur_boerse' && !hat('nur_boerse')) {
-    liste.unshift({ code: 'nur_boerse', text: befundeAusPruefung([{ code: 'nur_boerse', seite: 'website', punkte: 100 }])[0].text, punkte: 100, vorgewaehlt: true });
+    liste.unshift({ code: 'nur_boerse', text: befundeAusPruefung([{ code: 'nur_boerse', seite: 'website', punkte: 100 }], { boerse })[0].text, punkte: 100, vorgewaehlt: true });
   }
   // Hoechstens drei vorgewaehlt, auch nach dem Ergaenzen.
   let n = 0;
   for (const k of liste) { if (k.vorgewaehlt) { n++; if (n > 3) k.vorgewaehlt = false; } }
+  // Die positive Google-Zeile zaehlt nicht zur Drei-Grenze – sie steht
+  // immer zuletzt und spricht fuer den Betrieb.
+  const google = googleZeile(betrieb);
+  if (google) liste.push({ ...google, punkte: 0, vorgewaehlt: true });
   return liste;
 }
 
@@ -92,6 +98,7 @@ function betriebKurz(b) {
   return {
     id: b.id, name: b.name, strasse: b.strasse, plz: b.plz, ort: b.ort, website: b.website,
     status: b.status, kategorie: b.kategorie, geprueft_am: b.geprueft_am, geloescht: b.geloescht,
+    google_stand: b.google_stand, google_bewertung: b.google_bewertung, google_anzahl: b.google_anzahl,
   };
 }
 
@@ -162,7 +169,8 @@ export async function onRequestGet({ request, env }) {
     if (status && STATUS.includes(status)) { wo.push('br.status = ?'); werte.push(status); }
     const [liste, zaehler] = await env.DB.batch([
       env.DB.prepare(
-        `SELECT br.*, b.name AS betrieb_name, b.ort AS betrieb_ort, b.status AS betrieb_status
+        `SELECT br.*, b.name AS betrieb_name, b.ort AS betrieb_ort, b.status AS betrieb_status,
+                b.geprueft_am AS betrieb_geprueft_am, b.google_stand AS betrieb_google_stand
          FROM akquise_briefe br LEFT JOIN akquise_betriebe b ON b.id = br.betrieb_id
          ${wo.length ? 'WHERE ' + wo.join(' AND ') : ''}
          ORDER BY br.angelegt DESC, br.id DESC LIMIT 500`,

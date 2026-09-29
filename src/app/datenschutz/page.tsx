@@ -44,6 +44,7 @@ export default function Datenschutz() {
             <ul className="mt-2 space-y-1 list-disc list-inside">
               <li>Cloudflare, Inc. (USA) — Hosting und Auslieferung der Website</li>
               <li>Resend, Inc. (USA) — Versand der Kontaktanfragen per E-Mail</li>
+              <li>A&amp;O Fischer GmbH &amp; Co. KG (LetterXpress, Winsen/Luhe) — Druck und Postversand der Anschreiben an Betriebe (Abschnitt 13)</li>
               <li>OpenStreetMap Foundation (Vereinigtes Königreich) — Anzeige der Standort-Karte im Footer</li>
             </ul>
             <p className="mt-2">Mit diesen Dienstleistern bestehen die datenschutzrechtlich erforderlichen Vereinbarungen. Soweit eine Verarbeitung außerhalb der EU/des EWR stattfindet, erfolgt diese auf Grundlage geeigneter Garantien (EU-Standardvertragsklauseln).</p>

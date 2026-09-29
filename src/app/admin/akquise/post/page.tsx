@@ -1,11 +1,11 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PDFDocument, PageSizes, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LineCapStyle, PDFDocument, PageSizes, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
 import { ExternalLink, FileText, Mail, Maximize2, RefreshCw, Trash2, X } from "lucide-react";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
-import { BEFUNDE_BEISPIEL, briefAufbauen, briefFuellen, datumDeutsch, empfaengerBlock, landingLink } from "../../../../../functions/_lib/brief.js";
+import { BEFUNDE_BEISPIEL, CHECK_LABELS, briefAufbauen, briefFuellen, datumDeutsch, empfaengerBlock, landingLink, quellenZeile, rueckChecks } from "../../../../../functions/_lib/brief.js";
 import { LOGO_BREIT, LOGO_FARBE, LOGO_HOCH, LOGO_PFADE, LOGO_X0 } from "./briefLogo";
 import "./post.css";
 
@@ -30,10 +30,12 @@ type Brief = {
   aufrufe: number; zuletzt_aufgerufen: string | null; demo_angefordert: string | null;
   angelegt: string; gesendet_am: string | null; zugestellt_am: string | null;
   betrieb_name?: string | null; betrieb_ort?: string | null; betrieb_status?: string | null;
+  betrieb_geprueft_am?: string | null; betrieb_google_stand?: string | null;
 };
 type BetriebKurz = {
   id: number; name: string; strasse: string | null; plz: string | null; ort: string | null;
   website: string | null; status: string; kategorie?: string | null; geprueft_am: string | null; geloescht?: string | null;
+  google_stand?: string | null;
 };
 type Absender = { name: string; zusatz: string; strasse: string; plz_ort: string; telefon: string; email: string; web: string };
 type Einstellungen = {
@@ -47,7 +49,10 @@ type Sperre = { id: number; betrieb_id: number | null; name: string | null; ort:
 type Editor = { brief: Brief; betrieb: BetriebKurz | null; kandidaten: Kandidat[] };
 type Reiter = "briefe" | "brief" | "vorlage" | "sperrliste";
 // Was links in der Vorschau steht: chip sagt, woher (Entwurf, Beispiel …).
-type Schau = { chip: string; titel: string; text: string; empfaenger: string; absender: Absender; link: string; datumText: string; briefId?: number };
+type Schau = {
+  chip: string; titel: string; text: string; empfaenger: string; absender: Absender; link: string; datumText: string; briefId?: number;
+  befunde: Befund[]; geprueftAm?: string | null; googleStand?: string | null;
+};
 
 const STATUS_LABEL: Record<string, string> = {
   entwurf: "Entwurf", freigegeben: "Freigegeben", gesendet: "Gesendet", zugestellt: "Zugestellt", fehler: "Fehler", storniert: "Storniert",
@@ -81,39 +86,82 @@ function anschriftVollstaendig(e: string) {
 
 // ------------------------------------------------------------------ PDF
 
+// Positionen in mm. Vorderseite nach DIN 5008 Form B und LetterXpress:
+// Anschriftfeld 20/45 mm, 85 × 45 mm (nur Ruecksendezeile + Empfaenger),
+// Text ab 98,5 mm, Raender 25/20 mm, Falzmarken 105/210 mm. Der Handlungs-
+// block mit QR-Code sitzt fest im dritten Falzfeld (241–267 mm), damit nie
+// ein Knick durch den Code laeuft; der Textfluss muss davor enden (238 mm).
+// Alte Briefe mit {link}-Absatz laufen weiter wie frueher (QR neben dem
+// Absatz, Grenze 268 mm). Die Vorschau (post.css) nutzt dieselben Zahlen.
 const LAYOUT = {
   fensterX: 20, fensterY: 45, fensterB: 85,
   textX: 25, textRechts: 20, textY: 98.5,
-  falz: [105, 210], qr: 25, fussY: 283, absenderY: 16, datumY: 90,
+  falz: [105, 210], falzX: [5, 10],
   logoX: 25, logoY: 14, logoH: 15,
-  zeile: 5.2, absatz: 4, hinweisZeile: 3.6, seitenEnde: 276,
+  portraet: { x: 172, y: 14, groesse: 18 },
+  absenderY: 16, absenderYMitPortraet: 35.5, datumY: 90,
+  strich: { y: 94.5, b: 10, h: 0.6 },
+  betreff: { groesse: 15, zeile: 5.8, abstand: 3.5 },
+  groesse: 10.5, zeile: 4.9, absatz: 2.6,
+  kasten: { pad: 2.5, zwischen: 1.6, ziffernX: 29.5, labelX: 35, satzX: 68, satzBreite: 119, ohneLabelBreite: 152, radius: 1.5, kante: 1.2 },
+  quelle: { abstand: 1.5, groesse: 7, zeile: 3, maxZeilen: 2 },
+  unterschrift: { raum: 8, breite: 36, hoehe: 8.5, versatz: 2 },
+  zusatz: { groesse: 8.5, zeile: 3.8 },
+  cta: { y: 241, hoehe: 26, qr: 20, qrX: 29, qrY: 244, textX: 54, textBreite: 132, linkY: 245.5, scanY: 251.5, scanZeile: 4.2, anrufY: 261, radius: 2, linie: 0.35 },
+  qrAlt: 25,
+  textEnde: 238, textEndeAlt: 268,
+  hinweis: { y: 270.5, groesse: 7, zeile: 3, maxZeilen: 4 },
+  fussY: 285, fussGroesse: 7,
+};
+const CTA = {
+  scan: "Ihre persönliche Seite: mit der Handykamera scannen oder die Adresse eintippen. Dort finden Sie die Demo und den Demo-Zugang.",
+  anrufen: "Oder anrufen:",
+  teaser: "Rückseite: So kann Ihre Website aussehen »",
 };
 const A4_H = PageSizes.A4[1];
 
-// Rueckseite (farbig, beidseitig gedruckt): Screenshots der eigenen
-// Autohaus-Demo – nie Inhalte des angeschriebenen Betriebs (§ 16 UrhG).
-// Aufgeteilt in die drei Falzfelder (0–105, 105–210, 210–297 mm), damit
-// kein Bild ueber einen Knick laeuft. PDF und Vorschau lesen dieselben Werte.
+// Rueckseite (farbig, beidseitig gedruckt): ein Bild je Falzfeld, nichts
+// ueber 105/210 mm. Screenshots der eigenen Autohaus-Demo – nie Inhalte des
+// angeschriebenen Betriebs (§ 16 UrhG). Fuer den Druck aufgehellte Fassungen
+// (druck-*.jpg), weil die dunkle Demo im Laserdruck sonst zulaeuft.
+// Tupel: [x, y oben, Breite, Hoehe, Radius] in mm.
 const RUECK = {
-  eyebrow: "SO KANN ES AUSSEHEN",
-  titel: ["So kann Ihre neue", "Website aussehen"],
-  text: "Beispiel aus meiner Demo „Autohaus Mustermann“ – zum Anschauen und Ausprobieren.",
-  punkte: ["Fahrzeuge direkt aus dem mobile.de-Bestand", "Finanzierungsrechner und WhatsApp-Kontakt", "Schnell und gut lesbar auf dem Handy"],
-  demoTitel: "Demo selbst ansehen",
-  demoText: (link: string) => `QR-Code scannen oder ${link.replace(/^https?:\/\//, "")} öffnen. Dort können Sie sich einen Demo-Zugang schicken lassen.`,
-  hinweis: "Abbildungen: Demo-Website „Autohaus Mustermann“ mit Beispieldaten.",
-  bilder: { desktop: "/leistungen/web-fahrzeuge.jpg", handy1: "/leistungen/handy-start.jpg", handy2: "/leistungen/handy-finanzierung.jpg", handyDuo: "/leistungen/handy-fahrzeuge.jpg" },
-  // Positionen in mm (x, y oben, Breite, Hoehe)
-  handy1: [127, 23, 28, 60.7], handy2: [160, 23, 28, 60.7],
-  // Feld 2 als Duo: Desktop rechts hinten, dieselbe Seite als Handy links davor.
-  browser: [48, 111, 140, 6], // x, y, Breite, Leistenhoehe – Bild 140 × 87,5 darunter
-  handyDuo: [28, 127, 34, 73.7],
-  qr: [91, 214, 28], // mittig: (210 − 28) / 2; Titel und Text zentriert darunter
+  titel: ["So kann Ihre", "Website aussehen"], titelY: [20, 28.5], titelGroesse: 20,
+  text: "Meine Demo für das fiktive Autohaus Mustermann: Fahrzeuge mit Preisen, Finanzierungsrechner, Kontakt per WhatsApp – zum Anschauen und Ausprobieren.",
+  textY: 38, textBreite: 100, textGroesse: 10, textZeile: 4.8,
+  checksY: [60, 68, 76],
+  sockel: [136, 12, 54, 86, 6] as const,
+  handy: { rahmen: [144.4, 16.4, 37.2, 76.9, 4.2] as const, ring: [145.6, 17.6, 34.8, 74.5, 3.2] as const, bild: [146, 18, 34, 73.7] as const },
+  fenster: [34.8, 110, 140.4, 93.95, 3] as const, leiste: 6.5, punkte: [39, 42.4, 45.8], punktY: 113.25,
+  pille: [62, 111.05, 86, 4.4, 2.2] as const, pilleText: "Demo · Autohaus Mustermann · Beispieldaten", pilleGroesse: 7.5,
+  desktop: [36, 116.5, 138, 86.25] as const,
+  panel: [20, 216, 170, 52, 3] as const, qrBox: [25, 224, 36, 36, 1.5] as const, qr: [29, 228, 28] as const,
+  titel3: "Demo ansehen – so geht es", titel3Y: 222, schrittX: 66, textX: 72, schrittY: [229.5, 241.5, 248], linkY: 234.5,
+  schritte: ["QR-Code scannen oder Adresse eingeben:", "Demo-Zugang per E-Mail anfordern – ohne Konto, ohne Newsletter.", "Anrufen:"],
+  rueckruf: "Wenn ich nicht abhebe, rufe ich bis zum nächsten Werktag zurück – danach ein schriftliches Angebot, unverbindlich.",
+  rueckrufY: 253, rueckrufZeile: 4.5, rueckrufBreite: 114,
+  nameY: 263.5, nameZusatz: "Webentwickler, Würzburg",
+  hinweis: "Abbildungen: eigene Demo für das fiktive Autohaus Mustermann mit Beispieldaten – keine Aufnahmen Ihres Betriebs.", hinweisY: 272,
+  bilder: { handy: "/leistungen/druck-handy-start.jpg", desktop: "/leistungen/druck-web-fahrzeuge.jpg" },
+  schatten: [[0.4, 0.6], [0.8, 1.2]],
 };
-const FARBE = { dunkel: rgb(0.06, 0.09, 0.16), text: rgb(0.2, 0.25, 0.33), akzent: rgb(0x12 / 255, 0x55 / 255, 0x7f / 255), rahmen: rgb(0.12, 0.16, 0.23) };
-// Abgerundetes Rechteck als SVG-Pfad (Punkte, y nach unten) fuer drawSvgPath.
-const rund = (w: number, h: number, r: number) =>
-  `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`;
+// Bilddateien, die nur dann aufs Blatt kommen, wenn es sie gibt.
+const DATEI = { portraet: "/brief/portrait.png", unterschrift: "/brief/unterschrift.png" };
+
+// Farben – dieselben Hex-Werte wie in post.css.
+const hex = (h: string) => rgb(parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255);
+const FARBE = {
+  akzent: hex("#12557F"), dunkel: hex("#0F172A"), text: hex("#111111"), sekundaer: hex("#334155"), klein: hex("#555555"),
+  grau2: hex("#64748B"), toenung: hex("#E8F0F6"), gruen: hex("#2F9E5F"), rahmen: hex("#1E293B"), ring: hex("#64748B"),
+  chrom: hex("#E2E8F0"), chromRand: hex("#CBD5E1"), punkte: hex("#94A3B8"), weiss: rgb(1, 1, 1), schwarz: rgb(0, 0, 0),
+};
+// Abgerundetes Rechteck als SVG-Pfad (Punkte, y nach unten) fuer drawSvgPath;
+// nurRechts laesst die linken Ecken eckig (Innenflaeche des Befund-Kastens).
+const rund = (w: number, h: number, r: number, nurRechts = false) => (nurRechts
+  ? `M 0 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H 0 Z`
+  : `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`);
+// Weisses Haekchen im gruenen Kreis (3,6 mm) – als Pfad, „✓“ fehlt im Schriftschnitt.
+const HAKEN = "M 1.05 1.85 L 1.6 2.4 L 2.65 1.25";
 const bildDaten: Record<string, Promise<ArrayBuffer>> = {};
 const bildLaden = (url: string) => {
   if (!bildDaten[url]) {
@@ -122,7 +170,29 @@ const bildLaden = (url: string) => {
   }
   return bildDaten[url];
 };
+// Optionale PNGs: null, wenn es die Datei nicht gibt. Der Typ wird geprueft,
+// weil ein Hosting-Fallback fuer unbekannte Pfade auch mit 200 antworten kann.
+const pngDaten: Record<string, Promise<ArrayBuffer | null>> = {};
+const pngLaden = (url: string) => {
+  if (!pngDaten[url]) {
+    pngDaten[url] = fetch(url)
+      .then(r => (r.ok && (r.headers.get("content-type") || "").startsWith("image/png") ? r.arrayBuffer() : null))
+      .catch(() => null);
+  }
+  return pngDaten[url];
+};
+function usePngVorhanden(url: string) {
+  const [da, setDa] = useState(false);
+  useEffect(() => {
+    let weg = false;
+    pngLaden(url).then(b => { if (!weg) setDa(!!b); });
+    return () => { weg = true; };
+  }, [url]);
+  return da;
+}
 const mm = (v: number) => (v * 72) / 25.4;
+const linkKurz = (link: string) => link.replace(/^https?:\/\//, "");
+const glatt = (s: string) => s.replace(/\s+/g, " ").trim();
 
 // Zwei statische Schnitte von Inter als TTF (aus public/fonts/inter-latin.woff2
 // mit fontTools herausgerechnet): WOFF2 liesse sich nicht als FontFile2
@@ -142,202 +212,254 @@ function fontLaden(schnitt: keyof typeof FONT_DATEIEN) {
   return fontDaten[schnitt] as Promise<ArrayBuffer>;
 }
 
-type PdfDaten = { text: string; empfaenger: string; absender: Absender; link: string; datum: string };
+type PdfDaten = {
+  text: string; empfaenger: string; absender: Absender; link: string; datum: string;
+  befunde: Befund[]; geprueftAm?: string | null; googleStand?: string | null;
+};
 
-async function pdfErzeugen(d: PdfDaten): Promise<Uint8Array> {
+// Liefert das PDF (immer zwei Seiten) und den Ueberlauf in mm: laeuft der
+// Textfluss ueber die Grenze oder der Hinweis ueber vier Zeilen, wird nichts
+// abgeschnitten, sondern der Aufrufer bricht ab.
+async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf: number }> {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   // LetterXpress verlangt eingebettete Schriften – pdf-lib bettet die TTF
   // als Untermenge der benutzten Zeichen ein.
-  const [regular, semibold] = await Promise.all([fontLaden("regular"), fontLaden("semibold")]);
+  const [regular, semibold, portraetPng, unterschriftPng, handyJpg, deskJpg] = await Promise.all([
+    fontLaden("regular"), fontLaden("semibold"), pngLaden(DATEI.portraet), pngLaden(DATEI.unterschrift),
+    bildLaden(RUECK.bilder.handy), bildLaden(RUECK.bilder.desktop),
+  ]);
   const font = await pdf.embedFont(regular, { subset: true });
   const fett = await pdf.embedFont(semibold, { subset: true });
+  const bPortraet = portraetPng ? await pdf.embedPng(portraetPng).catch(() => null) : null;
+  const bUnterschrift = unterschriftPng ? await pdf.embedPng(unterschriftPng).catch(() => null) : null;
+  const [bHandy, bDesk] = await Promise.all([pdf.embedJpg(handyJpg), pdf.embedJpg(deskJpg)]);
   pdf.setTitle("Brief");
   pdf.setAuthor(d.absender.name);
   pdf.setLanguage("de-DE");
 
   const zeichenSatz = new Set(font.getCharacterSet());
   const sauber = (s: string) => Array.from(s).map(c => (zeichenSatz.has(c.codePointAt(0) ?? -1) ? c : "")).join("");
-
   const qr = await pdf.embedPng(await QRCode.toDataURL(d.link, { margin: 0, width: 512, errorCorrectionLevel: "M" }));
-  const schwarz = rgb(0, 0, 0);
-  const grau = rgb(0.33, 0.33, 0.33);
+  const kurz = linkKurz(d.link);
+  const a = d.absender;
 
   let seite: PDFPage = pdf.addPage(PageSizes.A4);
   const basis = (yTop: number, size: number) => A4_H - mm(yTop) - size * 0.78;
-  const text = (t: string, xMm: number, yTop: number, size: number, f: PDFFont = font, farbe = schwarz) =>
+  const breiteVon = (t: string, size: number, f: PDFFont = font) => f.widthOfTextAtSize(sauber(t), size);
+  const text = (t: string, xMm: number, yTop: number, size: number, f: PDFFont = font, farbe = FARBE.text) =>
     seite.drawText(sauber(t), { x: mm(xMm), y: basis(yTop, size), size, font: f, color: farbe });
-  const breiteVon = (t: string, size: number) => font.widthOfTextAtSize(sauber(t), size);
-
-  const umbrechen = (t: string, size: number, breite: number) => {
+  const textPt = (t: string, xPt: number, yTop: number, size: number, f: PDFFont = font, farbe = FARBE.text) =>
+    seite.drawText(sauber(t), { x: xPt, y: basis(yTop, size), size, font: f, color: farbe });
+  const rechts = (t: string, yTop: number, size: number, f: PDFFont = font, farbe = FARBE.text) =>
+    textPt(t, mm(210 - LAYOUT.textRechts) - breiteVon(t, size, f), yTop, size, f, farbe);
+  const mitte = (t: string, xMitteMm: number, yTop: number, size: number, f: PDFFont = font, farbe = FARBE.text) =>
+    textPt(t, mm(xMitteMm) - breiteVon(t, size, f) / 2, yTop, size, f, farbe);
+  const form = (x: number, yTop: number, w: number, h: number, r: number,
+                o: { color?: ReturnType<typeof rgb>; rand?: ReturnType<typeof rgb>; randBreite?: number; opacity?: number; nurRechts?: boolean }) =>
+    seite.drawSvgPath(rund(mm(w), mm(h), mm(r), o.nurRechts), {
+      x: mm(x), y: A4_H - mm(yTop), color: o.color, borderColor: o.rand, borderWidth: o.randBreite != null ? mm(o.randBreite) : undefined, opacity: o.opacity,
+    });
+  const bild = (b: typeof bHandy, x: number, yTop: number, w: number, h: number) =>
+    seite.drawImage(b, { x: mm(x), y: A4_H - mm(yTop + h), width: mm(w), height: mm(h) });
+  // Zeilenumbruch mit der Schrift, in der gesetzt wird; die erste Zeile darf
+  // schmaler sein (PS: mit fettem Vorsatz).
+  const umbrechen = (t: string, size: number, breite: number, f: PDFFont = font, ersteBreite = breite) => {
     const zeilen: string[] = [];
     let z = "";
     for (const w of t.split(/\s+/).filter(Boolean)) {
       const probe = z ? `${z} ${w}` : w;
-      if (!z || breiteVon(probe, size) <= breite) z = probe;
+      if (!z || breiteVon(probe, size, f) <= (zeilen.length ? breite : ersteBreite)) z = probe;
       else { zeilen.push(z); z = w; }
     }
     if (z) zeilen.push(z);
     return zeilen;
   };
-
-  const rahmen = () => {
-    for (const y of LAYOUT.falz) {
-      seite.drawLine({ start: { x: mm(3), y: A4_H - mm(y) }, end: { x: mm(8), y: A4_H - mm(y) }, thickness: 0.4, color: grau });
-    }
-    const a = d.absender;
-    const fuss = [a.name, a.strasse, a.plz_ort, a.telefon, a.email, a.web].filter(Boolean).join(" · ");
-    text(fuss, LAYOUT.textX, LAYOUT.fussY, 7.5, font, grau);
+  const schatten = (x: number, yTop: number, w: number, h: number, r: number) => {
+    for (const [dx, dy] of RUECK.schatten) form(x + dx, yTop + dy, w, h, r, { color: FARBE.schwarz, opacity: 0.1 });
   };
-  rahmen();
 
-  // Logo oben links. drawSvgPath liest SVG-Koordinaten (y nach unten) ab
-  // der oberen linken Ecke.
+  // ---- Vorderseite: Kopf
   {
     const skala = mm(LAYOUT.logoH) / LOGO_HOCH;
-    const farbe = rgb(0x12 / 255, 0x55 / 255, 0x7f / 255);
-    for (const pfad of LOGO_PFADE) {
-      seite.drawSvgPath(pfad, { x: mm(LAYOUT.logoX) - LOGO_X0 * skala, y: A4_H - mm(LAYOUT.logoY), scale: skala, color: farbe });
-    }
+    for (const pfad of LOGO_PFADE) seite.drawSvgPath(pfad, { x: mm(LAYOUT.logoX) - LOGO_X0 * skala, y: A4_H - mm(LAYOUT.logoY), scale: skala, color: FARBE.akzent });
   }
-
-  // Absender oben rechts, rechtsbuendig an der Textkante – ausserhalb des
-  // Anschriftenfelds.
+  // Rechts oben Gesicht und Visitenkarte: Name, Zusatz, Telefon, E-Mail, Web –
+  // Strasse und PLZ stehen in der Ruecksendezeile und im Fuss.
+  if (bPortraet) bild(bPortraet, LAYOUT.portraet.x, LAYOUT.portraet.y, LAYOUT.portraet.groesse, LAYOUT.portraet.groesse);
   {
-    const a = d.absender;
-    const rechts = mm(210 - LAYOUT.textRechts);
-    const zeile = (t: string, yTop: number, size: number, f: PDFFont, farbe = schwarz) =>
-      seite.drawText(sauber(t), { x: rechts - f.widthOfTextAtSize(sauber(t), size), y: basis(yTop, size), size, font: f, color: farbe });
-    let y = LAYOUT.absenderY;
-    zeile(a.name, y, 10, fett); y += 5;
-    for (const z of [a.zusatz, a.strasse, a.plz_ort, a.telefon, a.email, a.web].filter(Boolean)) {
-      zeile(z, y, 8.5, font, rgb(0.13, 0.13, 0.13)); y += 4;
-    }
+    let y = bPortraet ? LAYOUT.absenderYMitPortraet : LAYOUT.absenderY;
+    rechts(a.name, y, 10, fett, FARBE.schwarz); y += 5;
+    for (const z of [a.zusatz, a.telefon, a.email, a.web].filter(Boolean)) { rechts(z, y, 8.5, font, rgb(0.13, 0.13, 0.13)); y += 4; }
   }
-
+  for (const y of LAYOUT.falz) {
+    seite.drawLine({ start: { x: mm(LAYOUT.falzX[0]), y: A4_H - mm(y) }, end: { x: mm(LAYOUT.falzX[1]), y: A4_H - mm(y) }, thickness: 0.4, color: FARBE.klein });
+  }
   // Anschriftenfeld: nur Ruecksendezeile und Empfaenger.
   {
-    const a = d.absender;
     text([a.name, a.strasse, a.plz_ort].filter(Boolean).join(" · "), LAYOUT.fensterX + 2, LAYOUT.fensterY + 1.5, 7, font, rgb(0.2, 0.2, 0.2));
     let y = LAYOUT.fensterY + 8;
-    for (const z of d.empfaenger.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 6)) {
-      text(z, LAYOUT.fensterX + 2, y, 11); y += 4.6;
-    }
+    for (const z of d.empfaenger.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 6)) { text(z, LAYOUT.fensterX + 2, y, 11, font, FARBE.schwarz); y += 4.6; }
   }
+  rechts(`${a.plz_ort.replace(/^\d{5}\s+/, "")}, ${d.datum}`, LAYOUT.datumY, 10, font, FARBE.schwarz);
+  seite.drawRectangle({ x: mm(LAYOUT.textX), y: A4_H - mm(LAYOUT.strich.y + LAYOUT.strich.h), width: mm(LAYOUT.strich.b), height: mm(LAYOUT.strich.h), color: FARBE.akzent });
 
-  // Datum rechtsbuendig
-  {
-    const t = `${d.absender.plz_ort.replace(/^\d{5}\s+/, "")}, ${d.datum}`;
-    seite.drawText(sauber(t), { x: mm(210 - LAYOUT.textRechts) - breiteVon(t, 10), y: basis(LAYOUT.datumY, 10), size: 10, font, color: schwarz });
-  }
-
-  // Betreff und Absaetze
+  // ---- Vorderseite: Textfluss
   const { betreff, absaetze } = briefAufbauen(d.text) as { betreff: string; absaetze: { art: string; zeilen: string[] }[] };
   const breite = mm(210 - LAYOUT.textX - LAYOUT.textRechts);
+  // Alte Briefe tragen den Link im Text: dann QR neben dem Absatz, kein fester Block.
+  const alt = absaetze.some(x => x.art === "text" && x.zeilen.some(z => z.includes(d.link)));
+  const G = LAYOUT.groesse, Z = LAYOUT.zeile;
   let y = LAYOUT.textY;
-  const neueSeiteWennNoetig = (bedarf: number) => {
-    if (y + bedarf > LAYOUT.seitenEnde) {
-      seite = pdf.addPage(PageSizes.A4);
-      rahmen();
-      y = 25;
-    }
-  };
-  if (betreff) { text(betreff, LAYOUT.textX, y, 11, fett); y += LAYOUT.zeile * 2; }
+  if (betreff) {
+    for (const l of umbrechen(betreff, LAYOUT.betreff.groesse, breite, fett)) { text(l, LAYOUT.textX, y, LAYOUT.betreff.groesse, fett, FARBE.dunkel); y += LAYOUT.betreff.zeile; }
+    y += LAYOUT.betreff.abstand;
+  }
+  const befundVon = (satz: string) => d.befunde.find(b => glatt(b.text) === glatt(satz));
+  const hinweise: string[] = [];
+  let namensblock = false;
 
-  let hinweisBegonnen = false;
-  for (const abs of absaetze) {
-    if (abs.art === "hinweis") {
-      if (!hinweisBegonnen) { y += 2; hinweisBegonnen = true; }
-      for (const z of abs.zeilen) {
-        for (const l of umbrechen(z, 7.5, breite)) { neueSeiteWennNoetig(LAYOUT.hinweisZeile); text(l, LAYOUT.textX, y, 7.5, font, grau); y += LAYOUT.hinweisZeile; }
-      }
-      y += 2;
-      continue;
+  // Befund-Kasten: erst messen, dann zeichnen – der Kasten wird nie geteilt.
+  const kasten = (zeilen: string[]) => {
+    const K = LAYOUT.kasten;
+    const info = zeilen.map(satz => {
+      const code = befundVon(satz)?.code;
+      const label = code ? (CHECK_LABELS as Record<string, string>)[code] : undefined;
+      return { satz, label, google: code === "google_note", zeilen: umbrechen(satz, G, mm(label ? K.satzBreite : K.ohneLabelBreite)) };
+    }).sort((p, q) => Number(p.google) - Number(q.google));
+    const h = 2 * K.pad + info.reduce((s, i) => s + i.zeilen.length * Z, 0) + (info.length - 1) * K.zwischen;
+    form(LAYOUT.textX, y, 165, h, K.radius, { color: FARBE.akzent });
+    form(LAYOUT.textX + K.kante, y, 165 - K.kante, h, K.radius, { color: FARBE.toenung, nurRechts: true });
+    let yy = y + K.pad, nr = 1;
+    for (const i of info) {
+      if (!i.google) text(String(nr++), K.ziffernX, yy, G, fett, FARBE.akzent);
+      if (i.label) text(i.label, K.labelX, yy, G, fett, i.google ? FARBE.gruen : FARBE.dunkel);
+      for (const l of i.zeilen) { text(l, i.label ? K.satzX : K.labelX, yy, G); yy += Z; }
+      yy += K.zwischen;
     }
-    if (abs.art === "liste") {
-      for (const z of abs.zeilen) {
-        const zeilen = umbrechen(z, 11, breite - mm(5));
-        neueSeiteWennNoetig(LAYOUT.zeile * Math.min(zeilen.length, 2));
-        text("–", LAYOUT.textX, y, 11);
-        for (const l of zeilen) { neueSeiteWennNoetig(LAYOUT.zeile); text(l, LAYOUT.textX + 5, y, 11); y += LAYOUT.zeile; }
-      }
+    y += h;
+    const q = quellenZeile(d.befunde, d.geprueftAm, d.googleStand) as string | null;
+    if (q) {
+      y += LAYOUT.quelle.abstand;
+      for (const l of umbrechen(q, LAYOUT.quelle.groesse, breite).slice(0, LAYOUT.quelle.maxZeilen)) { text(l, LAYOUT.textX, y, LAYOUT.quelle.groesse, font, FARBE.grau2); y += LAYOUT.quelle.zeile; }
+    }
+    y += LAYOUT.absatz;
+  };
+
+  for (const abs of absaetze) {
+    if (abs.art === "hinweis") { hinweise.push(...abs.zeilen); continue; }
+    if (abs.art === "liste") { kasten(abs.zeilen); continue; }
+    if (abs.art === "ps") {
+      const vorsatz = "PS: ";
+      const vb = breiteVon(vorsatz, G, fett);
+      text("PS:", LAYOUT.textX, y, G, fett);
+      umbrechen(abs.zeilen.join(" ").replace(/^PS:\s*/, ""), G, breite, font, breite - vb)
+        .forEach((l, i) => { textPt(l, mm(LAYOUT.textX) + (i === 0 ? vb : 0), y, G); y += Z; });
       y += LAYOUT.absatz;
       continue;
     }
-    // Textabsatz – der mit dem Link bekommt rechts den QR-Code.
-    const mitQr = abs.zeilen.some(z => z.includes(d.link));
-    const b = mitQr ? breite - mm(LAYOUT.qr + 6) : breite;
-    const zeilen = abs.zeilen.flatMap(z => umbrechen(z, 11, b));
-    neueSeiteWennNoetig(mitQr ? LAYOUT.qr + 3 : LAYOUT.zeile * Math.min(zeilen.length, 2));
-    const oben = y;
-    if (mitQr) {
-      seite.drawImage(qr, { x: mm(210 - LAYOUT.textRechts - LAYOUT.qr), y: A4_H - mm(oben + LAYOUT.qr), width: mm(LAYOUT.qr), height: mm(LAYOUT.qr) });
+    if (namensblock) {
+      // Der Absatz nach dem Gruss: Name normal, weitere Zeilen klein und grau.
+      namensblock = false;
+      abs.zeilen.forEach((l, i) => {
+        if (i === 0) { text(l, LAYOUT.textX, y, G); y += Z; }
+        else { text(l, LAYOUT.textX, y, LAYOUT.zusatz.groesse, font, FARBE.grau2); y += LAYOUT.zusatz.zeile; }
+      });
+      y += LAYOUT.absatz;
+      continue;
     }
-    for (const l of zeilen) { neueSeiteWennNoetig(LAYOUT.zeile); text(l, LAYOUT.textX, y, 11); y += LAYOUT.zeile; }
-    if (mitQr) y = Math.max(y, oben + LAYOUT.qr + 3);
+    const mitQr = alt && abs.zeilen.some(z => z.includes(d.link));
+    const b = mitQr ? breite - mm(LAYOUT.qrAlt + 6) : breite;
+    const zeilen = abs.zeilen.flatMap(z => umbrechen(z, G, b));
+    const oben = y;
+    if (mitQr) seite.drawImage(qr, { x: mm(210 - LAYOUT.textRechts - LAYOUT.qrAlt), y: A4_H - mm(oben + LAYOUT.qrAlt), width: mm(LAYOUT.qrAlt), height: mm(LAYOUT.qrAlt) });
+    for (const l of zeilen) { text(l, LAYOUT.textX, y, G); y += Z; }
+    if (mitQr) y = Math.max(y, oben + LAYOUT.qrAlt + 3);
+    if (/^Mit freundlichen Grüßen/.test(abs.zeilen[0] || "")) {
+      namensblock = true;
+      if (bUnterschrift) {
+        const U = LAYOUT.unterschrift;
+        bild(bUnterschrift, LAYOUT.textX, y + U.versatz, U.breite, U.hoehe);
+        y += U.raum;
+      }
+    }
     y += LAYOUT.absatz;
   }
+  let ueberlauf = Math.max(0, y - LAYOUT.absatz - (alt ? LAYOUT.textEndeAlt : LAYOUT.textEnde));
+
+  // Fester Handlungsblock im dritten Falzfeld – der einzige Rahmen der Seite.
+  if (!alt) {
+    const C = LAYOUT.cta;
+    form(LAYOUT.textX, C.y, 165, C.hoehe, C.radius, { rand: FARBE.akzent, randBreite: C.linie });
+    seite.drawImage(qr, { x: mm(C.qrX), y: A4_H - mm(C.qrY + C.qr), width: mm(C.qr), height: mm(C.qr) });
+    text(kurz, C.textX, C.linkY, 12.5, fett, FARBE.dunkel);
+    let yy = C.scanY;
+    for (const l of umbrechen(CTA.scan, 9, mm(C.textBreite)).slice(0, 2)) { text(l, C.textX, yy, 9, font, FARBE.sekundaer); yy += C.scanZeile; }
+    text(`${CTA.anrufen} ${a.telefon}`, C.textX, C.anrufY, 10, fett, FARBE.dunkel);
+  }
+  // Hinweis fest unten, hoechstens vier Zeilen – mehr zaehlt als Ueberlauf.
+  {
+    const H = LAYOUT.hinweis;
+    const zeilen = hinweise.flatMap(z => umbrechen(z, H.groesse, breite));
+    if (zeilen.length > H.maxZeilen) ueberlauf += (zeilen.length - H.maxZeilen) * H.zeile;
+    let yy = H.y;
+    for (const l of zeilen.slice(0, H.maxZeilen)) { text(l, LAYOUT.textX, yy, H.groesse, font, FARBE.klein); yy += H.zeile; }
+  }
+  text([a.name, a.strasse, a.plz_ort, a.web].filter(Boolean).join(" · "), LAYOUT.textX, LAYOUT.fussY, LAYOUT.fussGroesse, font, FARBE.klein);
+  rechts(CTA.teaser, LAYOUT.fussY, LAYOUT.fussGroesse, fett, FARBE.akzent);
 
   // ---- Rueckseite
+  seite = pdf.addPage(PageSizes.A4);
   {
-    const [desk, h1, h2, h3] = await Promise.all([RUECK.bilder.desktop, RUECK.bilder.handy1, RUECK.bilder.handy2, RUECK.bilder.handyDuo].map(bildLaden));
-    const [bDesk, bH1, bH2, bH3] = await Promise.all([desk, h1, h2, h3].map(b => pdf.embedJpg(b)));
-    seite = pdf.addPage(PageSizes.A4);
-    const bild = (b: typeof bDesk, x: number, yTop: number, w: number, h: number) =>
-      seite.drawImage(b, { x: mm(x), y: A4_H - mm(yTop + h), width: mm(w), height: mm(h) });
-    const form = (x: number, yTop: number, w: number, h: number, r: number, color: ReturnType<typeof rgb>, opacity = 1) =>
-      seite.drawSvgPath(rund(mm(w), mm(h), mm(r)), { x: mm(x), y: A4_H - mm(yTop), color, opacity });
+    // Feld 1: Titel, Text, drei Haken links – ein grosses Handy auf hellem Sockel rechts.
+    const R = RUECK;
+    RUECK.titel.forEach((z, i) => text(z, LAYOUT.textX, R.titelY[i], R.titelGroesse, fett, FARBE.dunkel));
+    let yy = R.textY;
+    for (const l of umbrechen(R.text, R.textGroesse, mm(R.textBreite))) { text(l, LAYOUT.textX, yy, R.textGroesse, font, FARBE.sekundaer); yy += R.textZeile; }
+    (rueckChecks(d.befunde) as { label: string; text: string }[]).forEach((c, i) => {
+      const cy = R.checksY[i];
+      seite.drawCircle({ x: mm(26.8), y: A4_H - mm(cy + 1.8), size: mm(1.8), color: FARBE.gruen });
+      seite.drawSvgPath(HAKEN, { x: mm(25), y: A4_H - mm(cy), scale: mm(1), borderColor: FARBE.weiss, borderWidth: 0.4, borderLineCap: LineCapStyle.Round });
+      text(c.label, 31.5, cy, 10, fett, FARBE.dunkel);
+      textPt(` – ${c.text}`, mm(31.5) + breiteVon(c.label, 10, fett), cy, 10, font, FARBE.sekundaer);
+    });
+    form(...R.sockel, { color: FARBE.toenung });
+    const [hx, hy, hw, hh, hr] = R.handy.rahmen;
+    schatten(hx, hy, hw, hh, hr);
+    form(hx, hy, hw, hh, hr, { color: FARBE.rahmen });
+    form(...R.handy.ring, { color: FARBE.ring });
+    bild(bHandy, ...R.handy.bild);
 
-    // Feld 1: Text links, zwei Handys rechts
-    text(RUECK.eyebrow, LAYOUT.textX, 22, 8, fett, FARBE.akzent);
-    RUECK.titel.forEach((z, i) => text(z, LAYOUT.textX, 28 + i * 8, 18, fett, FARBE.dunkel));
-    let yy = 49;
-    for (const l of umbrechen(RUECK.text, 10, mm(92))) { text(l, LAYOUT.textX, yy, 10, font, FARBE.text); yy += 4.8; }
-    yy += 3;
-    for (const pkt of RUECK.punkte) {
-      form(LAYOUT.textX, yy + 0.9, 2, 2, 1, FARBE.akzent);
-      for (const l of umbrechen(pkt, 10, mm(86))) { text(l, LAYOUT.textX + 5, yy, 10, font, FARBE.dunkel); yy += 4.8; }
-      yy += 1.6;
-    }
-    for (const [b, pos] of [[bH1, RUECK.handy1], [bH2, RUECK.handy2]] as const) {
-      const [x, y, w, h] = pos;
-      form(x - 1.2, y - 1.2, w + 2.4, h + 2.4, 4, FARBE.rahmen);
-      bild(b, x, y, w, h);
-    }
+    // Feld 2: die Fahrzeugliste gross im hellen Browserfenster.
+    const [fx, fy, fw, fh, fr] = R.fenster;
+    schatten(fx, fy, fw, fh, fr);
+    form(fx, fy, fw, fh, fr, { color: FARBE.chrom, rand: FARBE.chromRand, randBreite: 0.3 });
+    for (const px of R.punkte) seite.drawCircle({ x: mm(px), y: A4_H - mm(R.punktY), size: mm(0.9), color: FARBE.punkte });
+    form(...R.pille, { color: FARBE.weiss, rand: FARBE.chromRand, randBreite: 0.25 });
+    mitte(R.pilleText, R.pille[0] + R.pille[2] / 2, R.pille[1] + 0.95, R.pilleGroesse, fett, FARBE.sekundaer);
+    bild(bDesk, ...R.desktop);
 
-    // Feld 2: Desktop im Browserfenster
-    {
-      const [x, y, w, leiste] = RUECK.browser;
-      const h = w * 875 / 1400;
-      form(x - 1.2, y, w + 2.4, leiste + h + 1.2, 3, FARBE.rahmen);
-      [0, 1, 2].forEach(i => seite.drawCircle({ x: mm(x + 3 + i * 3.4), y: A4_H - mm(y + leiste / 2), size: mm(0.9), color: rgb(0.45, 0.5, 0.58) }));
-      bild(bDesk, x, y + leiste, w, h);
-      // Handy davor, mit weichem Schatten (zwei versetzte, halbdurchsichtige Flaechen)
-      const [hx, hy, hw, hh] = RUECK.handyDuo;
-      form(hx - 0.2, hy + 0.2, hw + 3.2, hh + 3.6, 5, rgb(0, 0, 0), 0.12);
-      form(hx - 0.6, hy - 0.2, hw + 2.8, hh + 2.8, 4.6, rgb(0, 0, 0), 0.12);
-      form(hx - 1.2, hy - 1.2, hw + 2.4, hh + 2.4, 4, FARBE.rahmen);
-      bild(bH3, hx, hy, hw, hh);
-    }
-
-    // Feld 3: QR mittig, darunter Titel und Text zentriert
-    {
-      const [x, y, g] = RUECK.qr;
-      const mitte = (t: string, yTop: number, size: number, f: PDFFont, farbe: ReturnType<typeof rgb>) =>
-        seite.drawText(sauber(t), { x: (mm(210) - f.widthOfTextAtSize(sauber(t), size)) / 2, y: basis(yTop, size), size, font: f, color: farbe });
-      seite.drawImage(qr, { x: mm(x), y: A4_H - mm(y + g), width: mm(g), height: mm(g) });
-      mitte(RUECK.demoTitel, y + g + 4, 11, fett, FARBE.dunkel);
-      let y2 = y + g + 10.5;
-      for (const l of umbrechen(RUECK.demoText(d.link), 10, mm(140))) { mitte(l, y2, 10, font, FARBE.text); y2 += 4.8; }
-      mitte(RUECK.hinweis, 270, 7.5, font, grau);
-    }
-    const a = d.absender;
-    text([a.name, a.strasse, a.plz_ort, a.telefon, a.email, a.web].filter(Boolean).join(" · "), LAYOUT.textX, LAYOUT.fussY, 7.5, font, grau);
+    // Feld 3: QR, drei Schritte, Telefon.
+    form(...R.panel, { color: FARBE.toenung });
+    form(...R.qrBox, { color: FARBE.weiss });
+    seite.drawImage(qr, { x: mm(R.qr[0]), y: A4_H - mm(R.qr[1] + R.qr[2]), width: mm(R.qr[2]), height: mm(R.qr[2]) });
+    text(R.titel3, R.schrittX, R.titel3Y, 13, fett, FARBE.dunkel);
+    R.schritte.forEach((s, i) => {
+      text(String(i + 1), R.schrittX, R.schrittY[i], 9.5, fett, FARBE.akzent);
+      if (i === 2) text(`${s} ${a.telefon}`, R.textX, R.schrittY[i], 10, fett, FARBE.dunkel);
+      else text(s, R.textX, R.schrittY[i], 9.5, font, FARBE.sekundaer);
+    });
+    text(kurz, R.textX, R.linkY, 11, fett, FARBE.akzent);
+    yy = R.rueckrufY;
+    for (const l of umbrechen(R.rueckruf, 9.5, mm(R.rueckrufBreite)).slice(0, 2)) { text(l, R.textX, yy, 9.5, font, FARBE.sekundaer); yy += R.rueckrufZeile; }
+    text(`${a.name} · ${R.nameZusatz}`, R.textX, R.nameY, 8, font, FARBE.grau2);
+    text(R.hinweis, LAYOUT.textX, R.hinweisY, 7, font, FARBE.klein);
+    text([a.name, a.strasse, a.plz_ort, a.telefon, a.email, a.web].filter(Boolean).join(" · "), LAYOUT.textX, LAYOUT.fussY, LAYOUT.fussGroesse, font, FARBE.klein);
   }
 
   // Ohne Objektstroeme: der Server zaehlt die Seiten im PDF (farbig und
-  // beidseitig nur, wenn es eine Rueckseite gibt).
-  return pdf.save({ useObjectStreams: false });
+  // beidseitig ab zwei Seiten).
+  return { bytes: await pdf.save({ useObjectStreams: false }), ueberlauf: Math.round(ueberlauf) };
 }
 
 // ------------------------------------------------------------------ Bausteine
@@ -356,12 +478,18 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`post-status ${status}`}>{STATUS_LABEL[status] || status}</span>;
 }
 
-// Das Blatt in der Vorschau – Positionen wie im PDF (post.css).
-function Blatt({ text, empfaenger, absender, link, datumText, qr }: {
+// Das Blatt in der Vorschau – dieselbe Blocklogik und dieselben Positionen
+// wie im PDF (post.css). Meldet den Ueberlauf des Textflusses in mm.
+function Blatt({ text, empfaenger, absender, link, datumText, qr, befunde, geprueftAm, googleStand, onUeberlauf }: {
   text: string; empfaenger: string; absender: Absender; link: string; datumText: string; qr: string;
+  befunde: Befund[]; geprueftAm?: string | null; googleStand?: string | null; onUeberlauf?: (mm: number) => void;
 }) {
   const huelle = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const hinweisRef = useRef<HTMLParagraphElement>(null);
   const [skala, setSkala] = useState(0.5);
+  const portraet = usePngVorhanden(DATEI.portraet);
+  const unterschrift = usePngVorhanden(DATEI.unterschrift);
   useEffect(() => {
     const el = huelle.current;
     if (!el) return;
@@ -372,7 +500,35 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr }: {
     return () => ro.disconnect();
   }, []);
   const { betreff, absaetze } = briefAufbauen(text) as { betreff: string; absaetze: { art: string; zeilen: string[] }[] };
+  const alt = absaetze.some(x => x.art === "text" && x.zeilen.some(z => z.includes(link)));
+  const hinweise = absaetze.filter(x => x.art === "hinweis").flatMap(x => x.zeilen);
+  const quelle = quellenZeile(befunde, geprueftAm, googleStand) as string | null;
   const ort = absender.plz_ort.replace(/^\d{5}\s+/, "");
+  const befundVon = (satz: string) => befunde.find(b => glatt(b.text) === glatt(satz));
+
+  // Ueberlauf wie im PDF: Ende des Textflusses gegen die Grenze, Hinweis gegen vier Zeilen.
+  const zuletzt = useRef(-1);
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el || !onUeberlauf) return;
+    const messen = () => {
+      const px = 96 / 25.4;
+      const ende = LAYOUT.textY + el.offsetHeight / px;
+      const hinweisMm = hinweisRef.current ? hinweisRef.current.offsetHeight / px : 0;
+      const wert = Math.round(Math.max(0, ende - (alt ? LAYOUT.textEndeAlt : LAYOUT.textEnde)) + Math.max(0, hinweisMm - LAYOUT.hinweis.maxZeilen * LAYOUT.hinweis.zeile));
+      if (wert !== zuletzt.current) { zuletzt.current = wert; onUeberlauf(wert); }
+    };
+    messen();
+    const ro = new ResizeObserver(messen);
+    ro.observe(el);
+    if (hinweisRef.current) ro.observe(hinweisRef.current);
+    return () => ro.disconnect();
+  }, [text, alt, onUeberlauf]);
+
+  // Der Textabsatz nach dem Gruss ist der Namensblock (Name, darunter klein der Zusatz).
+  const istGruss = (a?: { art: string; zeilen: string[] }) => !!a && a.art === "text" && /^Mit freundlichen Grüßen/.test(a.zeilen[0] || "");
+  const namensblockIdx = absaetze.findIndex((a, i) => i > 0 && a.art === "text" && istGruss(absaetze[i - 1]));
+  /* eslint-disable @next/next/no-img-element -- Daten-URL und Vorschaubilder im skalierten Blatt, next/image bringt hier nichts */
   return (
     <div ref={huelle} className="post-blatt-huelle" style={{ height: (297 * 2 + 12) * 96 / 25.4 * skala + 28 }}>
       <div className="post-blatt-skala" style={{ transform: `scale(${skala})` }}>
@@ -381,9 +537,10 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr }: {
                fill={LOGO_FARBE} aria-label="AIY Ihsan Yilmaz" role="img">
             {LOGO_PFADE.map((d, i) => <path key={i} d={d} />)}
           </svg>
-          <div className="post-b-absender">
+          {portraet && <img className="post-b-portraet" src={DATEI.portraet} alt="" />}
+          <div className={`post-b-absender${portraet ? " mit-portraet" : ""}`}>
             <b>{absender.name}</b>
-            {[absender.zusatz, absender.strasse, absender.plz_ort, absender.telefon, absender.email, absender.web].filter(Boolean).map((z, i) => <div key={i}>{z}</div>)}
+            {[absender.zusatz, absender.telefon, absender.email, absender.web].filter(Boolean).map((z, i) => <div key={i}>{z}</div>)}
           </div>
           <div className="post-b-fenster">
             <div className="post-b-ruecksende">{[absender.name, absender.strasse, absender.plz_ort].filter(Boolean).join(" · ")}</div>
@@ -391,67 +548,111 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr }: {
           </div>
           {LAYOUT.falz.map(y => <div key={y} className="post-b-falz" style={{ top: `${y}mm` }} />)}
           <div className="post-b-datum">{ort}, {datumText}</div>
-          <div className="post-b-text">
+          <i className="post-b-strich" aria-hidden="true" />
+          <div className="post-b-text" ref={textRef}>
             {betreff && <p className="post-b-betreff">{betreff}</p>}
             {absaetze.map((a, i) => {
-              if (a.art === "liste") return <ul key={i} className="post-b-liste">{a.zeilen.map((z, j) => <li key={j}>{z}</li>)}</ul>;
-              if (a.art === "hinweis") return <p key={i} className="post-b-hinweis">{a.zeilen.join(" ")}</p>;
-              const mitQr = a.zeilen.some(z => z.includes(link));
+              if (a.art === "hinweis") return null;
+              if (a.art === "liste") {
+                let nr = 0;
+                const zeilen = a.zeilen.map(satz => { const code = befundVon(satz)?.code; return { satz, label: code ? (CHECK_LABELS as Record<string, string>)[code] : undefined, google: code === "google_note" }; })
+                  .sort((p, q) => Number(p.google) - Number(q.google));
+                return (
+                  <div key={i}>
+                    <div className="post-b-kasten">
+                      <i className="kante" aria-hidden="true" />
+                      {zeilen.map((z, j) => (
+                        <React.Fragment key={j}>
+                          <span className="ziffer">{z.google ? "" : ++nr}</span>
+                          {z.label ? <span className={`label${z.google ? " gruen" : ""}`}>{z.label}</span> : null}
+                          <span className={`satz${z.label ? "" : " breit"}`}>{z.satz}</span>
+                        </React.Fragment>
+                      ))}
+                    </div>
+                    {quelle && <p className="post-b-quelle">{quelle}</p>}
+                  </div>
+                );
+              }
+              if (a.art === "ps") return <p key={i} className="post-b-ps"><b>PS:</b> {a.zeilen.join(" ").replace(/^PS:\s*/, "")}</p>;
+              if (i === namensblockIdx) {
+                return <p key={i} className="post-b-name">{a.zeilen[0]}{a.zeilen.slice(1).map((z, j) => <span key={j} className="post-b-zusatz">{z}</span>)}</p>;
+              }
+              const gruss = istGruss(a);
+              const mitQr = alt && a.zeilen.some(z => z.includes(link));
               return (
-                <p key={i} className={`post-b-absatz${mitQr ? " mit-qr" : ""}`} style={{ position: "relative" }}>
-                  {a.zeilen.join(" ")}
-                  {/* Daten-URL im skalierten Blatt – next/image bringt hier nichts */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {mitQr && qr && <span className="post-b-qr" style={{ top: 0 }}><img src={qr} alt="QR-Code zum Link" /></span>}
-                </p>
+                <React.Fragment key={i}>
+                  <p className={`post-b-absatz${mitQr ? " mit-qr" : ""}`}>
+                    {a.zeilen.join(" ")}
+                    {mitQr && qr && <span className="post-b-qr"><img src={qr} alt="QR-Code zum Link" /></span>}
+                  </p>
+                  {gruss && unterschrift && <div className="post-b-unterschrift"><img src={DATEI.unterschrift} alt="Unterschrift" /></div>}
+                </React.Fragment>
               );
             })}
           </div>
-          <div className="post-b-fuss">{[absender.name, absender.strasse, absender.plz_ort, absender.telefon, absender.email, absender.web].filter(Boolean).join(" · ")}</div>
+          {!alt && (
+            <div className="post-b-cta">
+              {qr && <img className="qr" src={qr} alt="QR-Code zum Link" />}
+              <div className="text">
+                <b className="link">{linkKurz(link)}</b>
+                <p className="scan">{CTA.scan}</p>
+                <b className="anruf">{CTA.anrufen} {absender.telefon}</b>
+              </div>
+            </div>
+          )}
+          {hinweise.length > 0 && <p className="post-b-hinweis" ref={hinweisRef}>{hinweise.join(" ")}</p>}
+          <div className="post-b-fuss">
+            <span>{[absender.name, absender.strasse, absender.plz_ort, absender.web].filter(Boolean).join(" · ")}</span>
+            <span className="post-b-teaser">{CTA.teaser}</span>
+          </div>
         </div>
-        <Rueckseite link={link} qr={qr} fuss={[absender.name, absender.strasse, absender.plz_ort, absender.telefon, absender.email, absender.web].filter(Boolean).join(" · ")} />
+        <Rueckseite link={link} qr={qr} absender={absender} befunde={befunde} />
       </div>
     </div>
   );
+  /* eslint-enable @next/next/no-img-element */
 }
 
 // Rueckseite in der Vorschau – Positionen wie im PDF (RUECK).
-function Rueckseite({ link, qr, fuss }: { link: string; qr: string; fuss: string }) {
-  const pos = (x: number, y: number, w: number, h?: number): React.CSSProperties =>
-    ({ left: `${x}mm`, top: `${y}mm`, width: `${w}mm`, ...(h != null ? { height: `${h}mm` } : {}) });
-  const [bx, by, bw, bl] = RUECK.browser;
-  const [dx, dy, dw, dh] = RUECK.handyDuo;
-  const [qx, qy, qg] = RUECK.qr;
-  /* eslint-disable @next/next/no-img-element -- Bilder im skalierten Blatt, next/image bringt hier nichts */
+function Rueckseite({ link, qr, absender, befunde }: { link: string; qr: string; absender: Absender; befunde: Befund[] }) {
+  const pos = (t: readonly number[]): React.CSSProperties => ({ left: `${t[0]}mm`, top: `${t[1]}mm`, width: `${t[2]}mm`, height: `${t[3]}mm` });
+  const checks = rueckChecks(befunde) as { label: string; text: string }[];
+  const R = RUECK;
+  /* eslint-disable @next/next/no-img-element -- Vorschaubilder im skalierten Blatt */
   return (
     <>
       <p className="post-b-seitenmarke">Rückseite · farbig</p>
       <div className="post-blatt post-rueck" aria-label="Vorschau der Rückseite">
-        <div className="post-r-text">
-          <p className="post-r-eyebrow">{RUECK.eyebrow}</p>
-          <p className="post-r-titel">{RUECK.titel.join(" ")}</p>
-          <p className="post-r-absatz">{RUECK.text}</p>
-          <ul className="post-r-punkte">{RUECK.punkte.map(p => <li key={p}>{p}</li>)}</ul>
+        <p className="post-r-titel">{R.titel[0]}<br />{R.titel[1]}</p>
+        <p className="post-r-absatz">{R.text}</p>
+        <ul className="post-r-checks">
+          {checks.map(c => (
+            <li key={c.label}>
+              <i aria-hidden="true"><svg viewBox="0 0 3.6 3.6"><path d={HAKEN} fill="none" stroke="#fff" strokeWidth="0.4" strokeLinecap="round" strokeLinejoin="round" /></svg></i>
+              <b>{c.label}</b> – {c.text}
+            </li>
+          ))}
+        </ul>
+        <div className="post-r-sockel" style={pos(R.sockel)} />
+        <div className="post-r-handy" style={pos(R.handy.rahmen)}><img src={R.bilder.handy} alt="" /></div>
+        <div className="post-r-browser" style={pos(R.fenster)}>
+          <span className="post-r-leiste"><i /><i /><i /></span>
+          <span className="post-r-pille">{R.pilleText}</span>
+          <img src={R.bilder.desktop} alt="" />
         </div>
-        {[RUECK.handy1, RUECK.handy2].map(([x, y, w, h], i) => (
-          <div key={i} className="post-r-handy" style={pos(x - 1.2, y - 1.2, w + 2.4, h + 2.4)}>
-            <img src={i ? RUECK.bilder.handy2 : RUECK.bilder.handy1} alt="" />
-          </div>
+        <div className="post-r-panel" style={pos(R.panel)} />
+        <div className="post-r-qrbox" style={pos(R.qrBox)}>{qr && <img src={qr} alt="QR-Code zum Link" />}</div>
+        <p className="post-r-titel3">{R.titel3}</p>
+        {R.schritte.map((s, i) => (
+          <p key={s} className={`post-r-schritt${i === 2 ? " post-r-anruf" : ""}`} style={{ top: `${R.schrittY[i]}mm` }}>
+            <span className="ziffer">{i + 1}</span>{i === 2 ? `${s} ${absender.telefon}` : s}
+          </p>
         ))}
-        <div className="post-r-browser" style={pos(bx - 1.2, by, bw + 2.4, bl + bw * 875 / 1400 + 1.2)}>
-          <span className="post-r-leiste" style={{ height: `${bl}mm` }}><i /><i /><i /></span>
-          <img src={RUECK.bilder.desktop} alt="" />
-        </div>
-        <div className="post-r-handy post-r-duo" style={pos(dx - 1.2, dy - 1.2, dw + 2.4, dh + 2.4)}>
-          <img src={RUECK.bilder.handyDuo} alt="" />
-        </div>
-        {qr && <img className="post-r-qr" src={qr} alt="QR-Code zum Link" style={pos(qx, qy, qg, qg)} />}
-        <div className="post-r-demo" style={pos(35, qy + qg + 3.2, 140)}>
-          <b>{RUECK.demoTitel}</b>
-          <p>{RUECK.demoText(link)}</p>
-        </div>
-        <p className="post-r-hinweis">{RUECK.hinweis}</p>
-        <div className="post-b-fuss">{fuss}</div>
+        <b className="post-r-link">{linkKurz(link)}</b>
+        <p className="post-r-rueckruf">{R.rueckruf}</p>
+        <p className="post-r-name">{absender.name} · {R.nameZusatz}</p>
+        <p className="post-r-hinweis">{R.hinweis}</p>
+        <div className="post-b-fuss"><span>{[absender.name, absender.strasse, absender.plz_ort, absender.telefon, absender.email, absender.web].filter(Boolean).join(" · ")}</span></div>
       </div>
     </>
   );
@@ -469,7 +670,8 @@ function GrossAnsicht({ schau, qr, onZu }: { schau: Schau; qr: string; onZu: () 
     <div className="post-gross" role="dialog" aria-modal="true" aria-label="Vorschau groß" onClick={onZu}>
       <div className="post-gross-blatt" onClick={e => e.stopPropagation()}>
         <button type="button" className="post-gross-zu" onClick={onZu} aria-label="Schließen"><X size={18} /></button>
-        <Blatt text={schau.text} empfaenger={schau.empfaenger} absender={schau.absender} link={schau.link} datumText={schau.datumText} qr={qr} />
+        <Blatt text={schau.text} empfaenger={schau.empfaenger} absender={schau.absender} link={schau.link} datumText={schau.datumText} qr={qr}
+               befunde={schau.befunde} geprueftAm={schau.geprueftAm} googleStand={schau.googleStand} />
       </div>
     </div>
   );
@@ -505,6 +707,9 @@ export default function PostSeite() {
   const [vorschauId, setVorschauId] = useState<number | null>(null);
   const [gross, setGross] = useState(false);
   const [heute] = useState(() => datumDeutsch(new Date()) as string);
+  const [heuteIso] = useState(() => new Date().toISOString().slice(0, 10));
+  // Meldung der Vorschau: Textfluss laeuft ueber die Grenze (mm) – sperrt PDF und Freigabe.
+  const [ueberlauf, setUeberlauf] = useState(0);
 
   // Vorlage & Absender
   const [absenderForm, setAbsenderForm] = useState<Absender | null>(null);
@@ -585,6 +790,7 @@ export default function PostSeite() {
       return {
         chip, titel: BEISPIEL.name, absender, link: l, datumText: heute, empfaenger: empfaengerBlock(BEISPIEL) as string,
         text: briefFuellen(vorlage, { firma: BEISPIEL.name, ort: BEISPIEL.ort, befunde: BEFUNDE_BEISPIEL, link: l, absender, datum: heute }) as string,
+        befunde: BEFUNDE_BEISPIEL as Befund[], geprueftAm: heuteIso, googleStand: heuteIso,
       };
     };
     if (reiter === "vorlage" && absenderForm) return beispiel(vorlageForm, absenderForm, basisForm, "Vorlage");
@@ -593,15 +799,17 @@ export default function PostSeite() {
         chip: STATUS_LABEL[editor.brief.status] || editor.brief.status,
         titel: editor.brief.art === "test" ? "Testbrief an mich" : editor.betrieb?.name || editor.brief.betrieb_name || "",
         text, empfaenger: empf, absender: einst.absender, link, datumText: heute,
+        befunde: editor.brief.befunde, geprueftAm: editor.betrieb?.geprueft_am, googleStand: editor.betrieb?.google_stand,
       };
     }
     if (reiter === "brief" && gewaehlt) {
       const l = landingLink(einst.landing_basis, VORSCHAU_TOKEN);
-      const befunde = infoZuGewaehlt ? infoZuGewaehlt.kandidaten.filter(k => k.vorgewaehlt) : [];
+      const befunde: Befund[] = infoZuGewaehlt ? infoZuGewaehlt.kandidaten.filter(k => k.vorgewaehlt).map(k => ({ code: k.code, text: k.text })) : [];
       return {
         chip: infoZuGewaehlt ? "Noch kein Entwurf" : "Lädt …", titel: gewaehlt.name, absender: einst.absender, link: l, datumText: heute,
         empfaenger: empfaengerBlock(gewaehlt) as string,
         text: briefFuellen(einst.vorlage, { firma: gewaehlt.name, ort: gewaehlt.ort, befunde, link: l, absender: einst.absender, datum: heute }) as string,
+        befunde, geprueftAm: gewaehlt.geprueft_am, googleStand: gewaehlt.google_stand,
       };
     }
     if (reiter === "briefe") {
@@ -611,11 +819,12 @@ export default function PostSeite() {
           chip: STATUS_LABEL[b.status] || b.status, titel: b.betrieb_name || `Betrieb ${b.betrieb_id}`, briefId: b.id,
           text: b.text || "", empfaenger: b.empfaenger || "", absender: einst.absender,
           link: landingLink(einst.landing_basis, b.token), datumText: datumAus(b.gesendet_am, heute),
+          befunde: b.befunde || [], geprueftAm: b.betrieb_geprueft_am, googleStand: b.betrieb_google_stand,
         };
       }
     }
     return beispiel(einst.vorlage, einst.absender, einst.landing_basis, "Beispiel");
-  }, [einst, reiter, absenderForm, vorlageForm, basisForm, editor, text, empf, link, gewaehlt, infoZuGewaehlt, sichtbar, vorschauId, heute]);
+  }, [einst, reiter, absenderForm, vorlageForm, basisForm, editor, text, empf, link, gewaehlt, infoZuGewaehlt, sichtbar, vorschauId, heute, heuteIso]);
 
   // QR-Code zum Link der Vorschau – gespeichert mit dem Link, zu dem er
   // gehoert, damit nach einem Wechsel nie der alte Code neben dem neuen steht.
@@ -716,7 +925,11 @@ export default function PostSeite() {
       // frische PDF gleich wieder weg.
       await textSpeichern();
       await empfSpeichern();
-      const bytes = await pdfErzeugen({ text, empfaenger: empf, absender: einst.absender, link, datum: datumDeutsch(new Date()) });
+      const { bytes, ueberlauf: zuViel } = await pdfErzeugen({
+        text, empfaenger: empf, absender: einst.absender, link, datum: datumDeutsch(new Date()),
+        befunde: editor.brief.befunde, geprueftAm: editor.betrieb?.geprueft_am, googleStand: editor.betrieb?.google_stand,
+      });
+      if (zuViel > 0) throw new Error(`Der Text läuft ${zuViel} mm über die Grenze – kürzen oder einen Befund abwählen.`);
       const fd = new FormData();
       fd.append("pdf", new Blob([bytes as BlobPart], { type: "application/pdf" }), `brief-${editor.brief.token}.pdf`);
       fd.append("id", String(editor.brief.id));
@@ -884,12 +1097,14 @@ export default function PostSeite() {
             <div className="post-schau-kopf">
               <span className="post-schau-titel">Vorschau</span>
               <span className="post-schau-chip">{schau.chip}</span>
+              {ueberlauf > 0 && <span className="post-schau-chip warn" title="Text kürzen oder einen Befund abwählen">Läuft {ueberlauf} mm über</span>}
               <span className="post-schau-name" title={schau.titel}>{schau.titel}</span>
               <button type="button" className="akq-knopf akq-symbol" onClick={() => setGross(true)} title="Groß ansehen" aria-label="Vorschau groß ansehen">
                 <Maximize2 size={14} />
               </button>
             </div>
-            <Blatt text={schau.text} empfaenger={schau.empfaenger} absender={schau.absender} link={schau.link} datumText={schau.datumText} qr={qr} />
+            <Blatt text={schau.text} empfaenger={schau.empfaenger} absender={schau.absender} link={schau.link} datumText={schau.datumText} qr={qr}
+                   befunde={schau.befunde} geprueftAm={schau.geprueftAm} googleStand={schau.googleStand} onUeberlauf={setUeberlauf} />
             {reiter === "briefe" && schau.briefId != null && (
               <div className="post-schau-fuss">
                 <button type="button" className="akq-knopf" onClick={() => briefOeffnen(schau.briefId as number)}>Öffnen</button>
@@ -1028,7 +1243,7 @@ export default function PostSeite() {
                     ))}
                   </ul>
                 )}
-                {bearbeitbar && <p className="post-hinweis">Ankreuzen setzt den Text aus der Vorlage neu – eigene Änderungen im Text gehen dabei verloren.</p>}
+                {bearbeitbar && <p className="post-hinweis">Ankreuzen setzt den Text aus der Vorlage neu – eigene Änderungen im Text gehen dabei verloren. Höchstens drei Befunde plus Google-Zeile, sonst passt der Brief nicht auf eine Seite.</p>}
               </div>
 
               <div className="post-abschnitt">
@@ -1045,14 +1260,15 @@ export default function PostSeite() {
                 </p>
                 <textarea className="field px-3 py-2 post-text" value={text} onChange={e => setText(e.target.value)} onBlur={textSpeichern}
                           disabled={!bearbeitbar} spellCheck />
-                <p className="post-hinweis">Erste Zeile ist der Betreff, „– “ am Zeilenanfang ergibt einen Aufzählungspunkt, unter „---“ steht der Hinweis in kleiner Schrift.</p>
+                <p className="post-hinweis">Erste Zeile ist der Betreff, Zeilen mit „– “ werden zum Befund-Kasten, ein Absatz mit „PS:“ zum PS, unter „---“ steht der Hinweis (höchstens vier Zeilen). Link und QR-Code kommen automatisch unten aufs Blatt.</p>
               </div>
 
               <div className="post-abschnitt">
                 <p className="post-abschnitt-titel">PDF und Versand</p>
                 <div className="post-pdf-stand">
                   {imEntwurf && (
-                    <button className="btn-primary px-4 py-2 text-sm disabled:opacity-60" onClick={pdfBauen} disabled={pdfLauf || !anschriftVollstaendig(empf)}>
+                    <button className="btn-primary px-4 py-2 text-sm disabled:opacity-60" onClick={pdfBauen} disabled={pdfLauf || !anschriftVollstaendig(empf) || ueberlauf > 0}
+                            title={ueberlauf > 0 ? "Der Text läuft über die Grenze" : ""}>
                       {pdfLauf ? "Erzeugt…" : editor.brief.pdf_schluessel ? "PDF neu erzeugen" : "PDF erzeugen"}
                     </button>
                   )}
@@ -1064,7 +1280,7 @@ export default function PostSeite() {
                             title="PDF als E-Mail an mich – nichts wird gedruckt"><Mail size={13} /> Test per E-Mail</button>
                   )}
                   {imEntwurf && (
-                    <button className="akq-knopf" disabled={!editor.brief.pdf_schluessel || beschaeftigt.has(editor.brief.id)} onClick={() => statusSetzen(editor.brief, "freigegeben")}>Freigeben</button>
+                    <button className="akq-knopf" disabled={!editor.brief.pdf_schluessel || beschaeftigt.has(editor.brief.id) || ueberlauf > 0} onClick={() => statusSetzen(editor.brief, "freigegeben")}>Freigeben</button>
                   )}
                   {editor.brief.status === "fehler" && (
                     <button className="akq-knopf" disabled={!editor.brief.pdf_schluessel} onClick={() => statusSetzen(editor.brief, "freigegeben")}>Erneut freigeben</button>
@@ -1120,7 +1336,7 @@ export default function PostSeite() {
 
           <h2 className="mt-6">Vorlage</h2>
           <textarea className="field px-3 py-2 post-text" value={vorlageForm} onChange={e => setVorlageForm(e.target.value)} rows={24} spellCheck />
-          <p className="post-hinweis">Erste Zeile ist der Betreff. „---“ trennt den Hinweis in kleiner Schrift ab. Keine Ausrufezeichen, keine Superlative – der Brief soll nachprüfbar bleiben.</p>
+          <p className="post-hinweis">Erste Zeile ist der Betreff, Zeilen mit „– “ werden zum Befund-Kasten, „PS:“ zum PS, „---“ trennt den Hinweis ab (höchstens vier Zeilen). Link und QR-Code stehen automatisch im Handlungsblock unten. Keine Ausrufezeichen, keine Superlative – der Brief soll nachprüfbar bleiben.</p>
           <p className="post-abschnitt-titel mt-4">Platzhalter</p>
           <ul className="post-platzhalter">
             {einst.platzhalter.map(p => <li key={p.name}><code>{p.name}</code><span>{p.erklaerung}</span></li>)}
