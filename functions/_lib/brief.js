@@ -191,6 +191,20 @@ export const CHECK_LABELS = {
   kein_impressum: 'Impressum', kein_datenschutz: 'Datenschutz', kein_schema: 'Google-Daten', kein_titel: 'Seitentitel', google_note: 'Google',
 };
 
+// Eine Zeile des Befund-Kastens lesen: Stichwort und Satz. Das Stichwort
+// steht vor dem Doppelpunkt ("Technik: …") und muss eines der bekannten sein;
+// aeltere Entwuerfe ohne Stichwort im Text werden ueber den unveraenderten
+// Satz erkannt.
+const STICHWOERTER = new Set(Object.values(CHECK_LABELS));
+const glatt = t => String(t || '').replace(/\s+/g, ' ').trim();
+export function befundZeile(zeile, befunde) {
+  const m = /^([^:]{2,30}):\s+(.+)$/.exec(glatt(zeile));
+  if (m && STICHWOERTER.has(m[1])) return { label: m[1], satz: m[2], google: m[1] === CHECK_LABELS.google_note };
+  const b = (Array.isArray(befunde) ? befunde : []).find(x => glatt(x?.text) === glatt(zeile));
+  const label = b ? CHECK_LABELS[b.code] : undefined;
+  return { label, satz: glatt(zeile), google: b?.code === 'google_note' };
+}
+
 // Die positive Google-Zeile: nur mit echten Zahlen, die fuer den Betrieb
 // sprechen (Note ab 4,0, mindestens 10 Bewertungen, Stand bekannt). Sie
 // steht als letzte Zeile im Kasten, ohne Ziffer, gruenes Label.
@@ -273,9 +287,11 @@ export function datumDeutsch(d = new Date()) {
 export function briefFuellen(vorlage, werte) {
   const w = werte || {};
   const absender = { ...ABSENDER_STANDARD, ...(w.absender || {}) };
+  // Das Stichwort steht mit im Text ("– Technik: …"): so bleibt es stehen,
+  // wenn der Satz dahinter von Hand geaendert wird.
   const befunde = (Array.isArray(w.befunde) ? w.befunde : [])
-    .map(b => (typeof b === 'string' ? b : b?.text)).filter(Boolean)
-    .map(t => `– ${t}`).join('\n');
+    .map(b => (typeof b === 'string' ? { text: b } : b)).filter(b => b?.text)
+    .map(b => `– ${CHECK_LABELS[b.code] ? `${CHECK_LABELS[b.code]}: ` : ''}${b.text}`).join('\n');
   const ersatz = {
     firma: sauber(w.firma),
     ort: sauber(w.ort),

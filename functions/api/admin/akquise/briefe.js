@@ -75,7 +75,7 @@ async function kandidatenErmitteln(env, betrieb) {
   ).bind(betrieb.id).first();
   const signale = parse(p?.signale, []);
   const boerse = boersenName(betrieb.website);
-  const liste = befundeAusPruefung(signale, { ...(p || {}), boerse });
+  const liste = befundeAusPruefung(signale, { ...(p || {}), boerse }, { anzahl: 4 });
   const hat = code => liste.some(k => k.code === code);
   if (!betrieb.website && !hat('keine_website')) {
     liste.unshift({ code: 'keine_website', text: befundeAusPruefung([{ code: 'keine_website', seite: 'website', punkte: 100 }])[0].text, punkte: 100, vorgewaehlt: true });
@@ -83,9 +83,9 @@ async function kandidatenErmitteln(env, betrieb) {
   if (betrieb.kategorie === 'nur_boerse' && !hat('nur_boerse')) {
     liste.unshift({ code: 'nur_boerse', text: befundeAusPruefung([{ code: 'nur_boerse', seite: 'website', punkte: 100 }], { boerse })[0].text, punkte: 100, vorgewaehlt: true });
   }
-  // Hoechstens drei vorgewaehlt, auch nach dem Ergaenzen.
+  // Hoechstens vier vorgewaehlt, auch nach dem Ergaenzen.
   let n = 0;
-  for (const k of liste) { if (k.vorgewaehlt) { n++; if (n > 3) k.vorgewaehlt = false; } }
+  for (const k of liste) { if (k.vorgewaehlt) { n++; if (n > 4) k.vorgewaehlt = false; } }
   // Die positive Google-Zeile zaehlt nicht zur Drei-Grenze – sie steht
   // immer zuletzt und spricht fuer den Betrieb.
   const google = googleZeile(betrieb);

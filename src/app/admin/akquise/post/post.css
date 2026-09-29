@@ -143,6 +143,22 @@
 .post-blatt .post-b-zusatz { display:block; font-size:8.5pt; line-height:3.8mm; color:#64748B; }
 .post-blatt .post-b-ps { margin:0 0 2.6mm; }
 .post-blatt .post-b-ps b { font-weight:600; }
+/* Dichte-Stufen (STUFEN in page.tsx): viele Befunde oder ein langer Name
+   setzen den Text enger, damit er nicht in den Handlungsblock laeuft. */
+.post-blatt[data-stufe="1"] .post-b-absatz, .post-blatt[data-stufe="1"] .post-b-name, .post-blatt[data-stufe="1"] .post-b-ps, .post-blatt[data-stufe="1"] .post-b-kasten { margin-bottom:2.2mm; }
+.post-blatt[data-stufe="1"] .post-b-kasten { font-size:10pt; line-height:4.5mm; row-gap:1.2mm; }
+.post-blatt[data-stufe="1"] .post-b-quelle { margin:-0.7mm 0 2.2mm; }
+.post-blatt[data-stufe="2"] .post-b-text { font-size:10pt; line-height:4.6mm; }
+.post-blatt[data-stufe="2"] .post-b-betreff { font-size:14pt; line-height:5.5mm; }
+.post-blatt[data-stufe="2"] .post-b-absatz, .post-blatt[data-stufe="2"] .post-b-name, .post-blatt[data-stufe="2"] .post-b-ps, .post-blatt[data-stufe="2"] .post-b-kasten { margin-bottom:2mm; }
+.post-blatt[data-stufe="2"] .post-b-kasten { font-size:9.5pt; line-height:4.3mm; row-gap:1mm; }
+.post-blatt[data-stufe="2"] .post-b-quelle { margin:-0.5mm 0 2mm; }
+.post-blatt[data-stufe="3"] .post-b-text { font-size:9.5pt; line-height:4.4mm; }
+.post-blatt[data-stufe="3"] .post-b-betreff { font-size:13pt; line-height:5.2mm; }
+.post-blatt[data-stufe="3"] .post-b-absatz, .post-blatt[data-stufe="3"] .post-b-name, .post-blatt[data-stufe="3"] .post-b-ps, .post-blatt[data-stufe="3"] .post-b-kasten { margin-bottom:1.8mm; }
+.post-blatt[data-stufe="3"] .post-b-kasten { font-size:9pt; line-height:4.1mm; row-gap:0.8mm; }
+.post-blatt[data-stufe="3"] .post-b-quelle { margin:-0.3mm 0 1.8mm; }
+
 /* Fester Handlungsblock im dritten Falzfeld */
 .post-blatt .post-b-cta { position:absolute; left:25mm; top:241mm; width:165mm; height:26mm; border:0.35mm solid #12557F; border-radius:2mm; }
 .post-blatt .post-b-cta .qr { position:absolute; left:3.65mm; top:2.65mm; width:20mm; height:20mm; display:block; }

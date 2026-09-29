@@ -5,7 +5,7 @@ import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
 import { ExternalLink, FileText, Mail, Maximize2, RefreshCw, Trash2, X } from "lucide-react";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
-import { BEFUNDE_BEISPIEL, CHECK_LABELS, briefAufbauen, briefFuellen, datumDeutsch, empfaengerBlock, landingLink, quellenZeile, rueckChecks } from "../../../../../functions/_lib/brief.js";
+import { BEFUNDE_BEISPIEL, befundZeile, briefAufbauen, briefFuellen, datumDeutsch, empfaengerBlock, landingLink, quellenZeile, rueckChecks } from "../../../../../functions/_lib/brief.js";
 import { LOGO_BREIT, LOGO_FARBE, LOGO_HOCH, LOGO_PFADE, LOGO_X0 } from "./briefLogo";
 import "./post.css";
 
@@ -116,6 +116,17 @@ const LAYOUT = {
   hinweis: { y: 270.5, groesse: 7, zeile: 3, maxZeilen: 4 },
   fussY: 285, fussGroesse: 7,
 };
+// Dichte-Stufen: passt der Text nicht vor den Handlungsblock (viele Befunde,
+// langer Name), wird er schrittweise enger und kleiner gesetzt, statt in den
+// Block zu laufen. PDF und Vorschau (post.css, data-stufe) nutzen dieselben Werte.
+// g/z = Schrift/Zeile Fliesstext, a = Absatzabstand, kg/kz = Kasten, kzw =
+// Abstand der Kastenzeilen, bg/bz = Betreff.
+const STUFEN = [
+  { g: 10.5, z: 4.9, a: 2.6, kg: 10.5, kz: 4.9, kzw: 1.6, bg: 15, bz: 5.8 },
+  { g: 10.5, z: 4.9, a: 2.2, kg: 10, kz: 4.5, kzw: 1.2, bg: 15, bz: 5.8 },
+  { g: 10, z: 4.6, a: 2, kg: 9.5, kz: 4.3, kzw: 1, bg: 14, bz: 5.5 },
+  { g: 9.5, z: 4.4, a: 1.8, kg: 9, kz: 4.1, kzw: 0.8, bg: 13, bz: 5.2 },
+];
 const CTA = {
   scan: "Ihre persönliche Seite: mit der Handykamera scannen oder die Adresse eintippen. Dort finden Sie die Demo und den Demo-Zugang.",
   anrufen: "Oder anrufen:",
@@ -204,7 +215,6 @@ const ctaOben = (textEnde: number) => {
   const mitte = textEnde + (LAYOUT.hinweis.y - textEnde - C.hoehe) / 2;
   return Math.min(C.yMax, Math.max(C.yMin, mitte));
 };
-const glatt = (s: string) => s.replace(/\s+/g, " ").trim();
 
 // Zwei statische Schnitte von Inter als TTF (aus public/fonts/inter-latin.woff2
 // mit fontTools herausgerechnet): WOFF2 liesse sich nicht als FontFile2
@@ -259,21 +269,27 @@ async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf:
   let seite: PDFPage = pdf.addPage(PageSizes.A4);
   const basis = (yTop: number, size: number) => A4_H - mm(yTop) - size * 0.78;
   const breiteVon = (t: string, size: number, f: PDFFont = font) => f.widthOfTextAtSize(sauber(t), size);
-  const text = (t: string, xMm: number, yTop: number, size: number, f: PDFFont = font, farbe = FARBE.text) =>
-    seite.drawText(sauber(t), { x: mm(xMm), y: basis(yTop, size), size, font: f, color: farbe });
-  const textPt = (t: string, xPt: number, yTop: number, size: number, f: PDFFont = font, farbe = FARBE.text) =>
-    seite.drawText(sauber(t), { x: xPt, y: basis(yTop, size), size, font: f, color: farbe });
+  // malen = false: nur messen (der Textfluss laeuft je Dichte-Stufe einmal zur Probe).
+  let malen = true;
+  const text = (t: string, xMm: number, yTop: number, size: number, f: PDFFont = font, farbe = FARBE.text) => {
+    if (malen) seite.drawText(sauber(t), { x: mm(xMm), y: basis(yTop, size), size, font: f, color: farbe });
+  };
+  const textPt = (t: string, xPt: number, yTop: number, size: number, f: PDFFont = font, farbe = FARBE.text) => {
+    if (malen) seite.drawText(sauber(t), { x: xPt, y: basis(yTop, size), size, font: f, color: farbe });
+  };
   const rechts = (t: string, yTop: number, size: number, f: PDFFont = font, farbe = FARBE.text) =>
     textPt(t, mm(210 - LAYOUT.textRechts) - breiteVon(t, size, f), yTop, size, f, farbe);
   const mitte = (t: string, xMitteMm: number, yTop: number, size: number, f: PDFFont = font, farbe = FARBE.text) =>
     textPt(t, mm(xMitteMm) - breiteVon(t, size, f) / 2, yTop, size, f, farbe);
   const form = (x: number, yTop: number, w: number, h: number, r: number,
-                o: { color?: ReturnType<typeof rgb>; rand?: ReturnType<typeof rgb>; randBreite?: number; opacity?: number; nurRechts?: boolean }) =>
-    seite.drawSvgPath(rund(mm(w), mm(h), mm(r), o.nurRechts), {
+                o: { color?: ReturnType<typeof rgb>; rand?: ReturnType<typeof rgb>; randBreite?: number; opacity?: number; nurRechts?: boolean }) => {
+    if (malen) seite.drawSvgPath(rund(mm(w), mm(h), mm(r), o.nurRechts), {
       x: mm(x), y: A4_H - mm(yTop), color: o.color, borderColor: o.rand, borderWidth: o.randBreite != null ? mm(o.randBreite) : undefined, opacity: o.opacity,
     });
-  const bild = (b: typeof bHandy, x: number, yTop: number, w: number, h: number) =>
-    seite.drawImage(b, { x: mm(x), y: A4_H - mm(yTop + h), width: mm(w), height: mm(h) });
+  };
+  const bild = (b: typeof bHandy, x: number, yTop: number, w: number, h: number) => {
+    if (malen) seite.drawImage(b, { x: mm(x), y: A4_H - mm(yTop + h), width: mm(w), height: mm(h) });
+  };
   // Zeilenumbruch mit der Schrift, in der gesetzt wird; die erste Zeile darf
   // schmaler sein (PS: mit fettem Vorsatz).
   const umbrechen = (t: string, size: number, breite: number, f: PDFFont = font, ersteBreite = breite) => {
@@ -321,84 +337,93 @@ async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf:
   const breite = mm(210 - LAYOUT.textX - LAYOUT.textRechts);
   // Alte Briefe tragen den Link im Text: dann QR neben dem Absatz, kein fester Block.
   const alt = absaetze.some(x => x.art === "text" && x.zeilen.some(z => z.includes(d.link)));
-  const G = LAYOUT.groesse, Z = LAYOUT.zeile;
-  let y = LAYOUT.textY;
-  if (betreff) {
-    for (const l of umbrechen(betreff, LAYOUT.betreff.groesse, breite, fett)) { text(l, LAYOUT.textX, y, LAYOUT.betreff.groesse, fett, FARBE.dunkel); y += LAYOUT.betreff.zeile; }
-    y += LAYOUT.betreff.abstand;
-  }
-  const befundVon = (satz: string) => d.befunde.find(b => glatt(b.text) === glatt(satz));
-  const hinweise: string[] = [];
-  let namensblock = false;
+  // Der Textfluss als Funktion: je Dichte-Stufe einmal messen, dann mit der
+  // ersten Stufe zeichnen, die vor dem Handlungsblock endet.
+  let hinweise: string[] = [];
+  const fluss = (S: typeof STUFEN[number]) => {
+    const G = S.g, Z = S.z;
+    let y = LAYOUT.textY;
+    if (betreff) {
+      for (const l of umbrechen(betreff, S.bg, breite, fett)) { text(l, LAYOUT.textX, y, S.bg, fett, FARBE.dunkel); y += S.bz; }
+      y += LAYOUT.betreff.abstand;
+    }
+    hinweise = [];
+    let namensblock = false;
 
-  // Befund-Kasten: erst messen, dann zeichnen – der Kasten wird nie geteilt.
-  const kasten = (zeilen: string[]) => {
-    const K = LAYOUT.kasten;
-    const info = zeilen.map(satz => {
-      const code = befundVon(satz)?.code;
-      const label = code ? (CHECK_LABELS as Record<string, string>)[code] : undefined;
-      return { satz, label, google: code === "google_note", zeilen: umbrechen(satz, G, mm(label ? K.satzBreite : K.ohneLabelBreite)) };
-    }).sort((p, q) => Number(p.google) - Number(q.google));
-    const h = 2 * K.pad + info.reduce((s, i) => s + i.zeilen.length * Z, 0) + (info.length - 1) * K.zwischen;
-    form(LAYOUT.textX, y, 165, h, K.radius, { color: FARBE.akzent });
-    form(LAYOUT.textX + K.kante, y, 165 - K.kante, h, K.radius, { color: FARBE.toenung, nurRechts: true });
-    let yy = y + K.pad, nr = 1;
-    for (const i of info) {
-      if (!i.google) text(String(nr++), K.ziffernX, yy, G, fett, FARBE.akzent);
-      if (i.label) text(i.label, K.labelX, yy, G, fett, i.google ? FARBE.gruen : FARBE.dunkel);
-      for (const l of i.zeilen) { text(l, i.label ? K.satzX : K.labelX, yy, G); yy += Z; }
-      yy += K.zwischen;
-    }
-    y += h;
-    const q = quellenZeile(d.befunde, d.geprueftAm, d.googleStand) as string | null;
-    if (q) {
-      y += LAYOUT.quelle.abstand;
-      for (const l of umbrechen(q, LAYOUT.quelle.groesse, breite).slice(0, LAYOUT.quelle.maxZeilen)) { text(l, LAYOUT.textX, y, LAYOUT.quelle.groesse, font, FARBE.grau2); y += LAYOUT.quelle.zeile; }
-    }
-    y += LAYOUT.absatz;
-  };
-
-  for (const abs of absaetze) {
-    if (abs.art === "hinweis") { hinweise.push(...abs.zeilen); continue; }
-    if (abs.art === "liste") { kasten(abs.zeilen); continue; }
-    if (abs.art === "ps") {
-      const vorsatz = "PS: ";
-      const vb = breiteVon(vorsatz, G, fett);
-      text("PS:", LAYOUT.textX, y, G, fett);
-      umbrechen(abs.zeilen.join(" ").replace(/^PS:\s*/, ""), G, breite, font, breite - vb)
-        .forEach((l, i) => { textPt(l, mm(LAYOUT.textX) + (i === 0 ? vb : 0), y, G); y += Z; });
-      y += LAYOUT.absatz;
-      continue;
-    }
-    if (namensblock) {
-      // Der Absatz nach dem Gruss: Name normal, weitere Zeilen klein und grau.
-      namensblock = false;
-      abs.zeilen.forEach((l, i) => {
-        if (i === 0) { text(l, LAYOUT.textX, y, G); y += Z; }
-        else { text(l, LAYOUT.textX, y, LAYOUT.zusatz.groesse, font, FARBE.grau2); y += LAYOUT.zusatz.zeile; }
-      });
-      y += LAYOUT.absatz;
-      continue;
-    }
-    const mitQr = alt && abs.zeilen.some(z => z.includes(d.link));
-    const b = mitQr ? breite - mm(LAYOUT.qrAlt + 6) : breite;
-    const zeilen = abs.zeilen.flatMap(z => umbrechen(z, G, b));
-    const oben = y;
-    if (mitQr) seite.drawImage(qr, { x: mm(210 - LAYOUT.textRechts - LAYOUT.qrAlt), y: A4_H - mm(oben + LAYOUT.qrAlt), width: mm(LAYOUT.qrAlt), height: mm(LAYOUT.qrAlt) });
-    for (const l of zeilen) { text(l, LAYOUT.textX, y, G); y += Z; }
-    if (mitQr) y = Math.max(y, oben + LAYOUT.qrAlt + 3);
-    if (/^Mit freundlichen Grüßen/.test(abs.zeilen[0] || "")) {
-      namensblock = true;
-      if (bUnterschrift) {
-        const U = LAYOUT.unterschrift;
-        bild(bUnterschrift, LAYOUT.textX, y + U.versatz, U.breite, U.hoehe);
-        y += U.raum;
+    // Befund-Kasten: erst messen, dann zeichnen – der Kasten wird nie geteilt.
+    const kasten = (zeilen: string[]) => {
+      const K = LAYOUT.kasten;
+      const info = zeilen.map(zeile => {
+        const b = befundZeile(zeile, d.befunde) as { label?: string; satz: string; google: boolean };
+        return { ...b, zeilen: umbrechen(b.satz, S.kg, mm(b.label ? K.satzBreite : K.ohneLabelBreite)) };
+      }).sort((p, q) => Number(p.google) - Number(q.google));
+      const h = 2 * K.pad + info.reduce((s, i) => s + i.zeilen.length * S.kz, 0) + (info.length - 1) * S.kzw;
+      form(LAYOUT.textX, y, 165, h, K.radius, { color: FARBE.akzent });
+      form(LAYOUT.textX + K.kante, y, 165 - K.kante, h, K.radius, { color: FARBE.toenung, nurRechts: true });
+      let yy = y + K.pad, nr = 1;
+      for (const i of info) {
+        if (!i.google) text(String(nr++), K.ziffernX, yy, S.kg, fett, FARBE.akzent);
+        if (i.label) text(i.label, K.labelX, yy, S.kg, fett, i.google ? FARBE.gruen : FARBE.dunkel);
+        for (const l of i.zeilen) { text(l, i.label ? K.satzX : K.labelX, yy, S.kg); yy += S.kz; }
+        yy += S.kzw;
       }
+      y += h;
+      const q = quellenZeile(d.befunde, d.geprueftAm, d.googleStand) as string | null;
+      if (q) {
+        y += LAYOUT.quelle.abstand;
+        for (const l of umbrechen(q, LAYOUT.quelle.groesse, breite).slice(0, LAYOUT.quelle.maxZeilen)) { text(l, LAYOUT.textX, y, LAYOUT.quelle.groesse, font, FARBE.grau2); y += LAYOUT.quelle.zeile; }
+      }
+      y += S.a;
+    };
+
+    for (const abs of absaetze) {
+      if (abs.art === "hinweis") { hinweise.push(...abs.zeilen); continue; }
+      if (abs.art === "liste") { kasten(abs.zeilen); continue; }
+      if (abs.art === "ps") {
+        const vorsatz = "PS: ";
+        const vb = breiteVon(vorsatz, G, fett);
+        text("PS:", LAYOUT.textX, y, G, fett);
+        umbrechen(abs.zeilen.join(" ").replace(/^PS:\s*/, ""), G, breite, font, breite - vb)
+          .forEach((l, i) => { textPt(l, mm(LAYOUT.textX) + (i === 0 ? vb : 0), y, G); y += Z; });
+        y += S.a;
+        continue;
+      }
+      if (namensblock) {
+        // Der Absatz nach dem Gruss: Name normal, weitere Zeilen klein und grau.
+        namensblock = false;
+        abs.zeilen.forEach((l, i) => {
+          if (i === 0) { text(l, LAYOUT.textX, y, G); y += Z; }
+          else { text(l, LAYOUT.textX, y, LAYOUT.zusatz.groesse, font, FARBE.grau2); y += LAYOUT.zusatz.zeile; }
+        });
+        y += S.a;
+        continue;
+      }
+      const mitQr = alt && abs.zeilen.some(z => z.includes(d.link));
+      const b = mitQr ? breite - mm(LAYOUT.qrAlt + 6) : breite;
+      const zeilen = abs.zeilen.flatMap(z => umbrechen(z, G, b));
+      const oben = y;
+      if (mitQr && malen) seite.drawImage(qr, { x: mm(210 - LAYOUT.textRechts - LAYOUT.qrAlt), y: A4_H - mm(oben + LAYOUT.qrAlt), width: mm(LAYOUT.qrAlt), height: mm(LAYOUT.qrAlt) });
+      for (const l of zeilen) { text(l, LAYOUT.textX, y, G); y += Z; }
+      if (mitQr) y = Math.max(y, oben + LAYOUT.qrAlt + 3);
+      if (/^Mit freundlichen Grüßen/.test(abs.zeilen[0] || "")) {
+        namensblock = true;
+        if (bUnterschrift) {
+          const U = LAYOUT.unterschrift;
+          bild(bUnterschrift, LAYOUT.textX, y + U.versatz, U.breite, U.hoehe);
+          y += U.raum;
+        }
+      }
+      y += S.a;
     }
-    y += LAYOUT.absatz;
-  }
-  const textEnde = y - LAYOUT.absatz;
-  let ueberlauf = Math.max(0, textEnde - (alt ? LAYOUT.textEndeAlt : LAYOUT.textEnde));
+    return y - S.a;
+  };
+  const grenze = alt ? LAYOUT.textEndeAlt : LAYOUT.textEnde;
+  malen = false;
+  let stufe = STUFEN.findIndex(S => fluss(S) <= grenze);
+  if (stufe < 0) stufe = STUFEN.length - 1;
+  malen = true;
+  const textEnde = fluss(STUFEN[stufe]);
+  let ueberlauf = Math.max(0, textEnde - grenze);
 
   // Handlungsblock im dritten Falzfeld – der einzige Rahmen der Seite, mittig
   // im freien Raum zwischen Textende und Hinweis.
@@ -522,7 +547,6 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr, befunde, gepru
   const hinweise = absaetze.filter(x => x.art === "hinweis").flatMap(x => x.zeilen);
   const quelle = quellenZeile(befunde, geprueftAm, googleStand) as string | null;
   const ort = absender.plz_ort.replace(/^\d{5}\s+/, "");
-  const befundVon = (satz: string) => befunde.find(b => glatt(b.text) === glatt(satz));
 
   // Ueberlauf wie im PDF: Ende des Textflusses gegen die Grenze, Hinweis gegen vier Zeilen.
   const zuletzt = useRef(-1);
@@ -531,6 +555,14 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr, befunde, gepru
     if (!el) return;
     const messen = () => {
       const px = 96 / 25.4;
+      // Dichte-Stufe wie im PDF: die erste, bei der der Text vor dem Block endet.
+      // Das Attribut setzt nur dieser Effekt (nicht React), darum bleibt es stehen.
+      const blatt = el.parentElement as HTMLElement;
+      const grenzePx = ((alt ? LAYOUT.textEndeAlt : LAYOUT.textEnde) - LAYOUT.textY) * px;
+      for (let i = 0; i < STUFEN.length; i++) {
+        blatt.dataset.stufe = String(i);
+        if (el.offsetHeight <= grenzePx) break;
+      }
       const ende = LAYOUT.textY + el.offsetHeight / px;
       const hinweisMm = hinweisRef.current ? hinweisRef.current.offsetHeight / px : 0;
       const wert = Math.round(Math.max(0, ende - (alt ? LAYOUT.textEndeAlt : LAYOUT.textEnde)) + Math.max(0, hinweisMm - LAYOUT.hinweis.maxZeilen * LAYOUT.hinweis.zeile));
@@ -574,7 +606,7 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr, befunde, gepru
               if (a.art === "hinweis") return null;
               if (a.art === "liste") {
                 let nr = 0;
-                const zeilen = a.zeilen.map(satz => { const code = befundVon(satz)?.code; return { satz, label: code ? (CHECK_LABELS as Record<string, string>)[code] : undefined, google: code === "google_note" }; })
+                const zeilen = a.zeilen.map(z => befundZeile(z, befunde) as { label?: string; satz: string; google: boolean })
                   .sort((p, q) => Number(p.google) - Number(q.google));
                 return (
                   <div key={i}>
@@ -1262,7 +1294,7 @@ export default function PostSeite() {
               </div>
             </div>
           )}
-          <p className="post-hinweis">Ein Entwurf bekommt Anschrift, die drei stärksten Befunde der letzten Prüfung und den Text aus der Vorlage – so, wie links in der Vorschau. Danach lässt sich alles ändern.</p>
+          <p className="post-hinweis">Ein Entwurf bekommt Anschrift, die vier stärksten Befunde der letzten Prüfung und den Text aus der Vorlage – so, wie links in der Vorschau. Danach lässt sich alles ändern.</p>
         </section>
       )}
 
@@ -1299,7 +1331,7 @@ export default function PostSeite() {
                     ))}
                   </ul>
                 )}
-                {bearbeitbar && <p className="post-hinweis">Ankreuzen setzt den Text aus der Vorlage neu – eigene Änderungen im Text gehen dabei verloren. Höchstens drei Befunde plus Google-Zeile, sonst passt der Brief nicht auf eine Seite.</p>}
+                {bearbeitbar && <p className="post-hinweis">Ankreuzen setzt den Text aus der Vorlage neu – eigene Änderungen im Text gehen dabei verloren. Bei vielen Befunden wird der Text kleiner gesetzt; passt er gar nicht mehr, warnt die Vorschau.</p>}
               </div>
 
               <div className="post-abschnitt">
@@ -1316,7 +1348,7 @@ export default function PostSeite() {
                 </p>
                 <textarea className="field px-3 py-2 post-text" value={text} onChange={e => setText(e.target.value)} onBlur={textSpeichern}
                           disabled={!bearbeitbar} spellCheck />
-                <p className="post-hinweis">Erste Zeile ist der Betreff, Zeilen mit „– “ werden zum Befund-Kasten, ein Absatz mit „PS:“ zum PS, unter „---“ steht der Hinweis (höchstens vier Zeilen). Link und QR-Code kommen automatisch unten aufs Blatt.</p>
+                <p className="post-hinweis">Erste Zeile ist der Betreff, Zeilen mit „– “ werden zum Befund-Kasten (das Wort vor dem Doppelpunkt ist das Stichwort), ein Absatz mit „PS:“ zum PS, unter „---“ steht der Hinweis (höchstens vier Zeilen). Link und QR-Code kommen automatisch unten aufs Blatt.</p>
               </div>
 
               <div className="post-abschnitt">
