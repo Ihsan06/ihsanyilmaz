@@ -192,7 +192,7 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
 
     <section>
       <h2>So kann Ihre Website aussehen</h2>
-      <p>Meine Demo für das fiktive Autohaus Mustermann: Fahrzeuge mit Preisen, Finanzierungsrechner, Kontakt per WhatsApp – gebaut für das Smartphone.</p>
+      <p>Meine Demo für das fiktive Autohaus Mustermann: Fahrzeuge mit Preisen (auf Wunsch automatisch aus mobile.de), Finanzierungsrechner, Kontakt per WhatsApp – gebaut für das Smartphone.</p>
       <div class="demo">
         <div class="handy"><img src="/leistungen/handy-start.jpg" alt="Startseite der Demo auf dem Smartphone" loading="lazy"></div>
         <div class="browser">
@@ -201,6 +201,7 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
         </div>
       </div>
       <ul class="checks">${checks.map(c => `<li><i></i><b>${esc(c.label)}</b> – ${esc(c.text)}</li>`).join('')}</ul>
+      <p>Gebaut mit den KI-Werkzeugen von heute – deshalb zu einem Preis, der vor wenigen Jahren nicht möglich war.</p>
       <p class="klein">Abbildungen: eigene Demo mit Beispieldaten – keine Aufnahmen Ihres Betriebs.</p>
     </section>
 

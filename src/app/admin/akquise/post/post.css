@@ -160,6 +160,7 @@
 .post-rueck .post-r-titel { position:absolute; left:25mm; top:20mm; margin:0; font-size:20pt; font-weight:600; line-height:8.5mm; color:#0F172A; }
 .post-rueck .post-r-absatz { position:absolute; left:25mm; top:38mm; width:100mm; margin:0; font-size:10pt; line-height:4.8mm; color:#334155; }
 .post-rueck .post-r-checks { position:absolute; left:25mm; top:60mm; width:108mm; margin:0; padding:0; list-style:none; }
+.post-rueck .post-r-preis { position:absolute; left:25mm; top:86mm; width:108mm; margin:0; font-size:9.5pt; line-height:4.5mm; color:#64748B; }
 .post-rueck .post-r-checks li { position:relative; height:8mm; padding-left:6.5mm; font-size:10pt; line-height:3.6mm; color:#334155; white-space:nowrap; }
 .post-rueck .post-r-checks li i { position:absolute; left:0; top:0; width:3.6mm; height:3.6mm; border-radius:50%; background:#2F9E5F; }
 .post-rueck .post-r-checks li i svg { display:block; width:100%; height:100%; }

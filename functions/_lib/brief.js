@@ -53,14 +53,14 @@ ich bin Webentwickler in Würzburg und habe mir angesehen, was ein Kunde findet,
 
 {befunde}
 
-Für Autohäuser und Werkstätten habe ich eine eigene Website-Lösung entwickelt. Die Rückseite zeigt sie an einem Beispiel; Ihre persönliche Seite unten führt zur Demo.
+Für Autohäuser und Werkstätten habe ich eine eigene Website-Lösung entwickelt – gebaut mit den KI-Werkzeugen von heute, deshalb zu einem Preis, der vor wenigen Jahren nicht möglich war. Die Rückseite zeigt ein Beispiel.
 
 Mit freundlichen Grüßen
 
 {absender_name}
 Webentwickler, Würzburg
 
-PS: Die Seite hinter dem QR-Code ist nur für {firma} angelegt – ohne Konto, ohne Newsletter. Wollen Sie keine Post mehr, genügt dort ein Klick.
+PS: Die Seite hinter dem QR-Code ist nur für {firma} angelegt – ohne Konto, ohne Newsletter.
 
 ---
 Hinweis nach Art. 14 und 21 DSGVO: Ihre Firmenanschrift stammt aus OpenStreetMap, dem Google-Karteneintrag oder Ihrer Website. Ich nutze sie nur für dieses Anschreiben (Art. 6 Abs. 1 f DSGVO); Druck und Versand übernimmt ein Dienstleister in meinem Auftrag, sonst erhält sie niemand. Der Aufruf Ihrer persönlichen Seite wird nur gezählt, ohne Cookie und IP-Adresse. Keine weitere Post: {link_kurz}/nein oder eine E-Mail an {absender_email}. Mehr: ihsan-yilmaz.de/datenschutz`;
@@ -201,25 +201,23 @@ export function googleZeile(betrieb) {
   return { code: 'google_note', text: `${noteText} Sterne bei ${anzahl.toLocaleString('de-DE')} Bewertungen – das spricht für Sie.` };
 }
 
-// Rueckseite: je Befund-Code die Zeile, die zeigt, was die Demo dazu kann –
-// nur, was sie wirklich zeigt. Fehlt ein Code, bleibt die Zeile weg.
+// Rueckseite: je Befund-Code die Nutzen-Zeile, die dazu passt – Handy,
+// Fahrzeuge, Anpassbarkeit, KI-Suche (GEO). Verschluesselung und Impressum
+// bekommen keine eigene Zeile (User: lieber Nutzen als Technik).
 export const LOESUNGEN = {
   kein_viewport: { label: 'Handy-Ansicht', text: 'passt sich jedem Bildschirm an' },
-  kein_https: { label: 'Verschlüsselung', text: 'https ab dem ersten Tag' },
-  keine_website: { label: 'Fahrzeuge', text: 'Ihr Bestand mit Bildern und Preisen' },
-  nur_boerse: { label: 'Fahrzeuge', text: 'Ihr Bestand mit Bildern und Preisen' },
-  bestand_nur_boerse: { label: 'Fahrzeuge', text: 'Ihr Bestand mit Bildern und Preisen' },
-  kein_bestand: { label: 'Fahrzeuge', text: 'Ihr Bestand mit Bildern und Preisen' },
-  copyright_alt: { label: 'Pflege', text: 'Texte und Öffnungszeiten ändern Sie selbst' },
-  lange_still: { label: 'Pflege', text: 'Texte und Öffnungszeiten ändern Sie selbst' },
-  baukasten: { label: 'Technik', text: 'eigener Code, kein Baukasten' },
-  technik_alt: { label: 'Technik', text: 'eigener Code, kein Baukasten' },
-  kein_impressum: { label: 'Impressum und Datenschutz', text: 'auf jeder Seite verlinkt' },
-  kein_datenschutz: { label: 'Impressum und Datenschutz', text: 'auf jeder Seite verlinkt' },
-  kein_schema: { label: 'Google-Daten', text: 'Adresse und Öffnungszeiten strukturiert' },
-  kein_titel: { label: 'Seitentitel', text: 'jede Seite mit eigenem Titel' },
+  keine_website: { label: 'Fahrzeuge', text: 'Ihr Bestand, automatisch aus mobile.de' },
+  nur_boerse: { label: 'Fahrzeuge', text: 'Ihr Bestand, automatisch aus mobile.de' },
+  bestand_nur_boerse: { label: 'Fahrzeuge', text: 'Ihr Bestand, automatisch aus mobile.de' },
+  kein_bestand: { label: 'Fahrzeuge', text: 'Ihr Bestand, automatisch aus mobile.de' },
+  copyright_alt: { label: 'Anpassbar', text: 'Änderungen schnell und günstig, vieles selbst' },
+  lange_still: { label: 'Anpassbar', text: 'Änderungen schnell und günstig, vieles selbst' },
+  baukasten: { label: 'Anpassbar', text: 'Änderungen schnell und günstig, vieles selbst' },
+  technik_alt: { label: 'Anpassbar', text: 'Änderungen schnell und günstig, vieles selbst' },
+  kein_schema: { label: 'KI-Suche', text: 'auch ChatGPT und Google AI finden Sie' },
+  kein_titel: { label: 'KI-Suche', text: 'auch ChatGPT und Google AI finden Sie' },
 };
-const STANDARD_CHECKS = ['kein_viewport', 'nur_boerse', 'copyright_alt', 'kein_https'];
+const STANDARD_CHECKS = ['kein_schema', 'copyright_alt', 'kein_viewport', 'nur_boerse'];
 
 // Genau drei Zeilen fuer die Rueckseite: in der Reihenfolge der Befunde,
 // Doppelte (gleiches Label) weg, aufgefuellt aus der Standardliste – so

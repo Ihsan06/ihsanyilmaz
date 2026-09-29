@@ -108,7 +108,9 @@ const LAYOUT = {
   quelle: { abstand: 1.5, groesse: 7, zeile: 3, maxZeilen: 2 },
   unterschrift: { raum: 8, breite: 36, hoehe: 8.5, versatz: 2 },
   zusatz: { groesse: 8.5, zeile: 3.8 },
-  cta: { y: 241, hoehe: 26, qr: 20, qrX: 29, qrY: 244, textX: 54, textBreite: 132, linkY: 245.5, scanY: 251.5, scanZeile: 4.2, anrufY: 261, radius: 2, linie: 0.35 },
+  // Der Block sitzt mittig zwischen Textende und Hinweis – aber nie ueber der
+  // Falz bei 210 mm (fruehestens 213) und nie unter 241 (3,5 mm vor dem Hinweis).
+  cta: { yMin: 213, yMax: 241, hoehe: 26, qr: 20, qrX: 29, qrVersatz: 3, textX: 54, textBreite: 132, linkVersatz: 4.5, scanVersatz: 10.5, scanZeile: 4.2, anrufVersatz: 20, radius: 2, linie: 0.35 },
   qrAlt: 25,
   textEnde: 238, textEndeAlt: 268,
   hinweis: { y: 270.5, groesse: 7, zeile: 3, maxZeilen: 4 },
@@ -128,9 +130,12 @@ const A4_H = PageSizes.A4[1];
 // Tupel: [x, y oben, Breite, Hoehe, Radius] in mm.
 const RUECK = {
   titel: ["So kann Ihre", "Website aussehen"], titelY: [20, 28.5], titelGroesse: 20,
-  text: "Meine Demo für das fiktive Autohaus Mustermann: Fahrzeuge mit Preisen, Finanzierungsrechner, Kontakt per WhatsApp – zum Anschauen und Ausprobieren.",
+  text: "Meine Demo für das fiktive Autohaus Mustermann: Fahrzeuge mit Preisen (auf Wunsch automatisch aus mobile.de), Finanzierungsrechner, Kontakt per WhatsApp – zum Anschauen und Ausprobieren.",
   textY: 38, textBreite: 100, textGroesse: 10, textZeile: 4.8,
   checksY: [60, 68, 76],
+  // Warum bezahlbar – ohne Zahl, aber mit dem Grund.
+  preis: "Gebaut mit den KI-Werkzeugen von heute – deshalb zu einem Preis, der vor wenigen Jahren nicht möglich war.",
+  preisY: 86, preisBreite: 108, preisGroesse: 9.5, preisZeile: 4.5,
   sockel: [136, 12, 54, 86, 6] as const,
   handy: { rahmen: [144.4, 16.4, 37.2, 76.9, 4.2] as const, ring: [145.6, 17.6, 34.8, 74.5, 3.2] as const, bild: [146, 18, 34, 73.7] as const },
   fenster: [34.8, 110, 140.4, 93.95, 3] as const, leiste: 6.5, punkte: [39, 42.4, 45.8], punktY: 113.25,
@@ -193,6 +198,12 @@ function usePngVorhanden(url: string) {
 }
 const mm = (v: number) => (v * 72) / 25.4;
 const linkKurz = (link: string) => link.replace(/^https?:\/\//, "");
+// Oberkante des Handlungsblocks: mittig zwischen Textende und Hinweis, in den Grenzen.
+const ctaOben = (textEnde: number) => {
+  const C = LAYOUT.cta;
+  const mitte = textEnde + (LAYOUT.hinweis.y - textEnde - C.hoehe) / 2;
+  return Math.min(C.yMax, Math.max(C.yMin, mitte));
+};
 const glatt = (s: string) => s.replace(/\s+/g, " ").trim();
 
 // Zwei statische Schnitte von Inter als TTF (aus public/fonts/inter-latin.woff2
@@ -386,17 +397,20 @@ async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf:
     }
     y += LAYOUT.absatz;
   }
-  let ueberlauf = Math.max(0, y - LAYOUT.absatz - (alt ? LAYOUT.textEndeAlt : LAYOUT.textEnde));
+  const textEnde = y - LAYOUT.absatz;
+  let ueberlauf = Math.max(0, textEnde - (alt ? LAYOUT.textEndeAlt : LAYOUT.textEnde));
 
-  // Fester Handlungsblock im dritten Falzfeld – der einzige Rahmen der Seite.
+  // Handlungsblock im dritten Falzfeld – der einzige Rahmen der Seite, mittig
+  // im freien Raum zwischen Textende und Hinweis.
   if (!alt) {
     const C = LAYOUT.cta;
-    form(LAYOUT.textX, C.y, 165, C.hoehe, C.radius, { rand: FARBE.akzent, randBreite: C.linie });
-    seite.drawImage(qr, { x: mm(C.qrX), y: A4_H - mm(C.qrY + C.qr), width: mm(C.qr), height: mm(C.qr) });
-    text(kurz, C.textX, C.linkY, 12.5, fett, FARBE.dunkel);
-    let yy = C.scanY;
+    const cy = ctaOben(textEnde);
+    form(LAYOUT.textX, cy, 165, C.hoehe, C.radius, { rand: FARBE.akzent, randBreite: C.linie });
+    seite.drawImage(qr, { x: mm(C.qrX), y: A4_H - mm(cy + C.qrVersatz + C.qr), width: mm(C.qr), height: mm(C.qr) });
+    text(kurz, C.textX, cy + C.linkVersatz, 12.5, fett, FARBE.dunkel);
+    let yy = cy + C.scanVersatz;
     for (const l of umbrechen(CTA.scan, 9, mm(C.textBreite)).slice(0, 2)) { text(l, C.textX, yy, 9, font, FARBE.sekundaer); yy += C.scanZeile; }
-    text(`${CTA.anrufen} ${a.telefon}`, C.textX, C.anrufY, 10, fett, FARBE.dunkel);
+    text(`${CTA.anrufen} ${a.telefon}`, C.textX, cy + C.anrufVersatz, 10, fett, FARBE.dunkel);
   }
   // Hinweis fest unten, hoechstens vier Zeilen – mehr zaehlt als Ueberlauf.
   {
@@ -424,6 +438,8 @@ async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf:
       text(c.label, 31.5, cy, 10, fett, FARBE.dunkel);
       textPt(` – ${c.text}`, mm(31.5) + breiteVon(c.label, 10, fett), cy, 10, font, FARBE.sekundaer);
     });
+    yy = R.preisY;
+    for (const l of umbrechen(R.preis, R.preisGroesse, mm(R.preisBreite)).slice(0, 2)) { text(l, LAYOUT.textX, yy, R.preisGroesse, font, FARBE.grau2); yy += R.preisZeile; }
     form(...R.sockel, { color: FARBE.toenung });
     const [hx, hy, hw, hh, hr] = R.handy.rahmen;
     schatten(hx, hy, hw, hh, hr);
@@ -489,6 +505,7 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr, befunde, gepru
   const textRef = useRef<HTMLDivElement>(null);
   const hinweisRef = useRef<HTMLParagraphElement>(null);
   const [skala, setSkala] = useState(0.5);
+  const [ctaTop, setCtaTop] = useState(LAYOUT.cta.yMax);
   const portraet = usePngVorhanden(DATEI.portraet);
   const unterschrift = usePngVorhanden(DATEI.unterschrift);
   useEffect(() => {
@@ -511,13 +528,14 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr, befunde, gepru
   const zuletzt = useRef(-1);
   useEffect(() => {
     const el = textRef.current;
-    if (!el || !onUeberlauf) return;
+    if (!el) return;
     const messen = () => {
       const px = 96 / 25.4;
       const ende = LAYOUT.textY + el.offsetHeight / px;
       const hinweisMm = hinweisRef.current ? hinweisRef.current.offsetHeight / px : 0;
       const wert = Math.round(Math.max(0, ende - (alt ? LAYOUT.textEndeAlt : LAYOUT.textEnde)) + Math.max(0, hinweisMm - LAYOUT.hinweis.maxZeilen * LAYOUT.hinweis.zeile));
-      if (wert !== zuletzt.current) { zuletzt.current = wert; onUeberlauf(wert); }
+      setCtaTop(Math.round(ctaOben(ende) * 10) / 10);
+      if (onUeberlauf && wert !== zuletzt.current) { zuletzt.current = wert; onUeberlauf(wert); }
     };
     messen();
     const ro = new ResizeObserver(messen);
@@ -592,7 +610,7 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr, befunde, gepru
             })}
           </div>
           {!alt && (
-            <div className="post-b-cta">
+            <div className="post-b-cta" style={{ top: `${ctaTop}mm` }}>
               {qr && <img className="qr" src={qr} alt="QR-Code zum Link" />}
               <div className="text">
                 <b className="link">{linkKurz(link)}</b>
@@ -626,6 +644,7 @@ function Rueckseite({ link, qr, absender, befunde }: { link: string; qr: string;
       <div className="post-blatt post-rueck" aria-label="Vorschau der Rückseite">
         <p className="post-r-titel">{R.titel[0]}<br />{R.titel[1]}</p>
         <p className="post-r-absatz">{R.text}</p>
+        <p className="post-r-preis">{R.preis}</p>
         <ul className="post-r-checks">
           {checks.map(c => (
             <li key={c.label}>
