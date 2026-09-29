@@ -1246,7 +1246,9 @@ export default function PostSeite() {
                 <b>{gewaehlt.name}</b>
                 <p>{[gewaehlt.strasse, [gewaehlt.plz, gewaehlt.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ") || "Anschrift unbekannt"}</p>
                 <p>
-                  {gewaehlt.website ? <a href={gewaehlt.website} target="_blank" rel="noopener noreferrer" className="akq-link">{gewaehlt.website}</a> : "keine Website"}
+                  {gewaehlt.website
+                    ? <a href={gewaehlt.website} target="_blank" rel="noopener noreferrer" className="akq-link" title={gewaehlt.website}>{gewaehlt.website.replace(/^https?:\/\/(www\.)?/, "").replace(/[?#].*$/, "").replace(/\/$/, "")}</a>
+                    : "keine Website"}
                   {" · "}{gewaehlt.geprueft_am ? `geprüft ${datum(gewaehlt.geprueft_am)}` : "noch nicht geprüft"}
                   {" · "}Status {BETRIEB_STATUS[gewaehlt.status] || gewaehlt.status}
                 </p>

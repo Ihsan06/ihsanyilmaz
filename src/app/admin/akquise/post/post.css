@@ -37,9 +37,10 @@
 .post-treffer li button { display:flex; justify-content:space-between; gap:12px; width:100%; text-align:left; font:inherit; font-size:.88rem; padding:8px 10px; border:0; background:none; border-radius:7px; cursor:pointer; color:var(--fg); }
 .post-treffer li button:hover { background:var(--surface-2); }
 .post-treffer li button span { color:var(--fg-subtle); font-size:.78rem; white-space:nowrap; }
-.post-gewaehlt { display:grid; grid-template-columns:1fr auto; gap:14px 24px; align-items:start; padding:16px 18px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); margin-top:14px; }
+.post-gewaehlt { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px 24px; align-items:start; padding:16px 18px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); margin-top:14px; }
 .post-gewaehlt b { display:block; font-size:1rem; color:var(--fg); }
-.post-gewaehlt p { margin:2px 0 0; font-size:.84rem; color:var(--fg-muted); }
+.post-gewaehlt p { margin:2px 0 0; font-size:.84rem; color:var(--fg-muted); overflow-wrap:anywhere; }
+.post-gewaehlt > div:first-child { min-width:0; }
 .post-gewaehlt .post-aktionen { justify-content:flex-end; }
 
 /* Arbeitsflaeche wie bei „Content erstellen“: links die Vorschau – sie
