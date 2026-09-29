@@ -28,6 +28,15 @@ const SEITEN: Seite[] = [
     ],
   },
   {
+    pfad: "/admin/akquise",
+    titel: "Akquise",
+    icon: Radar,
+    unter: [
+      { pfad: "/admin/akquise", titel: "Betriebe" },
+      { pfad: "/admin/akquise/post", titel: "Post" },
+    ],
+  },
+  {
     pfad: "/admin/finanzen",
     titel: "Finanzen",
     icon: Euro,
@@ -39,15 +48,6 @@ const SEITEN: Seite[] = [
   },
   { pfad: "/admin/dokumente", titel: "Dokumente", icon: FolderOpen },
   { pfad: "/admin/anfragen", titel: "Anfragen", icon: Inbox },
-  {
-    pfad: "/admin/akquise",
-    titel: "Akquise",
-    icon: Radar,
-    unter: [
-      { pfad: "/admin/akquise", titel: "Betriebe" },
-      { pfad: "/admin/akquise/post", titel: "Post" },
-    ],
-  },
 ];
 
 // Kleines "i" mit Erklaerung beim Drueberfahren – oder beim Antippen am
