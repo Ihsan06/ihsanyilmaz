@@ -47,7 +47,7 @@
 .post-arbeit { display:grid; grid-template-columns:minmax(320px, 440px) minmax(0, 1fr); gap:24px; align-items:start; }
 .post-arbeit.ohne-schau { grid-template-columns:minmax(0, 1fr); }
 .post-inhalt { min-width:0; }
-.post-schau { position:sticky; top:16px; max-height:calc(100vh - 32px); overflow:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:22px; }
+.post-schau { position:sticky; top:16px; display:flex; flex-direction:column; gap:10px; margin-bottom:22px; }
 .post-schau-kopf { display:flex; align-items:center; gap:8px; min-width:0; }
 .post-schau-titel { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-subtle); }
 .post-schau-chip { flex:none; font-size:.7rem; font-weight:700; padding:2px 9px; border-radius:999px; background:var(--accent-soft); color:var(--accent); white-space:nowrap; }

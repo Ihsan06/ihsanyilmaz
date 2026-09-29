@@ -844,6 +844,23 @@ export default function PostSeite() {
   const qr = qrStand && qrStand.link === schauLink ? qrStand.url : "";
   const grossZu = useCallback(() => setGross(false), []);
 
+  // Vorschau-Spalte: zwei A4-Seiten sind hoeher als das Fenster. Statt sie
+  // abzuschneiden, klebt die Spalte mit negativem Abstand – beim Scrollen
+  // laeuft sie erst mit, bis ihr Ende sichtbar ist, und bleibt dann stehen.
+  // So sind Vorder- und Rueckseite ganz zu sehen.
+  const schauRef = useRef<HTMLElement>(null);
+  const mitSchau = schau != null;
+  useEffect(() => {
+    const el = schauRef.current;
+    if (!el) return;
+    const setzen = () => { el.style.top = `${Math.min(16, window.innerHeight - el.offsetHeight - 16)}px`; };
+    setzen();
+    const ro = new ResizeObserver(setzen);
+    ro.observe(el);
+    window.addEventListener("resize", setzen);
+    return () => { ro.disconnect(); window.removeEventListener("resize", setzen); };
+  }, [mitSchau]);
+
   const editorSetzen = (e: Editor | null) => {
     setEditor(e);
     setText(e?.brief.text || "");
@@ -1098,7 +1115,7 @@ export default function PostSeite() {
       {reiter !== "sperrliste" && (
       <div className={`post-arbeit${schau ? "" : " ohne-schau"}`}>
         {schau && (
-          <aside className="post-schau" aria-label="Vorschau">
+          <aside className="post-schau" aria-label="Vorschau" ref={schauRef}>
             <div className="post-schau-kopf">
               {schau.token ? (
                 <span className="post-schau-wahl" role="tablist" aria-label="Vorschau">

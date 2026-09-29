@@ -1187,9 +1187,10 @@ function AkquiseCockpit() {
     <>
       {fehler && <p className="mb-5 text-sm" style={{ color: "#ef4444" }}>{fehler}</p>}
 
-      {/* Oben das Lagebild: links Suchlauf und Kennzahlen, rechts die Karte
-          im Hochformat – Deutschland und die meisten Landkreise sind hoeher
-          als breit. Kennzahlen und Legende filtern per Klick. */}
+      {/* Oben das Lagebild: links die Karte im Hochformat – Deutschland und die
+          meisten Landkreise sind hoeher als breit –, rechts Suchlauf und
+          Kennzahlen (Reihenfolge per CSS, schmal steht der Suchlauf oben).
+          Kennzahlen und Legende filtern per Klick. */}
       <div className="akq-oben">
         <div className="akq-oben-links">
           <section className="mon-block akq-lauf">

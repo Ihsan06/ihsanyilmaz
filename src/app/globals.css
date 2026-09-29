@@ -628,6 +628,15 @@ html, body {
 .akq-oben { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,420px); gap:18px; margin-bottom:22px; align-items:stretch; }
 .akq-oben-links { display:flex; flex-direction:column; gap:18px; min-width:0; }
 .akq-oben .mon-block { margin-bottom:0; }
+/* Breit: Karte links, Suchlauf und Kacheln rechts. Die Kacheln fuellen die
+   Hoehe neben der Karte (Zeilen je 1fr), der Wert steht unten und groesser. */
+@media (min-width:1181px) {
+  .akq-oben { grid-template-columns:minmax(340px,420px) minmax(0,1fr); }
+  .akq-oben .akq-karten-block { order:-1; }
+  .akq-oben .akq-kennzahlen { flex:1; grid-auto-rows:1fr; }
+  .akq-oben .akq-kpi { justify-content:space-between; padding:18px 18px 18px 20px; }
+  .akq-oben .akq-kpi-wert { font-size:2.2rem; }
+}
 @media (max-width:1180px) { .akq-oben { grid-template-columns:1fr; } }
 
 /* Suchlauf */
