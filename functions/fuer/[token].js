@@ -8,7 +8,8 @@
 // wird nur "aufgerufen" am Brief – hoechstens einmal je Minute, damit ein
 // Scanner oder ein Vorschau-Bot die Zahl nicht aufblaest.
 // Suchmaschinen bleiben draussen (X-Robots-Tag + Meta), nichts wird gecacht.
-import { TOKEN_RE, CHECK_LABELS } from '../_lib/brief.js';
+import { TOKEN_RE, CHECK_LABELS, rueckChecks, quellenZeile } from '../_lib/brief.js';
+import { istAngemeldet } from '../_lib/auth.js';
 import { postEinstellungenLaden } from '../api/admin/akquise/post-einstellungen.js';
 
 const STARTSEITE = 'https://ihsan-yilmaz.de';
@@ -45,9 +46,34 @@ const CSS = `
   ul.befunde li.gruen::before { background:#2F9E5F; }
   ul.befunde li b { color:#F2F5F7; margin-right:6px; }
   p { margin:0 0 12px; color:#B4BFC9; }
-  .knopf { display:inline-block; padding:12px 22px; border-radius:999px; background:#1B6FA8; color:#fff; text-decoration:none; font-weight:600; border:0; font:inherit; font-weight:600; cursor:pointer; }
+  .knopf { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:14px 26px; border-radius:999px; background:#1B6FA8; color:#fff; text-decoration:none; border:0; font:inherit; font-size:1.02rem; font-weight:600; cursor:pointer; }
   .knopf:hover { background:#2380c0; }
   .knopf.leise { background:transparent; border:1px solid #7C8A97; color:#F2F5F7; }
+  .knopf.leise:hover { background:#182129; }
+  .knopf.gross { width:100%; padding:17px 20px; font-size:1.1rem; white-space:nowrap; }
+  .knopf svg { width:20px; height:20px; flex:none; }
+  .aktionen { display:grid; gap:10px; margin-top:8px; }
+  @media (min-width:560px) { .aktionen { grid-template-columns:1fr 1fr; } }
+  /* Demo-Ausschnitte: Handy links, Fahrzeugliste im Browserfenster rechts */
+  .demo { display:grid; grid-template-columns:minmax(0,1fr); gap:18px; align-items:start; margin:18px 0 22px; }
+  @media (min-width:560px) { .demo { grid-template-columns:150px minmax(0,1fr); } }
+  .handy { justify-self:center; width:150px; padding:6px; border-radius:22px; background:#1E293B; box-shadow:0 14px 34px rgba(0,0,0,.45); }
+  .handy img { display:block; width:100%; border-radius:16px; }
+  .browser { border-radius:12px; background:#1E293B; overflow:hidden; box-shadow:0 14px 34px rgba(0,0,0,.45); }
+  .browser .leiste { display:flex; align-items:center; gap:6px; padding:9px 12px; }
+  .browser .leiste i { width:8px; height:8px; border-radius:50%; background:#64748B; }
+  .browser .leiste span { flex:1; margin-left:8px; padding:3px 12px; border-radius:999px; background:#0F172A; color:#94A3B8; font-size:.72rem; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .browser img { display:block; width:100%; }
+  ul.checks { list-style:none; margin:0 0 6px; padding:0; }
+  ul.checks li { position:relative; padding:8px 0 8px 32px; color:#E6EBEF; }
+  ul.checks li i { position:absolute; left:2px; top:9px; width:20px; height:20px; border-radius:50%; background:#2F9E5F; }
+  ul.checks li i::after { content:""; position:absolute; left:6px; top:4px; width:5px; height:9px; border:solid #fff; border-width:0 2.5px 2.5px 0; transform:rotate(45deg); }
+  ul.checks li b { color:#F2F5F7; }
+  .schritte { list-style:none; margin:0; padding:0; counter-reset:s; }
+  .schritte li { position:relative; padding:6px 0 6px 34px; color:#B4BFC9; }
+  .schritte li::before { counter-increment:s; content:counter(s); position:absolute; left:0; top:5px; width:24px; height:24px; border-radius:50%; background:#1B6FA8; color:#fff; font-weight:700; font-size:.85rem; display:flex; align-items:center; justify-content:center; }
+  .schritte li b { color:#F2F5F7; }
+  .quelle { margin:10px 0 0; font-size:.78rem; color:#7C8A97; }
   form { display:grid; gap:12px; margin-top:16px; }
   label { font-size:.85rem; color:#B4BFC9; display:block; }
   input[type=email], select { width:100%; padding:12px 14px; border-radius:10px; border:1px solid #243039; background:#182129; color:#F2F5F7; font:inherit; }
@@ -102,7 +128,7 @@ export async function briefZuToken(env, token) {
   if (!TOKEN_RE.test(token || '') || !env.DB) return null;
   const z = await env.DB.prepare(
     `SELECT br.id, br.token, br.status, br.befunde, br.angelegt, br.gesendet_am,
-            b.id AS betrieb_id, b.name, b.ort, b.status AS betrieb_status
+            b.id AS betrieb_id, b.name, b.ort, b.status AS betrieb_status, b.geprueft_am, b.google_stand
      FROM akquise_briefe br LEFT JOIN akquise_betriebe b ON b.id = br.betrieb_id
      WHERE br.token = ?`,
   ).bind(token).first();
@@ -120,17 +146,20 @@ function fussHtml(token) {
   </div>`;
 }
 
-export async function onRequestGet({ params, env, waitUntil }) {
+export async function onRequestGet({ request, params, env, waitUntil }) {
   const token = String(params.token || '');
   const brief = await briefZuToken(env, token).catch(() => null);
   if (!brief) return nichtGefunden();
 
   // Zaehlen – hoechstens einmal je Minute je Token (also max. 60 je Stunde).
-  const zaehlung = env.DB.prepare(
-    `UPDATE akquise_briefe SET aufrufe = aufrufe + 1, zuletzt_aufgerufen = datetime('now')
-     WHERE id = ? AND (zuletzt_aufgerufen IS NULL OR zuletzt_aufgerufen < datetime('now', '-60 seconds'))`,
-  ).bind(brief.id).run().catch(() => {});
-  if (typeof waitUntil === 'function') waitUntil(zaehlung); else await zaehlung;
+  // Eigene Aufrufe aus dem Admin (Vorschau unter Post) zaehlen nicht.
+  if (!(await istAngemeldet(request, env).catch(() => false))) {
+    const zaehlung = env.DB.prepare(
+      `UPDATE akquise_briefe SET aufrufe = aufrufe + 1, zuletzt_aufgerufen = datetime('now')
+       WHERE id = ? AND (zuletzt_aufgerufen IS NULL OR zuletzt_aufgerufen < datetime('now', '-60 seconds'))`,
+    ).bind(brief.id).run().catch(() => {});
+    if (typeof waitUntil === 'function') waitUntil(zaehlung); else await zaehlung;
+  }
 
   const e = await postEinstellungenLaden(env).catch(() => null);
   const telefon = e?.absender?.telefon || '';
@@ -143,7 +172,14 @@ export async function onRequestGet({ params, env, waitUntil }) {
         return `<li${b.code === 'google_note' ? ' class="gruen"' : ''}>${label ? `<b>${esc(label)}</b>` : ''}${esc(b.text)}</li>`;
       }).join('')}</ul>`
     : '<p>Die Punkte stehen in Ihrem Brief.</p>';
+  const quelle = quellenZeile(brief.befunde, brief.geprueft_am, brief.google_stand);
+  const checks = rueckChecks(brief.befunde);
+  const telLink = telefon ? `tel:${esc(telefon.replace(/[^\d+]/g, ''))}` : '';
+  const TELEFON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>';
 
+  // Dieselben Bausteine wie der Brief: Befunde mit Stichwort, die drei Haken,
+  // die Demo-Ausschnitte, drei Schritte – und die Knoepfe gross, weil die
+  // meisten die Seite auf dem Handy oeffnen.
   const inhalt = `
     <p class="eyebrow">Persönliche Seite</p>
     <h1>Für ${esc(firma)}</h1>
@@ -151,21 +187,44 @@ export async function onRequestGet({ params, env, waitUntil }) {
 
     <section>
       <h2>Das ist mir aufgefallen</h2>
-      <div class="karte">${befundeHtml}</div>
+      <div class="karte">${befundeHtml}${quelle ? `<p class="quelle">${esc(quelle)}</p>` : ''}</div>
     </section>
 
     <section>
-      <h2>So könnte es aussehen</h2>
-      <p>Auf meiner Website steht eine fertige Autohaus-Demo: Fahrzeuge, Werkstatt-Termine, Öffnungszeiten – alles auf dem Smartphone bedienbar. Sie können sie direkt ansehen oder sich den Link per E-Mail schicken lassen.</p>
-      <p><a class="knopf leise" href="${STARTSEITE}/#demo">Demo auf ihsan-yilmaz.de ansehen</a></p>
+      <h2>So kann Ihre Website aussehen</h2>
+      <p>Meine Demo für das fiktive Autohaus Mustermann: Fahrzeuge mit Preisen, Finanzierungsrechner, Kontakt per WhatsApp – gebaut für das Smartphone.</p>
+      <div class="demo">
+        <div class="handy"><img src="/leistungen/handy-start.jpg" alt="Startseite der Demo auf dem Smartphone" loading="lazy"></div>
+        <div class="browser">
+          <div class="leiste"><i></i><i></i><i></i><span>Demo · Autohaus Mustermann</span></div>
+          <img src="/leistungen/web-fahrzeuge.jpg" alt="Fahrzeugliste der Demo am Desktop" loading="lazy">
+        </div>
+      </div>
+      <ul class="checks">${checks.map(c => `<li><i></i><b>${esc(c.label)}</b> – ${esc(c.text)}</li>`).join('')}</ul>
+      <p class="klein">Abbildungen: eigene Demo mit Beispieldaten – keine Aufnahmen Ihres Betriebs.</p>
+    </section>
+
+    <section>
+      <h2>So geht es weiter</h2>
+      <ol class="schritte">
+        <li><b>Demo-Zugang anfordern</b> – die Links kommen per E-Mail, ohne Konto, ohne Newsletter.</li>
+        <li><b>In Ruhe ansehen</b> – Website und Verwaltungsbereich, mit Beispieldaten zum Ausprobieren.</li>
+        <li><b>Kurz sprechen</b> – wenn es passt, ein schriftliches Angebot, unverbindlich.</li>
+      </ol>
+    </section>
+
+    <section>
       <div class="karte">
-        <h2 style="font-size:1rem">Demo-Zugang per E-Mail</h2>
+        <h2 style="font-size:1.05rem">Demo-Zugang per E-Mail</h2>
         <form id="demo" autocomplete="off">
           <div><label for="email">Ihre E-Mail-Adresse</label><input type="email" id="email" name="email" required maxlength="254" placeholder="name@autohaus.de"></div>
           <div><label for="auswahl">Welche Demo</label>
             <select id="auswahl" name="auswahl"><option value="autohaus">Autohaus</option><option value="cafe">Café</option><option value="beide">Beide</option></select></div>
           <div class="fax" aria-hidden="true"><label>Fax<input type="text" name="fax" tabindex="-1" autocomplete="off"></label></div>
-          <div><button class="knopf" type="submit">Demo-Zugang anfordern</button></div>
+          <div class="aktionen">
+            <button class="knopf gross" type="submit">Demo-Zugang anfordern</button>
+            ${telefon ? `<a class="knopf gross leise" href="${telLink}" aria-label="Anrufen: ${esc(telefon)}">${TELEFON_SVG}${esc(telefon)}</a>` : ''}
+          </div>
           <p class="meldung" id="meldung" aria-live="polite"></p>
           <p class="klein">Die Adresse wird nur für den Versand der Demo-Links gespeichert. Es gibt keinen Newsletter.</p>
         </form>
@@ -176,8 +235,9 @@ export async function onRequestGet({ params, env, waitUntil }) {
       <h2>Direkt erreichbar</h2>
       <p class="kontakt">
         <a href="mailto:${esc(email)}">${esc(email)}</a>
-        ${telefon ? `<a href="tel:${esc(telefon.replace(/[^\d+]/g, ''))}">${esc(telefon)}</a>` : ''}
+        ${telefon ? `<a href="${telLink}">${esc(telefon)}</a>` : ''}
       </p>
+      <p class="klein">Wenn ich nicht abhebe, rufe ich bis zum nächsten Werktag zurück.</p>
     </section>
     ${fussHtml(token)}
     <script>

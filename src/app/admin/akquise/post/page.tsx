@@ -52,6 +52,7 @@ type Reiter = "briefe" | "brief" | "vorlage" | "sperrliste";
 type Schau = {
   chip: string; titel: string; text: string; empfaenger: string; absender: Absender; link: string; datumText: string; briefId?: number;
   befunde: Befund[]; geprueftAm?: string | null; googleStand?: string | null;
+  token?: string; // gesetzt, sobald es die persoenliche Seite gibt (Entwurf oder Brief)
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -710,6 +711,8 @@ export default function PostSeite() {
   const [heuteIso] = useState(() => new Date().toISOString().slice(0, 10));
   // Meldung der Vorschau: Textfluss laeuft ueber die Grenze (mm) – sperrt PDF und Freigabe.
   const [ueberlauf, setUeberlauf] = useState(0);
+  // Vorschau links: das Blatt oder die persoenliche Seite (nur mit Token).
+  const [schauArt, setSchauArt] = useState<"brief" | "seite">("brief");
 
   // Vorlage & Absender
   const [absenderForm, setAbsenderForm] = useState<Absender | null>(null);
@@ -800,6 +803,7 @@ export default function PostSeite() {
         titel: editor.brief.art === "test" ? "Testbrief an mich" : editor.betrieb?.name || editor.brief.betrieb_name || "",
         text, empfaenger: empf, absender: einst.absender, link, datumText: heute,
         befunde: editor.brief.befunde, geprueftAm: editor.betrieb?.geprueft_am, googleStand: editor.betrieb?.google_stand,
+        token: editor.brief.token,
       };
     }
     if (reiter === "brief" && gewaehlt) {
@@ -820,6 +824,7 @@ export default function PostSeite() {
           text: b.text || "", empfaenger: b.empfaenger || "", absender: einst.absender,
           link: landingLink(einst.landing_basis, b.token), datumText: datumAus(b.gesendet_am, heute),
           befunde: b.befunde || [], geprueftAm: b.betrieb_geprueft_am, googleStand: b.betrieb_google_stand,
+          token: b.token,
         };
       }
     }
@@ -1095,7 +1100,12 @@ export default function PostSeite() {
         {schau && (
           <aside className="post-schau" aria-label="Vorschau">
             <div className="post-schau-kopf">
-              <span className="post-schau-titel">Vorschau</span>
+              {schau.token ? (
+                <span className="post-schau-wahl" role="tablist" aria-label="Vorschau">
+                  <button type="button" role="tab" aria-selected={schauArt === "brief"} className={schauArt === "brief" ? "an" : ""} onClick={() => setSchauArt("brief")}>Brief</button>
+                  <button type="button" role="tab" aria-selected={schauArt === "seite"} className={schauArt === "seite" ? "an" : ""} onClick={() => setSchauArt("seite")}>Persönliche Seite</button>
+                </span>
+              ) : <span className="post-schau-titel">Vorschau</span>}
               <span className="post-schau-chip">{schau.chip}</span>
               {ueberlauf > 0 && <span className="post-schau-chip warn" title="Text kürzen oder einen Befund abwählen">Läuft {ueberlauf} mm über</span>}
               <span className="post-schau-name" title={schau.titel}>{schau.titel}</span>
@@ -1103,8 +1113,16 @@ export default function PostSeite() {
                 <Maximize2 size={14} />
               </button>
             </div>
-            <Blatt text={schau.text} empfaenger={schau.empfaenger} absender={schau.absender} link={schau.link} datumText={schau.datumText} qr={qr}
-                   befunde={schau.befunde} geprueftAm={schau.geprueftAm} googleStand={schau.googleStand} onUeberlauf={setUeberlauf} />
+            {schauArt === "seite" && schau.token ? (
+              /* Dieselbe Seite wie hinter dem QR-Code, relativ geladen – lokal wie
+                 live die eigene Function; eigene Aufrufe aus dem Admin zaehlt sie nicht. */
+              <div className="post-seite">
+                <iframe src={`/fuer/${schau.token}`} title="Persönliche Seite, wie der Empfänger sie sieht" />
+              </div>
+            ) : (
+              <Blatt text={schau.text} empfaenger={schau.empfaenger} absender={schau.absender} link={schau.link} datumText={schau.datumText} qr={qr}
+                     befunde={schau.befunde} geprueftAm={schau.geprueftAm} googleStand={schau.googleStand} onUeberlauf={setUeberlauf} />
+            )}
             {reiter === "briefe" && schau.briefId != null && (
               <div className="post-schau-fuss">
                 <button type="button" className="akq-knopf" onClick={() => briefOeffnen(schau.briefId as number)}>Öffnen</button>
