@@ -133,8 +133,8 @@ const RUECK = {
   text: "Meine Demo für das fiktive Autohaus Mustermann: Fahrzeuge mit Preisen (auf Wunsch automatisch aus mobile.de), Finanzierungsrechner, Kontakt per WhatsApp – zum Anschauen und Ausprobieren.",
   textY: 38, textBreite: 100, textGroesse: 10, textZeile: 4.8,
   checksY: [60, 68, 76],
-  // Warum bezahlbar – ohne Zahl, aber mit dem Grund.
-  preis: "Gebaut mit den KI-Werkzeugen von heute – deshalb zu einem Preis, der vor wenigen Jahren nicht möglich war.",
+  // Zweites Argument (der Preis steht schon vorn): ein Ansprechpartner vor Ort.
+  preis: "Ein Ansprechpartner aus Würzburg – vom ersten Entwurf bis zur laufenden Pflege, ohne Agentur dazwischen.",
   preisY: 86, preisBreite: 108, preisGroesse: 9.5, preisZeile: 4.5,
   sockel: [136, 12, 54, 86, 6] as const,
   handy: { rahmen: [144.4, 16.4, 37.2, 76.9, 4.2] as const, ring: [145.6, 17.6, 34.8, 74.5, 3.2] as const, bild: [146, 18, 34, 73.7] as const },
