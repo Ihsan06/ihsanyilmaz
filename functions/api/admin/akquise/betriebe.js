@@ -31,7 +31,10 @@ const LISTE = `SELECT b.*,
     p.psi_lcp AS p_psi_lcp, p.psi_cls AS p_psi_cls,
     p.wayback_erster AS p_wayback_erster, p.wayback_letzter AS p_wayback_letzter,
     p.wayback_anzahl AS p_wayback_anzahl,
-    p.fehler AS p_fehler, p.signale AS p_signale
+    p.fehler AS p_fehler, p.signale AS p_signale,
+    -- Brief-Stand fuer die Markierung in der Liste (Testbriefe zaehlen nicht)
+    (SELECT MAX(gesendet_am) FROM akquise_briefe WHERE betrieb_id = b.id AND art != 'test' AND status IN ('gesendet', 'zugestellt')) AS brief_gesendet,
+    (SELECT COUNT(*) FROM akquise_briefe WHERE betrieb_id = b.id AND art != 'test' AND status IN ('entwurf', 'freigegeben')) AS brief_entwurf
   FROM akquise_betriebe b
   LEFT JOIN akquise_pruefungen p ON p.id = (
     SELECT id FROM akquise_pruefungen WHERE betrieb_id = b.id ORDER BY zeitpunkt DESC, id DESC LIMIT 1

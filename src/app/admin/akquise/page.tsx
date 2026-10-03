@@ -41,6 +41,7 @@ type PruefungVoll = LetztePruefung & {
 
 type Betrieb = {
   id: number;
+  brief_gesendet?: string | null; brief_entwurf?: number;
   quelle: string; quelle_id: string | null;
   name: string; art: string | null; marken: string | null;
   strasse: string | null; plz: string | null; ort: string | null;
@@ -1532,6 +1533,9 @@ function AkquiseCockpit() {
                       <button type="button" className="akq-name" onClick={() => aufklappen(b.id)}>{b.name}</button>
                       <span className="akq-unter">
                         {b.geloescht && <span className="akq-geloescht-am">Gelöscht {datum(b.geloescht)}</span>}
+                        {b.brief_gesendet
+                          ? <a className="akq-brief-marke" href="/admin/akquise/post" title="Brief verschickt – unter Post ansehen"><Mail size={10} aria-hidden="true" />Brief {datum(b.brief_gesendet)}</a>
+                          : b.brief_entwurf ? <span className="akq-brief-marke entwurf" title="Entwurf unter Post">Entwurf</span> : null}
                         {[b.art === "car_repair" ? "Werkstatt" : "Autohaus", b.ort, b.marken].filter(Boolean).join(" · ")}
                       </span>
                       {hinweis && <span className={`akq-zeilenhinweis${hinweis.fehler ? " fehler" : ""}`}>{hinweis.text}</span>}

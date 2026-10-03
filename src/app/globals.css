@@ -901,6 +901,10 @@ html, body {
 .akq-eintrag.im-korb:hover > .akq-signalzeile { opacity:1; filter:none; }
 .akq-eintrag.im-korb .akq-name { text-decoration:line-through; text-decoration-color:color-mix(in srgb, var(--fg) 35%, transparent); }
 .akq-eintrag.im-korb:hover .akq-name { text-decoration:none; }
+/* Markierung „Brief verschickt“ / „Entwurf“ vor der Unterzeile */
+.akq-brief-marke { display:inline-flex; align-items:center; gap:4px; margin-right:6px; padding:0 6px; border-radius:6px; font-size:.68rem; font-weight:700; color:#1d8a52; background:rgba(29,138,82,.12); text-decoration:none; vertical-align:1px; }
+.akq-brief-marke:hover { background:rgba(29,138,82,.2); }
+.akq-brief-marke.entwurf { color:var(--fg-muted); background:var(--mon-off); font-weight:600; }
 .akq-geloescht-am { display:inline-block; margin-right:6px; padding:0 6px; border-radius:6px; font-size:.68rem; font-weight:600; color:#b91c1c; background:color-mix(in srgb, #dc2626 10%, transparent); }
 .akq-stern button:disabled { opacity:.35; cursor:default; }
 .akq-knopf.akq-zurueck { border-color:var(--accent); color:var(--accent); }

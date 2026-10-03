@@ -35,7 +35,7 @@ type Brief = {
 type BetriebKurz = {
   id: number; name: string; strasse: string | null; plz: string | null; ort: string | null;
   website: string | null; status: string; kategorie?: string | null; geprueft_am: string | null; geloescht?: string | null;
-  google_stand?: string | null;
+  google_stand?: string | null; brief_gesendet?: string | null;
 };
 type Absender = { name: string; zusatz: string; strasse: string; plz_ort: string; telefon: string; email: string; web: string };
 type Einstellungen = {
@@ -1275,7 +1275,7 @@ export default function PostSeite() {
                 {treffer.map(b => (
                   <li key={b.id}>
                     <button type="button" onClick={() => { setGewaehlt(b); setTreffer([]); setSuche(""); }}>
-                      {b.name}<span>{[b.ort, b.kategorie ? KATEGORIE_LABEL[b.kategorie] || b.kategorie : null, BETRIEB_STATUS[b.status]].filter(Boolean).join(" · ")}</span>
+                      {b.name}<span>{[b.ort, b.kategorie ? KATEGORIE_LABEL[b.kategorie] || b.kategorie : null, b.brief_gesendet ? `Brief ${datum(b.brief_gesendet)}` : BETRIEB_STATUS[b.status]].filter(Boolean).join(" · ")}</span>
                     </button>
                   </li>
                 ))}
