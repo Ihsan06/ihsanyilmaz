@@ -656,7 +656,7 @@ html, body {
 .akq-textknopf:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
 
 /* Schritte des Suchlaufs: sechs Stationen, jede mit Zustand und Zahl. */
-.akq-schritte { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.akq-schritte { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; }
 @media (max-width:760px) { .akq-schritte { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .akq-schritt { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--surface); transition:border-color .2s ease, background .2s ease; min-width:0; }
 .akq-schritt-marke { flex:none; width:24px; height:24px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; background:var(--surface-2); color:var(--fg-subtle); }
@@ -795,6 +795,10 @@ html, body {
 .akq-eintrag:hover { background:linear-gradient(to right, transparent, var(--mon-off) 8%, var(--mon-off) 92%, transparent); }
 .akq-eintrag.offen { background:var(--mon-off); border-radius:12px; border-bottom-color:transparent; margin:6px -12px; padding-left:12px; padding-right:12px; }
 .akq-eintrag.gewaehlt .akq-name { color:var(--accent); }
+/* Brief verschickt: ganze Zeile leicht gruen hinterlegt, links ein gruener Strich */
+.akq-eintrag.versendet { background:rgba(29,138,82,.07); box-shadow:inset 3px 0 0 #1d8a52; border-radius:10px; margin:2px -12px; padding-left:12px; padding-right:12px; }
+.akq-eintrag.versendet:hover { background:rgba(29,138,82,.11); }
+.akq-eintrag.versendet.offen { background:rgba(29,138,82,.09); }
 .akq-eintrag > .akq-raster > div { min-width:0; }
 
 .akq-nr { display:flex; flex-direction:column; line-height:1.15; font-variant-numeric:tabular-nums; }
@@ -905,6 +909,11 @@ html, body {
 .akq-brief-marke { display:inline-flex; align-items:center; gap:4px; margin-right:6px; padding:0 6px; border-radius:6px; font-size:.68rem; font-weight:700; color:#1d8a52; background:rgba(29,138,82,.12); text-decoration:none; vertical-align:1px; }
 .akq-brief-marke:hover { background:rgba(29,138,82,.2); }
 .akq-brief-marke.entwurf { color:var(--fg-muted); background:var(--mon-off); font-weight:600; }
+button.akq-brief-marke { border:0; font-family:inherit; line-height:inherit; cursor:pointer; }
+.akq-brief-marke.fehlt { color:#b45309; background:rgba(245,158,11,.14); }
+.akq-brief-marke.fehlt:hover { background:rgba(245,158,11,.24); }
+.akq-anschrift-feld { display:grid; grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr); gap:4px; }
+.akq-anschrift-feld .strasse { grid-column:1 / -1; }
 .akq-geloescht-am { display:inline-block; margin-right:6px; padding:0 6px; border-radius:6px; font-size:.68rem; font-weight:600; color:#b91c1c; background:color-mix(in srgb, #dc2626 10%, transparent); }
 .akq-stern button:disabled { opacity:.35; cursor:default; }
 .akq-knopf.akq-zurueck { border-color:var(--accent); color:var(--accent); }

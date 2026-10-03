@@ -113,6 +113,13 @@ export const onRequestPatch = nurAngemeldet(async ({ request, env }) => {
     setze('kategorie', body.kategorie);
   }
   if (body.notiz !== undefined) setze('notiz', body.notiz === null ? null : String(body.notiz).slice(0, 4000));
+  // Anschrift von Hand: leer = unbekannt; PLZ nur fuenfstellig.
+  for (const feld of ['strasse', 'plz', 'ort']) {
+    if (body[feld] === undefined) continue;
+    const wert = String(body[feld] ?? '').replace(/\s+/g, ' ').trim().slice(0, 200) || null;
+    if (feld === 'plz' && wert && !/^\d{5}$/.test(wert)) return json({ ok: false, error: 'PLZ muss fünfstellig sein.' }, 400);
+    setze(feld, wert); antwort[feld] = wert;
+  }
 
   // Nach Bestaetigen oder Verwerfen werden die Signale der letzten Pruefung
   // neu gerechnet (der Chip "Website geraten" soll verschwinden). Eine neue

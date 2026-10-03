@@ -41,7 +41,7 @@ type PruefungVoll = LetztePruefung & {
 
 type Betrieb = {
   id: number;
-  brief_gesendet?: string | null; brief_entwurf?: number;
+  brief_gesendet?: string | null; brief_entwurf?: number; anschrift_stand?: string | null;
   quelle: string; quelle_id: string | null;
   name: string; art: string | null; marken: string | null;
   strasse: string | null; plz: string | null; ort: string | null;
@@ -67,13 +67,14 @@ type Stand = {
 };
 
 // Der Suchlauf in Schritten – jeder zeigt Zustand und Zahlen.
-type SchrittKey = "osm" | "google" | "abgleich" | "doppelte" | "pruefen" | "psi";
+type SchrittKey = "osm" | "google" | "abgleich" | "doppelte" | "anschrift" | "pruefen" | "psi";
 type SchrittStand = { status: "wartet" | "laeuft" | "fertig" | "fehler" | "aus"; text: string; fertig?: number; gesamt?: number };
 const SCHRITTE: { key: SchrittKey; titel: string }[] = [
   { key: "osm", titel: "OpenStreetMap" },
   { key: "google", titel: "Google Maps" },
   { key: "abgleich", titel: "Abgleich" },
   { key: "doppelte", titel: "Zusammenführen" },
+  { key: "anschrift", titel: "Anschriften" },
   { key: "pruefen", titel: "Websites prüfen" },
   { key: "psi", titel: "PageSpeed" },
 ];
@@ -198,6 +199,12 @@ const brauchtPruefung = (b: Betrieb) => zeitAlt(b.geprueft_am, PRUEF_ALTER_TAGE)
 // Betrieb ohne Website – Google kennt fuer ihn aber keine, und der Knopf
 // stand nach jedem Lauf wieder mit derselben Zahl da.
 const brauchtGoogle = (b: Betrieb) => !b.google_stand;
+// Anschrift unvollstaendig: ohne Strasse, PLZ oder Ort kann kein Brief raus.
+const ohneAnschrift = (b: Betrieb) => !b.strasse || !b.plz || !b.ort;
+// Strasse ohne Hausnummer (OSM kennt sie manchmal nicht) – Brief kommt evtl. nicht an.
+const ohneHausnummer = (b: Betrieb) => !!b.strasse && !/\d/.test(b.strasse);
+// Automatisch ergaenzen nur einmal – danach bleibt es beim Eintrag von Hand.
+const brauchtAnschrift = (b: Betrieb) => ohneAnschrift(b) && b.lat != null && !b.anschrift_stand;
 // PageSpeed nur fuer eigene, erreichbare Websites ohne Messwert.
 const brauchtPsi = (b: Betrieb) =>
   !!b.website && !istBoerse(b.website) && !!b.letzte_pruefung?.erreichbar && b.letzte_pruefung?.psi_leistung == null;
@@ -714,6 +721,19 @@ function AkquiseCockpit() {
     }
   };
 
+  // Fehlende Anschrift aus OpenStreetMap ergaenzen (Nominatim, 1 Anfrage/s –
+  // der Aufrufer haelt den Takt).
+  const anschriftErgaenzen = async (b: Betrieb): Promise<string | void> => {
+    try {
+      const a = await api("/api/admin/akquise/anschrift", { method: "POST", body: JSON.stringify({ id: b.id }) });
+      if (a.betrieb) zeileAendern(b.id, { strasse: a.betrieb.strasse, plz: a.betrieb.plz, ort: a.betrieb.ort, anschrift_stand: a.betrieb.anschrift_stand });
+      const n = Object.keys(a.ergaenzt || {}).length;
+      if (n) hinweisSetzen(b.id, "Anschrift aus OpenStreetMap ergänzt", false, 6000);
+    } catch (e) {
+      return e instanceof Error ? e.message : "Anschrift nicht ergänzt.";
+    }
+  };
+
   // PageSpeed mit Schluessel auf dem Server. Ist die API am Schluessel nicht
   // freigegeben, wirft sie – der Suchlauf haelt diesen Schritt dann an.
   const PSI_GESPERRT = /aktiviert|gesperrt|ungültig|beschränkt|Abrechnung|nicht eingerichtet/;
@@ -863,6 +883,20 @@ function AkquiseCockpit() {
       schritt("doppelte", { status: "fertig", text: z.zusammengefuehrt ? `${zahl(z.zusammengefuehrt)} zusammengeführt` : "keine sicheren Doppelten" });
       if (abbruch.current) return;
 
+      // 5 Fehlende Anschriften aus OpenStreetMap (eine je Sekunde)
+      aktuell = "anschrift";
+      aktive = await holeAktive();
+      const ohne = aktive.filter(brauchtAnschrift);
+      if (!ohne.length) schritt("anschrift", { status: "fertig", text: "alle vollständig" });
+      else {
+        schritt("anschrift", { status: "laeuft", text: `0 von ${zahl(ohne.length)}`, fertig: 0, gesamt: ohne.length });
+        const grund = await nebenher(ohne, 1, async b => { const m = await anschriftErgaenzen(b); await warte(1100); return m; },
+          n => schritt("anschrift", { text: `${zahl(n)} von ${zahl(ohne.length)}`, fertig: n }));
+        const rest = (await holeAktive()).filter(ohneAnschrift).length;
+        schritt("anschrift", grund ? { status: "fehler", text: grund } : { status: "fertig", text: rest ? `${zahl(ohne.length - Math.min(rest, ohne.length))} ergänzt · ${zahl(rest)} von Hand` : "alle ergänzt" });
+      }
+      if (abbruch.current) return;
+
       // 5 Websites pruefen (neu oder aelter als 30 Tage)
       aktuell = "pruefen";
       aktive = await holeAktive();
@@ -911,6 +945,7 @@ function AkquiseCockpit() {
   // bleiben Bewertung und Anzahl auf dem alten Stand.
   const zeileAuffrischen = async (b: Betrieb) => {
     if (googleEingerichtet) await googleSuchen(b);
+    if (ohneAnschrift(b)) await anschriftErgaenzen(b);
     await pruefen(b, { oeffnen: true });
     const frisch = (await holeAktive()).find(x => x.id === b.id);
     if (frisch && brauchtPsi(frisch)) {
@@ -931,6 +966,14 @@ function AkquiseCockpit() {
   const statusSetzen = (id: number, status: string) => {
     zeileAendern(id, { status });
     patch({ id, status }).then(() => ladeStand()).catch(e => setFehler(e.message));
+  };
+
+  const anschriftSpeichern = (b: Betrieb, feld: "strasse" | "plz" | "ort", roh: string) => {
+    const wert = roh.replace(/\s+/g, " ").trim() || null;
+    if ((b[feld] ?? null) === wert) return;
+    if (feld === "plz" && wert && !/^\d{5}$/.test(wert)) { hinweisSetzen(b.id, "PLZ muss fünfstellig sein", true, 6000); return; }
+    zeileAendern(b.id, { [feld]: wert });
+    patch({ id: b.id, [feld]: wert }).catch(e => setFehler(e.message));
   };
 
   const notizSpeichern = (b: Betrieb, notiz: string) => {
@@ -1159,7 +1202,7 @@ function AkquiseCockpit() {
   };
 
   const korbLeer = filter.papierkorb && !laedt && liste.length === 0;
-  const faellig = filter.papierkorb ? 0 : liste.filter(b => brauchtPruefung(b) || brauchtPsi(b) || (googleEingerichtet && brauchtGoogle(b))).length;
+  const faellig = filter.papierkorb ? 0 : liste.filter(b => brauchtPruefung(b) || brauchtPsi(b) || brauchtAnschrift(b) || (googleEingerichtet && brauchtGoogle(b))).length;
   const letzterLauf = stand?.laeufe?.[0];
   const unsichereDoppelte = (dubletten || []).filter(g => !g.sicher).length;
 
@@ -1516,7 +1559,7 @@ function AkquiseCockpit() {
               const schwaechen = signale.filter(x => x.seite === "website");
               const staerken = signale.filter(x => x.seite === "betrieb");
               return (
-                <div key={b.id} id={`betrieb-${b.id}`} role="rowgroup" className={`akq-eintrag${istOffen ? " offen" : ""}${b.auswahl ? " gewaehlt" : ""}${b.geloescht ? " im-korb" : ""}`}>
+                <div key={b.id} id={`betrieb-${b.id}`} role="rowgroup" className={`akq-eintrag${istOffen ? " offen" : ""}${b.auswahl ? " gewaehlt" : ""}${b.geloescht ? " im-korb" : ""}${b.brief_gesendet ? " versendet" : ""}`}>
                   <div className="akq-raster" role="row">
                     <div className="akq-nr" title={`ID ${b.id}`}>
                       <b>{nr + 1}</b>
@@ -1536,6 +1579,17 @@ function AkquiseCockpit() {
                         {b.brief_gesendet
                           ? <a className="akq-brief-marke" href="/admin/akquise/post" title="Brief verschickt – unter Post ansehen"><Mail size={10} aria-hidden="true" />Brief {datum(b.brief_gesendet)}</a>
                           : b.brief_entwurf ? <span className="akq-brief-marke entwurf" title="Entwurf unter Post">Entwurf</span> : null}
+                        {ohneAnschrift(b) && !b.geloescht && (
+                          <button type="button" className="akq-brief-marke fehlt" onClick={() => aufklappen(b.id)}
+                                  title={b.anschrift_stand ? "In OpenStreetMap nicht gefunden – bitte von Hand eintragen" : "Wird beim nächsten Suchlauf aus OpenStreetMap ergänzt"}>
+                            Anschrift fehlt
+                          </button>
+                        )}
+                        {!ohneAnschrift(b) && ohneHausnummer(b) && !b.geloescht && (
+                          <button type="button" className="akq-brief-marke fehlt" onClick={() => aufklappen(b.id)} title="Straße ohne Hausnummer – bitte prüfen und ergänzen">
+                            Hausnummer fehlt
+                          </button>
+                        )}
                         {[b.art === "car_repair" ? "Werkstatt" : "Autohaus", b.ort, b.marken].filter(Boolean).join(" · ")}
                       </span>
                       {hinweis && <span className={`akq-zeilenhinweis${hinweis.fehler ? " fehler" : ""}`}>{hinweis.text}</span>}
@@ -1639,8 +1693,17 @@ function AkquiseCockpit() {
                         <div>
                           <p className="akq-dt">Betrieb</p>
                           <dl className="akq-dl">
-                            <dt>Adresse</dt>
-                            <dd className="akq-lang">{[b.strasse, [b.plz, b.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ") || "—"}</dd>
+                            <dt>Anschrift</dt>
+                            <dd className="akq-anschrift-feld">
+                              {(["strasse", "plz", "ort"] as const).map(feld => (
+                                <input key={`${feld}-${b[feld] ?? ""}`} defaultValue={b[feld] ?? ""}
+                                       placeholder={feld === "strasse" ? "Straße Nr." : feld === "plz" ? "PLZ" : "Ort"}
+                                       inputMode={feld === "plz" ? "numeric" : undefined}
+                                       onBlur={e => anschriftSpeichern(b, feld, e.target.value)}
+                                       onKeyDown={e => { if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur(); }}
+                                       className={`field px-2 py-1 text-xs ${feld}`} aria-label={feld === "strasse" ? "Straße und Hausnummer" : feld === "plz" ? "PLZ" : "Ort"} />
+                              ))}
+                            </dd>
                             <dt>Telefon</dt>
                             <dd>{b.telefon ? <a href={`tel:${b.telefon.replace(/\s/g, "")}`} className="akq-link">{b.telefon}</a> : "—"}</dd>
                             {b.email && <><dt>E-Mail</dt><dd className="akq-lang">{b.email}</dd></>}

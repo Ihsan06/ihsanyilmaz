@@ -249,3 +249,7 @@ CREATE TABLE IF NOT EXISTS akquise_ausgeschlossen (
 -- Wann der Empfaenger auf seiner persoenlichen Seite die Demo geoeffnet hat
 -- (erster Klick auf „Demo jetzt ansehen“). Eigene Aufrufe aus dem Admin zaehlen nicht.
 ALTER TABLE akquise_briefe ADD COLUMN demo_geoeffnet TEXT;
+
+-- Zeitpunkt, zu dem die fehlende Anschrift aus OpenStreetMap (Nominatim) ergaenzt
+-- werden sollte – damit der Suchlauf es nicht bei jedem Lauf wiederholt.
+ALTER TABLE akquise_betriebe ADD COLUMN anschrift_stand TEXT;
