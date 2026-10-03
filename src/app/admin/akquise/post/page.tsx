@@ -755,8 +755,12 @@ export default function PostSeite() {
   const [pdfLauf, setPdfLauf] = useState(false);
   // Vorschau: Befunde zum gewaehlten Betrieb (noch ohne Entwurf), gewaehlte
   // Zeile der Briefliste, grosse Ansicht.
-  const [gewaehltInfo, setGewaehltInfo] = useState<{ id: number; kandidaten: Kandidat[]; gesperrt: boolean } | null>(null);
+  const [gewaehltInfo, setGewaehltInfo] = useState<{
+    id: number; kandidaten: Kandidat[]; gesperrt: boolean; offenerEntwurf: number | null; verschickt: number; zuletztGesendet: string | null;
+  } | null>(null);
   const [vorschauId, setVorschauId] = useState<number | null>(null);
+  // Zaehler: nach Anlegen oder Loeschen eines Briefs die Infos zum gewaehlten Betrieb neu holen.
+  const [infoRunde, setInfoRunde] = useState(0);
   const [gross, setGross] = useState(false);
   const [heute] = useState(() => datumDeutsch(new Date()) as string);
   const [heuteIso] = useState(() => new Date().toISOString().slice(0, 10));
@@ -826,10 +830,13 @@ export default function PostSeite() {
     if (!gewaehltId) return;
     let weg = false;
     api(`/api/admin/akquise/briefe?kandidaten=${gewaehltId}`)
-      .then(d => { if (!weg) setGewaehltInfo({ id: gewaehltId, kandidaten: d.kandidaten || [], gesperrt: !!d.gesperrt }); })
-      .catch(() => { if (!weg) setGewaehltInfo({ id: gewaehltId, kandidaten: [], gesperrt: false }); });
+      .then(d => { if (!weg) setGewaehltInfo({
+        id: gewaehltId, kandidaten: d.kandidaten || [], gesperrt: !!d.gesperrt,
+        offenerEntwurf: d.offener_entwurf ?? null, verschickt: Number(d.verschickt || 0), zuletztGesendet: d.zuletzt_gesendet ?? null,
+      }); })
+      .catch(() => { if (!weg) setGewaehltInfo({ id: gewaehltId, kandidaten: [], gesperrt: false, offenerEntwurf: null, verschickt: 0, zuletztGesendet: null }); });
     return () => { weg = true; };
-  }, [gewaehltId]);
+  }, [gewaehltId, infoRunde]);
   const infoZuGewaehlt = gewaehltInfo && gewaehltInfo.id === gewaehltId ? gewaehltInfo : null;
 
   const sichtbar = useMemo(() => briefe.filter(b => statusFilter === "alle" || b.status === statusFilter), [briefe, statusFilter]);
@@ -944,6 +951,7 @@ export default function PostSeite() {
       editorSetzen({ brief: d.brief, betrieb: d.betrieb, kandidaten: d.kandidaten || [] });
       setReiter("brief");
       ladeBriefe();
+      setInfoRunde(n => n + 1);
     } catch (e) { zeigeFehler(e); }
   };
 
@@ -1059,6 +1067,7 @@ export default function PostSeite() {
       setBriefe(l => l.filter(x => x.id !== b.id));
       if (editor?.brief.id === b.id) editorSetzen(null);
       ladeBriefe();
+      setInfoRunde(n => n + 1);
     });
   };
 
@@ -1286,16 +1295,30 @@ export default function PostSeite() {
                   {" · "}Status {BETRIEB_STATUS[gewaehlt.status] || gewaehlt.status}
                 </p>
                 {!gewaehlt.geprueft_am && <p className="post-warnung">Ohne Prüfung gibt es keine Befunde. Erst unter Betriebe prüfen.</p>}
-                {infoZuGewaehlt?.gesperrt && <p className="post-warnung">Steht auf der Sperrliste – nur der Testbrief an mich geht.</p>}
+                {infoZuGewaehlt?.gesperrt && <p className="post-warnung">Steht auf der Sperrliste – kein Brief möglich.</p>}
+                {infoZuGewaehlt?.offenerEntwurf && <p className="post-hinweis">Für diesen Betrieb gibt es schon einen Entwurf.</p>}
+                {!infoZuGewaehlt?.offenerEntwurf && !!infoZuGewaehlt?.verschickt && (
+                  <p className="post-hinweis">Am {datum(infoZuGewaehlt.zuletztGesendet)} ging schon ein Brief raus – der neue wird als zweiter Brief (Nachfass) geführt.</p>
+                )}
               </div>
-              <div className="post-aktionen">
-                <button className="btn-primary px-4 py-2 text-sm disabled:opacity-60" onClick={() => entwurfAnlegen(gewaehlt, "brief")} disabled={!!infoZuGewaehlt?.gesperrt}>Entwurf anlegen</button>
-                <button className="akq-knopf" onClick={() => entwurfAnlegen(gewaehlt, "nachfass")} disabled={!!infoZuGewaehlt?.gesperrt}>Nachfass</button>
-                <button className="akq-knopf" onClick={() => entwurfAnlegen(gewaehlt, "test")} title="Gleicher Brief, aber an meine Anschrift">Testbrief an mich</button>
+              {/* Ein Hauptknopf, der selbst weiss, was dran ist: offener Entwurf →
+                  oeffnen, schon verschickt → zweiter Brief, sonst erster Brief.
+                  Der Test an die eigene Anschrift ist ein leiser Nebenweg. */}
+              <div className="post-aktionen post-aktionen-senkrecht">
+                {infoZuGewaehlt?.offenerEntwurf ? (
+                  <button className="btn-primary px-4 py-2 text-sm" onClick={() => briefOeffnen(infoZuGewaehlt.offenerEntwurf as number)}>Entwurf öffnen</button>
+                ) : (
+                  <button className="btn-primary px-4 py-2 text-sm disabled:opacity-60" disabled={!infoZuGewaehlt || infoZuGewaehlt.gesperrt}
+                          onClick={() => entwurfAnlegen(gewaehlt, infoZuGewaehlt?.verschickt ? "nachfass" : "brief")}>
+                    {infoZuGewaehlt?.verschickt ? "Zweiten Brief anlegen" : "Brief anlegen"}
+                  </button>
+                )}
+                <button type="button" className="post-test-link" onClick={() => entwurfAnlegen(gewaehlt, "test")}
+                        title="Gleicher Brief, aber an Ihre eigene Anschrift – zum Ansehen auf Papier">Test an mich schicken</button>
               </div>
             </div>
           )}
-          <p className="post-hinweis">Ein Entwurf bekommt Anschrift, die vier stärksten Befunde der letzten Prüfung und den Text aus der Vorlage – so, wie links in der Vorschau. Danach lässt sich alles ändern.</p>
+          <p className="post-hinweis">Der Brief bekommt Anschrift, die vier stärksten Befunde und den Text aus der Vorlage – so wie links in der Vorschau. Danach lässt sich alles ändern.</p>
         </section>
       )}
 

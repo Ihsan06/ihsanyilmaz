@@ -151,8 +151,20 @@ export async function onRequestGet({ request, env }) {
     if (q.get('kandidaten')) {
       const betrieb = await betriebLaden(env, idLesen(q.get('kandidaten')));
       if (!betrieb) return json({ ok: false, error: 'Betrieb nicht gefunden.' }, 404);
-      const [kandidaten, sperre] = await Promise.all([kandidatenErmitteln(env, betrieb), gesperrt(env, betrieb.id, betrieb.name)]);
-      return json({ ok: true, betrieb: betriebKurz(betrieb), kandidaten, gesperrt: sperre });
+      const [kandidaten, sperre, frueher] = await Promise.all([
+        kandidatenErmitteln(env, betrieb), gesperrt(env, betrieb.id, betrieb.name),
+        env.DB.prepare("SELECT id, status, art, gesendet_am FROM akquise_briefe WHERE betrieb_id = ? AND art != 'test' ORDER BY id DESC").bind(betrieb.id).all(),
+      ]);
+      // Damit die Oberflaeche selbst entscheidet: offener Entwurf → oeffnen,
+      // schon verschickt → zweiter Brief (Nachfass), sonst erster Brief.
+      const briefe = frueher.results ?? [];
+      const offen = briefe.find(b => ['entwurf', 'freigegeben', 'fehler'].includes(b.status)) || null;
+      const verschickt = briefe.filter(b => ['gesendet', 'zugestellt'].includes(b.status));
+      return json({
+        ok: true, betrieb: betriebKurz(betrieb), kandidaten, gesperrt: sperre,
+        offener_entwurf: offen ? offen.id : null,
+        verschickt: verschickt.length, zuletzt_gesendet: verschickt[0]?.gesendet_am || null,
+      });
     }
 
     if (q.get('id')) {
