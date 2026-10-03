@@ -190,11 +190,12 @@ export async function briefZuToken(env, token) {
   return { ...z, befunde };
 }
 
+// Der Widerspruchsweg (/fuer/<token>/nein) steht im Brief selbst (DSGVO-Hinweis);
+// die Seite /nein bleibt erreichbar, im Fuss hier verlinkt sie nicht mehr.
 function fussHtml(token, osm = false) {
   return `<div class="fuss">
     <a href="${STARTSEITE}/impressum">Impressum</a>
     <a href="${STARTSEITE}/datenschutz">Datenschutz</a>
-    <a href="/fuer/${esc(token)}/nein">Keine weitere Post von mir</a>
     ${osm ? '<span>Angaben teils aus OpenStreetMap (© OpenStreetMap-Mitwirkende)</span>' : ''}
   </div>`;
 }
