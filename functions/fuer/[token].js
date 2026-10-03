@@ -1,7 +1,7 @@
 // GET /fuer/<token> — die persoenliche Seite zu einem Akquise-Brief.
 //
 // Der Brief traegt Link und QR-Code hierher. Die Seite zeigt die Befunde aus
-// dem Brief, den Weg zur Demo und ein Formular fuer den Demo-Zugang (geht an
+// dem Brief, den Weg zur Demo und ein Formular fuer den Admin-Zugang (geht an
 // /api/demo mit dem Token, damit die Anforderung beim Brief landet).
 //
 // Datensparsam: kein Cookie, keine IP, kein Skript von Dritten. Gezaehlt
@@ -318,21 +318,21 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
       <h2>So geht es weiter</h2>
       <ol class="schritte">
         <li><b>Demo ansehen</b> – direkt oben, ohne Anmeldung.</li>
-        <li><b>Zugang anfordern</b> – für den Verwaltungsbereich, per E-Mail.</li>
+        <li><b>Admin-Zugang anfordern</b> – für den Verwaltungsbereich, per E-Mail.</li>
         <li><b>Kurz sprechen</b> – danach ein Angebot, unverbindlich.</li>
       </ol>
     </section>
 
     <section>
       <div class="karte">
-        <h2 style="font-size:1.05rem">Zugang per E-Mail</h2>
+        <h2 style="font-size:1.05rem">Admin-Zugang</h2>
+        <p>Den Verwaltungsbereich zeige ich Ihnen gern – der Zugang kommt per E-Mail.</p>
         <form id="demo" autocomplete="off">
           <div><label for="email">Ihre E-Mail-Adresse</label><input type="email" id="email" name="email" required maxlength="254" placeholder="name@autohaus.de"></div>
-          <div><label for="auswahl">Welche Demo</label>
-            <select id="auswahl" name="auswahl"><option value="autohaus">Autohaus</option><option value="cafe">Café</option><option value="beide">Beide</option></select></div>
+          <input type="hidden" name="auswahl" value="autohaus">
           <div class="fax" aria-hidden="true"><label>Fax<input type="text" name="fax" tabindex="-1" autocomplete="off"></label></div>
           <div class="aktionen">
-            <button class="knopf gross" type="submit">Demo-Zugang anfordern</button>
+            <button class="knopf gross" type="submit">Admin-Zugang anfordern</button>
             ${telefon ? `<a class="knopf gross leise" href="${telLink}" aria-label="Anrufen: ${esc(telefon)}">${TELEFON_SVG}${esc(telefon)}</a>` : ''}
           </div>
           <p class="meldung" id="meldung" aria-live="polite"></p>

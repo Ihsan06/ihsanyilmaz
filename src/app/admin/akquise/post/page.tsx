@@ -128,7 +128,7 @@ const STUFEN = [
   { g: 9.5, z: 4.4, a: 1.8, kg: 9, kz: 4.1, kzw: 0.8, bg: 13, bz: 5.2 },
 ];
 const CTA = {
-  scan: "Ihre persönliche Seite: mit der Handykamera scannen oder die Adresse eintippen. Dort finden Sie die Demo und den Demo-Zugang.",
+  scan: "Ihre persönliche Seite: mit der Handykamera scannen oder die Adresse eintippen. Dort finden Sie die Demo und den Admin-Zugang.",
   anrufen: "Oder anrufen:",
   teaser: "Rückseite: So kann Ihre Website aussehen »",
 };
