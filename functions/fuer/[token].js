@@ -14,7 +14,14 @@ import { postEinstellungenLaden } from '../api/admin/akquise/post-einstellungen.
 
 const STARTSEITE = 'https://ihsan-yilmaz.de';
 const DEMO_URL = 'https://autohaus-demo.pages.dev';
-// Drei Bilder aus dem Verwaltungsbereich der Demo (eigene Screenshots, Beispieldaten).
+const INSTAGRAM = 'https://www.instagram.com/aiy.web/';
+// Bilder der Demo-Website und des Verwaltungsbereichs (eigene Screenshots, Beispieldaten).
+const WEB_SLIDES = [
+  { bild: '/leistungen/web-start.jpg', titel: 'Startseite', text: 'Der erste Eindruck – klar, schnell, auf jedem Gerät.' },
+  { bild: '/leistungen/web-fahrzeuge.jpg', titel: 'Fahrzeuge', text: 'Ihr Bestand mit Bildern und Preisen – auf Wunsch automatisch aus mobile.de.' },
+  { bild: '/leistungen/web-finanzierung.jpg', titel: 'Finanzierung', text: 'Rate selbst ausrechnen, Anfrage direkt abschicken.' },
+  { bild: '/leistungen/web-mietwagen.jpg', titel: 'Mietwagen', text: 'Freie Tage sehen und direkt anfragen.' },
+];
 const ADMIN_SLIDES = [
   { bild: '/leistungen/adm-uebersicht.jpg', titel: 'Übersicht', text: 'Besuche, Anfragen und Instagram auf einen Blick.' },
   { bild: '/leistungen/ki-website.jpg', titel: 'Website ändern', text: 'Sagen, was anders werden soll – der Assistent schlägt den Wortlaut vor.' },
@@ -61,11 +68,6 @@ const CSS = `
   .knopf svg { width:20px; height:20px; flex:none; }
   .aktionen { display:grid; gap:10px; margin-top:8px; }
   @media (min-width:560px) { .aktionen { grid-template-columns:1fr 1fr; } }
-  /* Demo-Ausschnitte: Handy links, Fahrzeugliste im Browserfenster rechts */
-  .demo { display:grid; grid-template-columns:minmax(0,1fr); gap:18px; align-items:start; margin:18px 0 22px; }
-  @media (min-width:560px) { .demo { grid-template-columns:150px minmax(0,1fr); } }
-  .handy { justify-self:center; width:150px; padding:6px; border-radius:22px; background:#1E293B; box-shadow:0 14px 34px rgba(0,0,0,.45); }
-  .handy img { display:block; width:100%; border-radius:16px; }
   .browser { border-radius:12px; background:#1E293B; overflow:hidden; box-shadow:0 14px 34px rgba(0,0,0,.45); }
   .browser .leiste { display:flex; align-items:center; gap:6px; padding:9px 12px; }
   .browser .leiste i { width:8px; height:8px; border-radius:50%; background:#64748B; }
@@ -100,8 +102,6 @@ const CSS = `
   .mock-marken { display:flex; flex-wrap:wrap; gap:4px; margin:0 0 10px; }
   .mock-marken span { font-size:.56rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 7px; border-radius:999px; background:rgba(255,255,255,.12); color:#E2E8F0; }
   .mock-zeiten { font-size:.56rem; color:#94A3B8; margin:8px 0 0; line-height:1.4; }
-  .mock-sterne { font-size:.62rem; color:#FBBF24; margin:0 0 8px; }
-  .mock-sterne b { color:#fff; font-weight:600; }
   .vorschau h2 { margin-bottom:8px; }
   /* Verwaltungsbereich als Wischleiste – ohne Bibliothek, mit Einrast-Scrollen */
   .slider { position:relative; }
@@ -109,6 +109,8 @@ const CSS = `
   .slides::-webkit-scrollbar { display:none; }
   .slide { flex:0 0 100%; scroll-snap-align:center; margin:0; }
   .slide .browser { margin-bottom:12px; }
+  .slider + .checks { margin-top:18px; }
+  .fuss span { flex-basis:100%; font-size:.74rem; }
   .slide figcaption { color:#B4BFC9; font-size:.94rem; }
   .slide figcaption b { color:#F2F5F7; display:block; margin-bottom:2px; }
   .slider-nav { display:flex; align-items:center; justify-content:center; gap:14px; margin-top:14px; }
@@ -188,11 +190,29 @@ export async function briefZuToken(env, token) {
   return { ...z, befunde };
 }
 
-function fussHtml(token) {
+function fussHtml(token, osm = false) {
   return `<div class="fuss">
     <a href="${STARTSEITE}/impressum">Impressum</a>
     <a href="${STARTSEITE}/datenschutz">Datenschutz</a>
     <a href="/fuer/${esc(token)}/nein">Keine weitere Post von mir</a>
+    ${osm ? '<span>Angaben teils aus OpenStreetMap (© OpenStreetMap-Mitwirkende)</span>' : ''}
+  </div>`;
+}
+
+// Wischleiste aus Browser-Bildern; Pfeile und Punkte steuert das Skript unten.
+function sliderHtml(slides, praefix) {
+  return `<div class="slider">
+    <div class="slides">
+      ${slides.map(f => `<figure class="slide">
+        <div class="browser"><div class="leiste"><i></i><i></i><i></i><span>${esc(praefix)} · ${esc(f.titel)}</span></div><img src="${f.bild}" alt="${esc(f.titel)} – Demo" loading="lazy"></div>
+        <figcaption><b>${esc(f.titel)}</b>${esc(f.text)}</figcaption>
+      </figure>`).join('')}
+    </div>
+    <div class="slider-nav">
+      <button type="button" class="zurueck" aria-label="Vorheriges Bild">‹</button>
+      <span class="punkte">${slides.map((_, i) => `<i${i ? '' : ' class="an"'}></i>`).join('')}</span>
+      <button type="button" class="weiter" aria-label="Nächstes Bild">›</button>
+    </div>
   </div>`;
 }
 
@@ -216,13 +236,11 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
   const email = e?.absender?.email || KONTAKT;
   const firma = brief.name || 'Ihren Betrieb';
   // Was die Vorschau persoenlich macht – nur aus OpenStreetMap (Marken,
-  // Oeffnungszeiten) und der Google-Zeile des Briefs, nichts von der Website
-  // des Betriebs.
+  // Oeffnungszeiten), nichts von der Website des Betriebs. Die Quelle steht
+  // im Fuss.
   const marken = String(brief.marken || '').split(/[;,]/).map(m => m.trim()).filter(Boolean).slice(0, 3);
   const zeitenRoh = String(brief.oeffnungszeiten || '').trim();
   const zeiten = zeitenRoh && zeitenRoh.length <= 70 ? zeitenRoh.replace(/\s*;\s*/g, ' · ').replace(/(\d\d:\d\d)-(\d\d:\d\d)/g, '$1–$2') : '';
-  const google = brief.befunde.find(b => b.code === 'google_note');
-  const sterne = google ? /^([\d,]+) Sterne bei ([\d.]+) Bewertungen/.exec(google.text) : null;
   const ausOsm = marken.length || zeiten;
   // Werkstatt-Texte nur, wenn der Name nicht nach Autohaus klingt.
   const werkstatt = brief.art === 'car_repair' && !/autohaus|automobil|autohandel/i.test(firma);
@@ -252,7 +270,6 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
           ${new RegExp(werkstatt ? 'werkstatt' : 'autohaus', 'i').test(firma) ? '' : `<span class="mock-marke">${werkstatt ? 'Kfz-Werkstatt' : 'Autohaus'}</span>`}
           <span class="mock-name">${esc(firma)}</span>
           <div class="mock-text">
-            ${sterne ? `<p class="mock-sterne">★ <b>${esc(sterne[1])}</b> · ${esc(sterne[2])} Bewertungen</p>` : ''}
             ${marken.length ? `<div class="mock-marken">${marken.map(m => `<span>${esc(m)}</span>`).join('')}</div>` : ''}
             <p class="mock-eyebrow">${esc([werkstatt ? 'Werkstatt' : 'Autohaus', brief.ort ? `in ${brief.ort}` : ''].filter(Boolean).join(' '))}</p>
             <p class="mock-titel">${werkstatt ? 'Ihr Auto in guten Händen.' : 'Gute Autos. Ehrliche Preise.'}</p>
@@ -265,9 +282,8 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
       </div>
       <div>
         <h2>So könnte Ihre Startseite aussehen</h2>
-        <p>Ein erster Eindruck mit Ihrem Namen. Dahinter steht meine fertige Autohaus-Demo – zum Durchklicken, ohne Anmeldung.</p>
+        <p>Ein erster Eindruck mit Ihrem Namen – dahinter die fertige Demo zum Durchklicken.</p>
         <a class="knopf gross" id="demo-knopf" href="${DEMO_URL}" target="_blank" rel="noopener">Demo jetzt ansehen</a>
-        <p class="klein" style="margin-top:12px">Entwurf mit Ihrem Namen${ausOsm ? ', Marken und Öffnungszeiten aus OpenStreetMap (© OpenStreetMap-Mitwirkende)' : ''} – sonst Platzhalter, keine Inhalte Ihrer Website.</p>
       </div>
     </div>
 
@@ -278,43 +294,22 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
 
     <section>
       <h2>So kann Ihre Website aussehen</h2>
-      <p>Meine Demo für das fiktive Autohaus Mustermann: Fahrzeuge mit Preisen (auf Wunsch automatisch aus mobile.de), Finanzierungsrechner, Kontakt per WhatsApp – gebaut für das Smartphone.</p>
-      <div class="demo">
-        <div class="handy"><img src="/leistungen/handy-start.jpg" alt="Startseite der Demo auf dem Smartphone" loading="lazy"></div>
-        <div class="browser">
-          <div class="leiste"><i></i><i></i><i></i><span>Demo · Autohaus Mustermann</span></div>
-          <img src="/leistungen/web-fahrzeuge.jpg" alt="Fahrzeugliste der Demo am Desktop" loading="lazy">
-        </div>
-      </div>
+      ${sliderHtml(WEB_SLIDES, 'Demo')}
       <ul class="checks">${checks.map(c => `<li><i></i><b>${esc(c.label)}</b> – ${esc(c.text)}</li>`).join('')}</ul>
-      <p>Ein Ansprechpartner aus Würzburg – vom ersten Entwurf bis zur laufenden Pflege, ohne Agentur dazwischen.</p>
-      <p class="klein">Abbildungen: eigene Demo mit Beispieldaten – keine Aufnahmen Ihres Betriebs.</p>
     </section>
 
     <section>
-      <h2>Dahinter: Ihr eigener Verwaltungsbereich</h2>
+      <h2>Dahinter: Ihr Verwaltungsbereich</h2>
       <p>Änderungen machen Sie selbst – ohne Agentur, ohne Wartezeit.</p>
-      <div class="slider">
-        <div class="slides" id="slides">
-          ${ADMIN_SLIDES.map(f => `<figure class="slide">
-            <div class="browser"><div class="leiste"><i></i><i></i><i></i><span>Verwaltung · ${esc(f.titel)}</span></div><img src="${f.bild}" alt="${esc(f.titel)} im Verwaltungsbereich der Demo" loading="lazy"></div>
-            <figcaption><b>${esc(f.titel)}</b>${esc(f.text)}</figcaption>
-          </figure>`).join('')}
-        </div>
-        <div class="slider-nav">
-          <button type="button" id="zurueck" aria-label="Vorheriges Bild">‹</button>
-          <span class="punkte" id="punkte">${ADMIN_SLIDES.map((_, i) => `<i${i ? '' : ' class="an"'}></i>`).join('')}</span>
-          <button type="button" id="weiter" aria-label="Nächstes Bild">›</button>
-        </div>
-      </div>
+      ${sliderHtml(ADMIN_SLIDES, 'Verwaltung')}
     </section>
 
     <section>
       <h2>Was es kostet</h2>
       <div class="karte preis">
-        <div><p><b>Festpreis vorab</b> – schriftlich, bevor es losgeht. Keine versteckten Kosten.</p></div>
-        <div><p><b>Bezahlbar durch KI-Werkzeuge</b> – der Aufwand bleibt klein, und damit der Preis.</p></div>
-        <div><p><b>Unverbindlich</b> – erst die Demo, dann ein Gespräch, dann ein Angebot.</p></div>
+        <div><p><b>Festpreis vorab</b> – keine versteckten Kosten.</p></div>
+        <div><p><b>Bezahlbar durch KI-Werkzeuge</b> – wenig Aufwand, kleiner Preis.</p></div>
+        <div><p><b>Ein Ansprechpartner aus Würzburg</b> – ohne Agentur dazwischen.</p></div>
       </div>
     </section>
 
@@ -322,14 +317,14 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
       <h2>So geht es weiter</h2>
       <ol class="schritte">
         <li><b>Demo ansehen</b> – direkt oben, ohne Anmeldung.</li>
-        <li><b>Verwaltungsbereich zeigen lassen</b> – Zugang per E-Mail anfordern, ohne Konto, ohne Newsletter.</li>
-        <li><b>Kurz sprechen</b> – wenn es passt, ein schriftliches Angebot, unverbindlich.</li>
+        <li><b>Zugang anfordern</b> – für den Verwaltungsbereich, per E-Mail.</li>
+        <li><b>Kurz sprechen</b> – danach ein Angebot, unverbindlich.</li>
       </ol>
     </section>
 
     <section>
       <div class="karte">
-        <h2 style="font-size:1.05rem">Links und Zugang per E-Mail</h2>
+        <h2 style="font-size:1.05rem">Zugang per E-Mail</h2>
         <form id="demo" autocomplete="off">
           <div><label for="email">Ihre E-Mail-Adresse</label><input type="email" id="email" name="email" required maxlength="254" placeholder="name@autohaus.de"></div>
           <div><label for="auswahl">Welche Demo</label>
@@ -340,7 +335,6 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
             ${telefon ? `<a class="knopf gross leise" href="${telLink}" aria-label="Anrufen: ${esc(telefon)}">${TELEFON_SVG}${esc(telefon)}</a>` : ''}
           </div>
           <p class="meldung" id="meldung" aria-live="polite"></p>
-          <p class="klein">Die Adresse wird nur für den Versand der Demo-Links gespeichert. Es gibt keinen Newsletter.</p>
         </form>
       </div>
     </section>
@@ -348,25 +342,27 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
     <section>
       <h2>Direkt erreichbar</h2>
       <p class="kontakt">
-        <a href="mailto:${esc(email)}">${esc(email)}</a>
         ${telefon ? `<a href="${telLink}">${esc(telefon)}</a>` : ''}
+        <a href="mailto:${esc(email)}">${esc(email)}</a>
+        <a href="${STARTSEITE}" target="_blank" rel="noopener">ihsan-yilmaz.de</a>
+        <a href="${INSTAGRAM}" target="_blank" rel="noopener">Instagram @aiy.web</a>
       </p>
-      <p class="klein">Wenn ich nicht abhebe, rufe ich bis zum nächsten Werktag zurück.</p>
+      <p class="klein">Rückruf bis zum nächsten Werktag.</p>
     </section>
-    ${fussHtml(token)}
+    ${fussHtml(token, ausOsm)}
     <script>
       (function () {
-        // Wischleiste: Pfeile und Punkte
-        var sl = document.getElementById('slides'), pk = document.querySelectorAll('#punkte i');
-        if (sl) {
+        // Wischleisten: Pfeile und Punkte je Leiste
+        document.querySelectorAll('.slider').forEach(function (w) {
+          var sl = w.querySelector('.slides'), pk = w.querySelectorAll('.punkte i');
           var gehe = function (d) { sl.scrollBy({ left: d * sl.clientWidth, behavior: 'smooth' }); };
-          document.getElementById('zurueck').addEventListener('click', function () { gehe(-1); });
-          document.getElementById('weiter').addEventListener('click', function () { gehe(1); });
+          w.querySelector('.zurueck').addEventListener('click', function () { gehe(-1); });
+          w.querySelector('.weiter').addEventListener('click', function () { gehe(1); });
           sl.addEventListener('scroll', function () {
             var i = Math.round(sl.scrollLeft / sl.clientWidth);
             pk.forEach(function (p, j) { p.className = j === i ? 'an' : ''; });
           }, { passive: true });
-        }
+        });
         // Klick auf „Demo jetzt ansehen“ merken – der Link oeffnet die Demo trotzdem sofort.
         var dk = document.getElementById('demo-knopf');
         if (dk) dk.addEventListener('click', function () {
