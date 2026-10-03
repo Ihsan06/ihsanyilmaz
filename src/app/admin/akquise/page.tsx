@@ -1385,20 +1385,12 @@ function AkquiseCockpit() {
               <option value="alt">älter als {PRUEF_ALTER_TAGE} Tage</option>
             </select>
             <MehrfachWahl label="Signal" optionen={signalOptionen} wert={filter.sig} onChange={sig => setzeFilter({ sig })} />
-            <label className="akq-inline">
-              min. Priorität
-              <input type="number" min={0} max={100} value={filter.prio} onChange={e => setzeFilter({ prio: e.target.value })}
-                     className="field px-3 py-2 text-sm" style={{ width: 72 }} />
-            </label>
             {regionOptionen.length > 1 && (
               <select value={filter.region} onChange={e => setzeFilter({ region: e.target.value })} className="field px-3 py-2 text-sm" style={{ width: "auto" }} aria-label="Region">
                 <option value="alle">Alle Regionen</option>
                 {regionOptionen.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             )}
-            <label className="akq-inline">
-              <input type="checkbox" checked={filter.auswahl} onChange={e => setzeFilter({ auswahl: e.target.checked })} /> nur Auswahl
-            </label>
             <button type="button" onClick={() => papierkorbSchalten(!filter.papierkorb)} aria-pressed={filter.papierkorb}
                     className={`akq-knopf akq-korb-knopf${filter.papierkorb ? " an" : ""}`}>
               <Trash2 size={13} /> Papierkorb{stand?.papierkorb ? <b>{zahl(stand.papierkorb)}</b> : null}
@@ -1438,6 +1430,11 @@ function AkquiseCockpit() {
             <div className="akq-kat-band" role="group" aria-label="Kategorie">
               <button type="button" className={`akq-kat-knopf${filter.kat.length ? "" : " an"}`} onClick={() => setzeFilter({ kat: [] })}>
                 Alle <b>{zahl(liste.length)}</b>
+              </button>
+              {/* Auswahl (Stern) als eigener Knopf neben „Alle“ – wirkt zusaetzlich zur Kategorie */}
+              <button type="button" className={`akq-kat-knopf auswahl${filter.auswahl ? " an" : ""}`} aria-pressed={filter.auswahl}
+                      onClick={() => setzeFilter({ auswahl: !filter.auswahl })} disabled={!filter.auswahl && !liste.some(b => b.auswahl)}>
+                <Star size={11} aria-hidden="true" />Auswahl <b>{zahl(liste.filter(b => b.auswahl).length)}</b>
               </button>
               {[...KATEGORIEN, { wert: KAT_OFFEN, label: "Offen" }].map(k => (
                 <button key={k.wert} type="button" onClick={() => katSchalten(k.wert)} disabled={!katZahlen[k.wert]}

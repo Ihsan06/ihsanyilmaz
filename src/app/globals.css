@@ -768,6 +768,10 @@ html, body {
 .akq-kat-knopf:hover:not(:disabled) { border-color:var(--accent); color:var(--fg); }
 .akq-kat-knopf:disabled { opacity:.4; cursor:default; }
 .akq-kat-knopf.an { background:var(--fg); border-color:var(--fg); color:var(--surface); }
+/* Auswahl-Knopf: Stern in Bernstein, aktiv bernsteinfarben hinterlegt */
+.akq-kat-knopf.auswahl svg { color:#f59e0b; fill:#f59e0b; }
+.akq-kat-knopf.auswahl.an { background:#f59e0b; border-color:#f59e0b; color:#1f1300; }
+.akq-kat-knopf.auswahl.an svg { color:#1f1300; fill:#1f1300; }
 .akq-kat-knopf.an b { opacity:.75; }
 .akq-kat-knopf.an i { box-shadow:0 0 0 2px var(--surface); }
 .akq-anzahl { flex:none; font-size:.82rem; color:var(--fg-subtle); font-variant-numeric:tabular-nums; }
