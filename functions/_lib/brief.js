@@ -45,7 +45,7 @@ export const PLATZHALTER = [
 // Alles unter einer Zeile "---" ist der Hinweis in kleiner Schrift, fest
 // unten auf dem Blatt. Link und QR-Code kommen automatisch als Handlungsblock
 // ins dritte Falzfeld – die Vorlage braucht keinen {link}-Absatz mehr.
-export const VORLAGE_STANDARD = `{firma} im Internet – was mir aufgefallen ist
+export const VORLAGE_STANDARD = `Eine Idee für {firma}
 
 Sehr geehrte Damen und Herren,
 

@@ -1,10 +1,14 @@
 // POST /api/fuer — Widerspruch von der persoenlichen Seite /fuer/<token>.
 //
 // { token, aktion:'nein' } → Betrieb auf die Sperrliste (grund 'Landingpage'),
-// Status 'aus'. Oeffentlich, deshalb: Tokenformat vor der Datenbank pruefen,
+// Status 'aus'.
+// { token, aktion:'demo' } → merkt den ersten Klick auf „Demo jetzt ansehen“
+// (akquise_briefe.demo_geoeffnet); die Seite schickt das per sendBeacon, der
+// Link selbst fuehrt direkt zur Demo. Oeffentlich, deshalb: Tokenformat vor der Datenbank pruefen,
 // nichts ueber den Betrieb verraten, nie 5xx (davor schiebt Cloudflare eine
 // eigene Fehlerseite, die der Browser nicht lesen kann).
 import { TOKEN_RE } from '../_lib/brief.js';
+import { istAngemeldet } from '../_lib/auth.js';
 
 const KOPF = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
 const json = (b, status = 200) => new Response(JSON.stringify(b), { status, headers: KOPF });
@@ -13,8 +17,16 @@ export async function onRequestPost({ request, env }) {
   let d;
   try { d = await request.json(); } catch { return json({ ok: false, fehler: 'ungueltig' }, 400); }
   const token = String(d?.token || '');
-  if (!TOKEN_RE.test(token) || d?.aktion !== 'nein') return json({ ok: false, fehler: 'ungueltig' }, 400);
+  if (!TOKEN_RE.test(token) || !['nein', 'demo'].includes(d?.aktion)) return json({ ok: false, fehler: 'ungueltig' }, 400);
   if (!env.DB) return json({ ok: false, fehler: 'nichtGespeichert' });
+
+  if (d.aktion === 'demo') {
+    // Eigene Klicks aus dem Admin (Vorschau) zaehlen nicht.
+    if (await istAngemeldet(request, env).catch(() => false)) return json({ ok: true });
+    await env.DB.prepare("UPDATE akquise_briefe SET demo_geoeffnet = COALESCE(demo_geoeffnet, datetime('now')) WHERE token = ?")
+      .bind(token).run().catch(() => {});
+    return json({ ok: true });
+  }
 
   try {
     const brief = await env.DB.prepare(

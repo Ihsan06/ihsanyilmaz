@@ -27,7 +27,7 @@ type Brief = {
   id: number; betrieb_id: number; token: string; status: string; art: string;
   empfaenger: string | null; befunde: Befund[]; text: string | null; pdf_schluessel: string | null;
   anbieter: string | null; anbieter_id: string | null; kosten_cent: number | null; fehler: string | null;
-  aufrufe: number; zuletzt_aufgerufen: string | null; demo_angefordert: string | null;
+  aufrufe: number; zuletzt_aufgerufen: string | null; demo_angefordert: string | null; demo_geoeffnet?: string | null;
   angelegt: string; gesendet_am: string | null; zugestellt_am: string | null;
   betrieb_name?: string | null; betrieb_ort?: string | null; betrieb_status?: string | null;
   betrieb_geprueft_am?: string | null; betrieb_google_stand?: string | null;
@@ -154,7 +154,7 @@ const RUECK = {
   desktop: [36, 116.5, 138, 86.25] as const,
   panel: [20, 216, 170, 52, 3] as const, qrBox: [25, 224, 36, 36, 1.5] as const, qr: [29, 228, 28] as const,
   titel3: "Demo ansehen – so geht es", titel3Y: 222, schrittX: 66, textX: 72, schrittY: [229.5, 241.5, 248], linkY: 234.5,
-  schritte: ["QR-Code scannen oder Adresse eingeben:", "Demo-Zugang per E-Mail anfordern – ohne Konto, ohne Newsletter.", "Anrufen:"],
+  schritte: ["QR-Code scannen oder Adresse eingeben:", "Demo direkt ansehen – ohne Anmeldung, ohne Newsletter.", "Anrufen:"],
   rueckruf: "Wenn ich nicht abhebe, rufe ich bis zum nächsten Werktag zurück – danach ein schriftliches Angebot, unverbindlich.",
   rueckrufY: 253, rueckrufZeile: 4.5, rueckrufBreite: 114,
   nameY: 263.5, nameZusatz: "Webentwickler, Würzburg",
@@ -1137,7 +1137,7 @@ export default function PostSeite() {
         <Kachel titel="Freigegeben" wert={zahl(zaehler?.freigegeben)} />
         <Kachel titel="Gesendet" wert={zahl(gesendetGesamt)} unter={zaehler?.zugestellt ? `${zaehler.zugestellt} zugestellt` : undefined} />
         <Kachel titel="Aufrufe" wert={zahl(zaehler?.aufrufe)} unter="persönliche Seiten" />
-        <Kachel titel="Demo angefordert" wert={zahl(zaehler?.demo)} />
+        <Kachel titel="Demo angesehen" wert={zahl(zaehler?.demo)} unter="geöffnet oder angefordert" />
       </div>
 
       <p className="post-versand">
@@ -1239,7 +1239,8 @@ export default function PostSeite() {
                           </td>
                           <td className="num">
                             {zahl(b.aufrufe)}
-                            {b.demo_angefordert && <span className="post-unter post-demo">Demo {datum(b.demo_angefordert)}</span>}
+                            {b.demo_geoeffnet && <span className="post-unter post-demo">Demo geöffnet {datum(b.demo_geoeffnet)}</span>}
+                            {b.demo_angefordert && <span className="post-unter post-demo">Zugang angefordert {datum(b.demo_angefordert)}</span>}
                           </td>
                           <td className="num">{b.kosten_cent != null ? euro(b.kosten_cent) : "—"}</td>
                           <td onClick={e => e.stopPropagation()}>{aktionen(b)}</td>

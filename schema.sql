@@ -245,3 +245,7 @@ CREATE TABLE IF NOT EXISTS akquise_ausgeschlossen (
   angelegt TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (quelle, quelle_id)
 );
+
+-- Wann der Empfaenger auf seiner persoenlichen Seite die Demo geoeffnet hat
+-- (erster Klick auf „Demo jetzt ansehen“). Eigene Aufrufe aus dem Admin zaehlen nicht.
+ALTER TABLE akquise_briefe ADD COLUMN demo_geoeffnet TEXT;

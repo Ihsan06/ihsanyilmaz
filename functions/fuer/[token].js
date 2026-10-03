@@ -13,6 +13,7 @@ import { istAngemeldet } from '../_lib/auth.js';
 import { postEinstellungenLaden } from '../api/admin/akquise/post-einstellungen.js';
 
 const STARTSEITE = 'https://ihsan-yilmaz.de';
+const DEMO_URL = 'https://autohaus-demo.pages.dev';
 const KONTAKT = 'kontakt@ihsan-yilmaz.de';
 
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
@@ -74,6 +75,24 @@ const CSS = `
   .schritte li::before { counter-increment:s; content:counter(s); position:absolute; left:0; top:5px; width:24px; height:24px; border-radius:50%; background:#1B6FA8; color:#fff; font-weight:700; font-size:.85rem; display:flex; align-items:center; justify-content:center; }
   .schritte li b { color:#F2F5F7; }
   .quelle { margin:10px 0 0; font-size:.78rem; color:#7C8A97; }
+  /* Vorschau mit dem Namen des Betriebs: Handy im Demo-Look, daneben der Knopf */
+  .vorschau { display:grid; grid-template-columns:minmax(0,1fr); gap:22px; align-items:center; margin:6px 0 36px; padding:22px; border-radius:18px; background:linear-gradient(160deg,#111c27,#0d141b); border:1px solid #243039; }
+  @media (min-width:600px) { .vorschau { grid-template-columns:210px minmax(0,1fr); } }
+  .mock { justify-self:center; width:210px; padding:7px; border-radius:28px; background:#1E293B; box-shadow:0 18px 40px rgba(0,0,0,.5); }
+  .mock-bild { position:relative; height:380px; border-radius:22px; overflow:hidden; background:#0b1118 url('/brief/mock-hero.jpg') 30% center/cover; }
+  .mock-bild::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,15,20,.8) 0%, rgba(10,15,20,.05) 30%, rgba(10,15,20,.25) 48%, rgba(10,15,20,.92) 72%); }
+  .mock-inhalt { position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; padding:16px 14px; }
+  .mock-marke { font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:#94A3B8; }
+  .mock-name { font-family:Georgia, "Times New Roman", serif; font-size:1.02rem; font-weight:700; color:#fff; line-height:1.2; margin-top:2px; }
+  .mock-text { margin-top:auto; }
+  .mock-eyebrow { font-size:.58rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#4DA3E0; margin:0 0 6px; }
+  .mock-titel { font-family:Georgia, "Times New Roman", serif; font-size:1.25rem; font-weight:700; line-height:1.15; color:#fff; margin:0 0 8px; }
+  .mock-unter { font-size:.66rem; color:#CBD5E1; margin:0 0 12px; line-height:1.45; }
+  .mock-knopf { display:block; text-align:center; font-size:.66rem; font-weight:600; padding:8px; border-radius:6px; margin-top:6px; }
+  .mock-knopf.voll { background:#1B6FA8; color:#fff; }
+  .mock-knopf.rand { border:1px solid #CBD5E1; color:#fff; }
+  .vorschau h2 { margin-bottom:8px; }
+  .vorschau p { margin-bottom:16px; }
   form { display:grid; gap:12px; margin-top:16px; }
   label { font-size:.85rem; color:#B4BFC9; display:block; }
   input[type=email], select { width:100%; padding:12px 14px; border-radius:10px; border:1px solid #243039; background:#182129; color:#F2F5F7; font:inherit; }
@@ -128,7 +147,7 @@ export async function briefZuToken(env, token) {
   if (!TOKEN_RE.test(token || '') || !env.DB) return null;
   const z = await env.DB.prepare(
     `SELECT br.id, br.token, br.status, br.befunde, br.angelegt, br.gesendet_am,
-            b.id AS betrieb_id, b.name, b.ort, b.status AS betrieb_status, b.geprueft_am, b.google_stand
+            b.id AS betrieb_id, b.name, b.ort, b.art, b.status AS betrieb_status, b.geprueft_am, b.google_stand
      FROM akquise_briefe br LEFT JOIN akquise_betriebe b ON b.id = br.betrieb_id
      WHERE br.token = ?`,
   ).bind(token).first();
@@ -165,6 +184,8 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
   const telefon = e?.absender?.telefon || '';
   const email = e?.absender?.email || KONTAKT;
   const firma = brief.name || 'Ihren Betrieb';
+  // Werkstatt-Texte nur, wenn der Name nicht nach Autohaus klingt.
+  const werkstatt = brief.art === 'car_repair' && !/autohaus|automobil|autohandel/i.test(firma);
 
   const befundeHtml = brief.befunde.length
     ? `<ul class="befunde">${brief.befunde.map(b => {
@@ -184,6 +205,28 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
     <p class="eyebrow">Persönliche Seite</p>
     <h1>Für ${esc(firma)}</h1>
     <p class="unter">${esc([brief.ort, 'zu meinem Brief an Sie'].filter(Boolean).join(' · '))}</p>
+
+    <div class="vorschau">
+      <div class="mock" aria-hidden="true">
+        <div class="mock-bild"><div class="mock-inhalt">
+          ${new RegExp(werkstatt ? 'werkstatt' : 'autohaus', 'i').test(firma) ? '' : `<span class="mock-marke">${werkstatt ? 'Kfz-Werkstatt' : 'Autohaus'}</span>`}
+          <span class="mock-name">${esc(firma)}</span>
+          <div class="mock-text">
+            <p class="mock-eyebrow">${esc([werkstatt ? 'Werkstatt' : 'Autohaus', brief.ort ? `in ${brief.ort}` : ''].filter(Boolean).join(' '))}</p>
+            <p class="mock-titel">${werkstatt ? 'Ihr Auto in guten Händen.' : 'Gute Autos. Ehrliche Preise.'}</p>
+            <p class="mock-unter">${werkstatt ? 'Inspektion, Reparatur und Reifen – Termin direkt online.' : 'Gebrauchtwagen, Ankauf und Werkstatt – alles unter einem Dach.'}</p>
+            <span class="mock-knopf voll">${werkstatt ? 'Termin anfragen' : 'Fahrzeuge ansehen'}</span>
+            <span class="mock-knopf rand">Kontakt aufnehmen</span>
+          </div>
+        </div></div>
+      </div>
+      <div>
+        <h2>So könnte Ihre Startseite aussehen</h2>
+        <p>Ein erster Eindruck mit Ihrem Namen. Dahinter steht meine fertige Autohaus-Demo – zum Durchklicken, ohne Anmeldung.</p>
+        <a class="knopf gross" id="demo-knopf" href="${DEMO_URL}" target="_blank" rel="noopener">Demo jetzt ansehen</a>
+        <p class="klein" style="margin-top:12px">Platzhalter und Beispieldaten – keine Inhalte Ihres Betriebs.</p>
+      </div>
+    </div>
 
     <section>
       <h2>Das ist mir aufgefallen</h2>
@@ -208,15 +251,15 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
     <section>
       <h2>So geht es weiter</h2>
       <ol class="schritte">
-        <li><b>Demo-Zugang anfordern</b> – die Links kommen per E-Mail, ohne Konto, ohne Newsletter.</li>
-        <li><b>In Ruhe ansehen</b> – Website und Verwaltungsbereich, mit Beispieldaten zum Ausprobieren.</li>
+        <li><b>Demo ansehen</b> – direkt oben, ohne Anmeldung.</li>
+        <li><b>Verwaltungsbereich zeigen lassen</b> – Zugang per E-Mail anfordern, ohne Konto, ohne Newsletter.</li>
         <li><b>Kurz sprechen</b> – wenn es passt, ein schriftliches Angebot, unverbindlich.</li>
       </ol>
     </section>
 
     <section>
       <div class="karte">
-        <h2 style="font-size:1.05rem">Demo-Zugang per E-Mail</h2>
+        <h2 style="font-size:1.05rem">Links und Zugang per E-Mail</h2>
         <form id="demo" autocomplete="off">
           <div><label for="email">Ihre E-Mail-Adresse</label><input type="email" id="email" name="email" required maxlength="254" placeholder="name@autohaus.de"></div>
           <div><label for="auswahl">Welche Demo</label>
@@ -243,6 +286,13 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
     ${fussHtml(token)}
     <script>
       (function () {
+        // Klick auf „Demo jetzt ansehen“ merken – der Link oeffnet die Demo trotzdem sofort.
+        var dk = document.getElementById('demo-knopf');
+        if (dk) dk.addEventListener('click', function () {
+          var b = JSON.stringify({ token: ${JSON.stringify(token)}, aktion: 'demo' });
+          try { navigator.sendBeacon('/api/fuer', new Blob([b], { type: 'application/json' })); }
+          catch (e) { fetch('/api/fuer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: b, keepalive: true }); }
+        });
         var f = document.getElementById('demo'), m = document.getElementById('meldung');
         f.addEventListener('submit', function (ev) {
           ev.preventDefault();

@@ -176,7 +176,7 @@ export async function onRequestGet({ request, env }) {
          ORDER BY br.angelegt DESC, br.id DESC LIMIT 500`,
       ).bind(...werte),
       env.DB.prepare(
-        `SELECT status, COUNT(*) AS n, SUM(aufrufe) AS aufrufe, SUM(demo_angefordert IS NOT NULL) AS demo
+        `SELECT status, COUNT(*) AS n, SUM(aufrufe) AS aufrufe, SUM(demo_angefordert IS NOT NULL OR demo_geoeffnet IS NOT NULL) AS demo
          FROM akquise_briefe GROUP BY status`,
       ),
     ]);
