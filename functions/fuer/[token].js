@@ -14,6 +14,12 @@ import { postEinstellungenLaden } from '../api/admin/akquise/post-einstellungen.
 
 const STARTSEITE = 'https://ihsan-yilmaz.de';
 const DEMO_URL = 'https://autohaus-demo.pages.dev';
+// Drei Bilder aus dem Verwaltungsbereich der Demo (eigene Screenshots, Beispieldaten).
+const ADMIN_SLIDES = [
+  { bild: '/leistungen/adm-uebersicht.jpg', titel: 'Übersicht', text: 'Besuche, Anfragen und Instagram auf einen Blick.' },
+  { bild: '/leistungen/ki-website.jpg', titel: 'Website ändern', text: 'Sagen, was anders werden soll – der Assistent schlägt den Wortlaut vor.' },
+  { bild: '/leistungen/ki-content.jpg', titel: 'Content erstellen', text: 'Beiträge für Instagram aus Ihren eigenen Fotos, in wenigen Minuten.' },
+];
 const KONTAKT = 'kontakt@ihsan-yilmaz.de';
 
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
@@ -77,9 +83,9 @@ const CSS = `
   .quelle { margin:10px 0 0; font-size:.78rem; color:#7C8A97; }
   /* Vorschau mit dem Namen des Betriebs: Handy im Demo-Look, daneben der Knopf */
   .vorschau { display:grid; grid-template-columns:minmax(0,1fr); gap:22px; align-items:center; margin:6px 0 36px; padding:22px; border-radius:18px; background:linear-gradient(160deg,#111c27,#0d141b); border:1px solid #243039; }
-  @media (min-width:600px) { .vorschau { grid-template-columns:210px minmax(0,1fr); } }
-  .mock { justify-self:center; width:210px; padding:7px; border-radius:28px; background:#1E293B; box-shadow:0 18px 40px rgba(0,0,0,.5); }
-  .mock-bild { position:relative; height:380px; border-radius:22px; overflow:hidden; background:#0b1118 url('/brief/mock-hero.jpg') 30% center/cover; }
+  @media (min-width:600px) { .vorschau { grid-template-columns:220px minmax(0,1fr); } }
+  .mock { justify-self:center; width:220px; padding:7px; border-radius:28px; background:#1E293B; box-shadow:0 18px 40px rgba(0,0,0,.5); }
+  .mock-bild { position:relative; height:440px; border-radius:22px; overflow:hidden; background:#0b1118 url('/brief/mock-hero.jpg') 30% center/cover; }
   .mock-bild::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,15,20,.8) 0%, rgba(10,15,20,.05) 30%, rgba(10,15,20,.25) 48%, rgba(10,15,20,.92) 72%); }
   .mock-inhalt { position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; padding:16px 14px; }
   .mock-marke { font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:#94A3B8; }
@@ -91,7 +97,31 @@ const CSS = `
   .mock-knopf { display:block; text-align:center; font-size:.66rem; font-weight:600; padding:8px; border-radius:6px; margin-top:6px; }
   .mock-knopf.voll { background:#1B6FA8; color:#fff; }
   .mock-knopf.rand { border:1px solid #CBD5E1; color:#fff; }
+  .mock-marken { display:flex; flex-wrap:wrap; gap:4px; margin:0 0 10px; }
+  .mock-marken span { font-size:.56rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 7px; border-radius:999px; background:rgba(255,255,255,.12); color:#E2E8F0; }
+  .mock-zeiten { font-size:.56rem; color:#94A3B8; margin:8px 0 0; line-height:1.4; }
+  .mock-sterne { font-size:.62rem; color:#FBBF24; margin:0 0 8px; }
+  .mock-sterne b { color:#fff; font-weight:600; }
   .vorschau h2 { margin-bottom:8px; }
+  /* Verwaltungsbereich als Wischleiste – ohne Bibliothek, mit Einrast-Scrollen */
+  .slider { position:relative; }
+  .slides { display:flex; gap:14px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -webkit-overflow-scrolling:touch; padding-bottom:4px; }
+  .slides::-webkit-scrollbar { display:none; }
+  .slide { flex:0 0 100%; scroll-snap-align:center; margin:0; }
+  .slide .browser { margin-bottom:12px; }
+  .slide figcaption { color:#B4BFC9; font-size:.94rem; }
+  .slide figcaption b { color:#F2F5F7; display:block; margin-bottom:2px; }
+  .slider-nav { display:flex; align-items:center; justify-content:center; gap:14px; margin-top:14px; }
+  .slider-nav button { width:38px; height:38px; border-radius:50%; border:1px solid #243039; background:#111820; color:#F2F5F7; font-size:1.1rem; cursor:pointer; }
+  .slider-nav button:hover { border-color:#4DA3E0; }
+  .punkte { display:flex; gap:8px; }
+  .punkte i { width:8px; height:8px; border-radius:50%; background:#334155; transition:background .2s ease, width .2s ease; }
+  .punkte i.an { background:#4DA3E0; width:22px; border-radius:999px; }
+  .preis { display:grid; gap:10px; }
+  .preis div { display:flex; gap:12px; align-items:flex-start; }
+  .preis div::before { content:""; flex:none; margin-top:9px; width:8px; height:8px; border-radius:50%; background:#4DA3E0; }
+  .preis p { margin:0; }
+  .preis b { color:#F2F5F7; }
   .vorschau p { margin-bottom:16px; }
   form { display:grid; gap:12px; margin-top:16px; }
   label { font-size:.85rem; color:#B4BFC9; display:block; }
@@ -147,7 +177,8 @@ export async function briefZuToken(env, token) {
   if (!TOKEN_RE.test(token || '') || !env.DB) return null;
   const z = await env.DB.prepare(
     `SELECT br.id, br.token, br.status, br.befunde, br.angelegt, br.gesendet_am,
-            b.id AS betrieb_id, b.name, b.ort, b.art, b.status AS betrieb_status, b.geprueft_am, b.google_stand
+            b.id AS betrieb_id, b.name, b.ort, b.art, b.marken, b.telefon, b.oeffnungszeiten,
+            b.status AS betrieb_status, b.geprueft_am, b.google_stand
      FROM akquise_briefe br LEFT JOIN akquise_betriebe b ON b.id = br.betrieb_id
      WHERE br.token = ?`,
   ).bind(token).first();
@@ -184,6 +215,15 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
   const telefon = e?.absender?.telefon || '';
   const email = e?.absender?.email || KONTAKT;
   const firma = brief.name || 'Ihren Betrieb';
+  // Was die Vorschau persoenlich macht – nur aus OpenStreetMap (Marken,
+  // Oeffnungszeiten) und der Google-Zeile des Briefs, nichts von der Website
+  // des Betriebs.
+  const marken = String(brief.marken || '').split(/[;,]/).map(m => m.trim()).filter(Boolean).slice(0, 3);
+  const zeitenRoh = String(brief.oeffnungszeiten || '').trim();
+  const zeiten = zeitenRoh && zeitenRoh.length <= 70 ? zeitenRoh.replace(/\s*;\s*/g, ' · ').replace(/(\d\d:\d\d)-(\d\d:\d\d)/g, '$1–$2') : '';
+  const google = brief.befunde.find(b => b.code === 'google_note');
+  const sterne = google ? /^([\d,]+) Sterne bei ([\d.]+) Bewertungen/.exec(google.text) : null;
+  const ausOsm = marken.length || zeiten;
   // Werkstatt-Texte nur, wenn der Name nicht nach Autohaus klingt.
   const werkstatt = brief.art === 'car_repair' && !/autohaus|automobil|autohandel/i.test(firma);
 
@@ -212,11 +252,14 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
           ${new RegExp(werkstatt ? 'werkstatt' : 'autohaus', 'i').test(firma) ? '' : `<span class="mock-marke">${werkstatt ? 'Kfz-Werkstatt' : 'Autohaus'}</span>`}
           <span class="mock-name">${esc(firma)}</span>
           <div class="mock-text">
+            ${sterne ? `<p class="mock-sterne">★ <b>${esc(sterne[1])}</b> · ${esc(sterne[2])} Bewertungen</p>` : ''}
+            ${marken.length ? `<div class="mock-marken">${marken.map(m => `<span>${esc(m)}</span>`).join('')}</div>` : ''}
             <p class="mock-eyebrow">${esc([werkstatt ? 'Werkstatt' : 'Autohaus', brief.ort ? `in ${brief.ort}` : ''].filter(Boolean).join(' '))}</p>
             <p class="mock-titel">${werkstatt ? 'Ihr Auto in guten Händen.' : 'Gute Autos. Ehrliche Preise.'}</p>
             <p class="mock-unter">${werkstatt ? 'Inspektion, Reparatur und Reifen – Termin direkt online.' : 'Gebrauchtwagen, Ankauf und Werkstatt – alles unter einem Dach.'}</p>
             <span class="mock-knopf voll">${werkstatt ? 'Termin anfragen' : 'Fahrzeuge ansehen'}</span>
             <span class="mock-knopf rand">Kontakt aufnehmen</span>
+            ${zeiten ? `<p class="mock-zeiten">Geöffnet: ${esc(zeiten)}</p>` : ''}
           </div>
         </div></div>
       </div>
@@ -224,7 +267,7 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
         <h2>So könnte Ihre Startseite aussehen</h2>
         <p>Ein erster Eindruck mit Ihrem Namen. Dahinter steht meine fertige Autohaus-Demo – zum Durchklicken, ohne Anmeldung.</p>
         <a class="knopf gross" id="demo-knopf" href="${DEMO_URL}" target="_blank" rel="noopener">Demo jetzt ansehen</a>
-        <p class="klein" style="margin-top:12px">Platzhalter und Beispieldaten – keine Inhalte Ihres Betriebs.</p>
+        <p class="klein" style="margin-top:12px">Entwurf mit Ihrem Namen${ausOsm ? ', Marken und Öffnungszeiten aus OpenStreetMap (© OpenStreetMap-Mitwirkende)' : ''} – sonst Platzhalter, keine Inhalte Ihrer Website.</p>
       </div>
     </div>
 
@@ -246,6 +289,33 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
       <ul class="checks">${checks.map(c => `<li><i></i><b>${esc(c.label)}</b> – ${esc(c.text)}</li>`).join('')}</ul>
       <p>Ein Ansprechpartner aus Würzburg – vom ersten Entwurf bis zur laufenden Pflege, ohne Agentur dazwischen.</p>
       <p class="klein">Abbildungen: eigene Demo mit Beispieldaten – keine Aufnahmen Ihres Betriebs.</p>
+    </section>
+
+    <section>
+      <h2>Dahinter: Ihr eigener Verwaltungsbereich</h2>
+      <p>Änderungen machen Sie selbst – ohne Agentur, ohne Wartezeit.</p>
+      <div class="slider">
+        <div class="slides" id="slides">
+          ${ADMIN_SLIDES.map(f => `<figure class="slide">
+            <div class="browser"><div class="leiste"><i></i><i></i><i></i><span>Verwaltung · ${esc(f.titel)}</span></div><img src="${f.bild}" alt="${esc(f.titel)} im Verwaltungsbereich der Demo" loading="lazy"></div>
+            <figcaption><b>${esc(f.titel)}</b>${esc(f.text)}</figcaption>
+          </figure>`).join('')}
+        </div>
+        <div class="slider-nav">
+          <button type="button" id="zurueck" aria-label="Vorheriges Bild">‹</button>
+          <span class="punkte" id="punkte">${ADMIN_SLIDES.map((_, i) => `<i${i ? '' : ' class="an"'}></i>`).join('')}</span>
+          <button type="button" id="weiter" aria-label="Nächstes Bild">›</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Was es kostet</h2>
+      <div class="karte preis">
+        <div><p><b>Festpreis vorab</b> – schriftlich, bevor es losgeht. Keine versteckten Kosten.</p></div>
+        <div><p><b>Bezahlbar durch KI-Werkzeuge</b> – der Aufwand bleibt klein, und damit der Preis.</p></div>
+        <div><p><b>Unverbindlich</b> – erst die Demo, dann ein Gespräch, dann ein Angebot.</p></div>
+      </div>
     </section>
 
     <section>
@@ -286,6 +356,17 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
     ${fussHtml(token)}
     <script>
       (function () {
+        // Wischleiste: Pfeile und Punkte
+        var sl = document.getElementById('slides'), pk = document.querySelectorAll('#punkte i');
+        if (sl) {
+          var gehe = function (d) { sl.scrollBy({ left: d * sl.clientWidth, behavior: 'smooth' }); };
+          document.getElementById('zurueck').addEventListener('click', function () { gehe(-1); });
+          document.getElementById('weiter').addEventListener('click', function () { gehe(1); });
+          sl.addEventListener('scroll', function () {
+            var i = Math.round(sl.scrollLeft / sl.clientWidth);
+            pk.forEach(function (p, j) { p.className = j === i ? 'an' : ''; });
+          }, { passive: true });
+        }
         // Klick auf „Demo jetzt ansehen“ merken – der Link oeffnet die Demo trotzdem sofort.
         var dk = document.getElementById('demo-knopf');
         if (dk) dk.addEventListener('click', function () {
