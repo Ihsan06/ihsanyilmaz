@@ -905,8 +905,11 @@ function AkquiseCockpit() {
   };
 
   // Eine Zeile komplett auffrischen: Google (falls nie), pruefen, PageSpeed.
+  // Ausdruecklich „neu pruefen“: Google immer frisch abfragen (eine Abfrage
+  // vom Monatskontingent), nicht nur, wenn noch nie gefragt wurde – sonst
+  // bleiben Bewertung und Anzahl auf dem alten Stand.
   const zeileAuffrischen = async (b: Betrieb) => {
-    if (googleEingerichtet && !b.google_stand) await googleSuchen(b);
+    if (googleEingerichtet) await googleSuchen(b);
     await pruefen(b, { oeffnen: true });
     const frisch = (await holeAktive()).find(x => x.id === b.id);
     if (frisch && brauchtPsi(frisch)) {
