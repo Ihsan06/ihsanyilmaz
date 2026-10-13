@@ -1,5 +1,5 @@
 // POST /api/admin/login  — Anmeldung am Adminbereich
-import { json, sessionCookieErstellen, sicherGleich } from '../../_lib/auth.js';
+import { json, sessionCookieErstellen, sicherGleich, EIGEN_COOKIE } from '../../_lib/auth.js';
 
 const MAX_FEHLVERSUCHE = 8;
 const FENSTER_MINUTEN = 15;
@@ -56,5 +56,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   const cookie = await sessionCookieErstellen(env);
-  return json({ ok: true }, 200, { 'Set-Cookie': cookie });
+  const antwort = json({ ok: true }, 200, { 'Set-Cookie': cookie });
+  antwort.headers.append('Set-Cookie', EIGEN_COOKIE);
+  return antwort;
 }

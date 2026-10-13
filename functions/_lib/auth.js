@@ -81,6 +81,18 @@ export async function istAngemeldet(request, env) {
   return sicherGleich(erwartet, signatur);
 }
 
+// Merkt ein Geraet als „meins“, ein Jahr lang und unabhaengig von der Session:
+// Aufrufe der persoenlichen Seiten /fuer/<token> von diesem Geraet zaehlen nicht.
+// Wird bei jedem Login gesetzt. Unsigniert reicht – wer es faelscht, nimmt sich
+// nur selbst aus der Zaehlung.
+const EIGEN_NAME = 'aiy_eigen';
+export const EIGEN_COOKIE = `${EIGEN_NAME}=1; Path=/; Max-Age=31536000; HttpOnly; Secure; SameSite=Lax`;
+
+export async function eigenerAufruf(request, env) {
+  if (cookieLesen(request, EIGEN_NAME) === '1') return true;
+  return istAngemeldet(request, env).catch(() => false);
+}
+
 // Wrapper für alle geschützten Endpunkte.
 export function nurAngemeldet(handler) {
   return async (context) => {

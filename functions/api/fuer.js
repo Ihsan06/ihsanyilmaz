@@ -8,7 +8,7 @@
 // nichts ueber den Betrieb verraten, nie 5xx (davor schiebt Cloudflare eine
 // eigene Fehlerseite, die der Browser nicht lesen kann).
 import { TOKEN_RE } from '../_lib/brief.js';
-import { istAngemeldet } from '../_lib/auth.js';
+import { eigenerAufruf } from '../_lib/auth.js';
 
 const KOPF = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
 const json = (b, status = 200) => new Response(JSON.stringify(b), { status, headers: KOPF });
@@ -21,9 +21,11 @@ export async function onRequestPost({ request, env }) {
   if (!env.DB) return json({ ok: false, fehler: 'nichtGespeichert' });
 
   if (d.aktion === 'demo') {
-    // Eigene Klicks aus dem Admin (Vorschau) zaehlen nicht.
-    if (await istAngemeldet(request, env).catch(() => false)) return json({ ok: true });
-    await env.DB.prepare("UPDATE akquise_briefe SET demo_geoeffnet = COALESCE(demo_geoeffnet, datetime('now')) WHERE token = ?")
+    // Eigene Klicks (Admin-Vorschau, eigene Geraete) und die ersten zwei Tage
+    // nach dem Versand zaehlen nicht – wie die Aufrufe in /fuer/<token>.
+    if (await eigenerAufruf(request, env)) return json({ ok: true });
+    await env.DB.prepare(`UPDATE akquise_briefe SET demo_geoeffnet = COALESCE(demo_geoeffnet, datetime('now'))
+      WHERE token = ? AND art != 'test' AND gesendet_am IS NOT NULL AND gesendet_am <= datetime('now', '-2 days')`)
       .bind(token).run().catch(() => {});
     return json({ ok: true });
   }

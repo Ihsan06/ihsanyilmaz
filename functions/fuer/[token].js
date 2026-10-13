@@ -9,7 +9,7 @@
 // Scanner oder ein Vorschau-Bot die Zahl nicht aufblaest.
 // Suchmaschinen bleiben draussen (X-Robots-Tag + Meta), nichts wird gecacht.
 import { TOKEN_RE, CHECK_LABELS, rueckChecks, quellenZeile } from '../_lib/brief.js';
-import { istAngemeldet } from '../_lib/auth.js';
+import { eigenerAufruf } from '../_lib/auth.js';
 import { postEinstellungenLaden } from '../api/admin/akquise/post-einstellungen.js';
 
 const STARTSEITE = 'https://ihsan-yilmaz.de';
@@ -223,11 +223,14 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
   if (!brief) return nichtGefunden();
 
   // Zaehlen – hoechstens einmal je Minute je Token (also max. 60 je Stunde).
-  // Eigene Aufrufe aus dem Admin (Vorschau unter Post) zaehlen nicht.
-  if (!(await istAngemeldet(request, env).catch(() => false))) {
+  // Nicht gezaehlt: eigene Geraete (Admin-Login, siehe eigenerAufruf),
+  // Testbriefe und die ersten zwei Tage nach dem Versand – da kann der Brief
+  // noch nicht angekommen sein, Aufrufe sind dann eigene Kontrollen.
+  if (!(await eigenerAufruf(request, env))) {
     const zaehlung = env.DB.prepare(
       `UPDATE akquise_briefe SET aufrufe = aufrufe + 1, zuletzt_aufgerufen = datetime('now')
-       WHERE id = ? AND (zuletzt_aufgerufen IS NULL OR zuletzt_aufgerufen < datetime('now', '-60 seconds'))`,
+       WHERE id = ? AND art != 'test' AND gesendet_am IS NOT NULL AND gesendet_am <= datetime('now', '-2 days')
+         AND (zuletzt_aufgerufen IS NULL OR zuletzt_aufgerufen < datetime('now', '-60 seconds'))`,
     ).bind(brief.id).run().catch(() => {});
     if (typeof waitUntil === 'function') waitUntil(zaehlung); else await zaehlung;
   }
