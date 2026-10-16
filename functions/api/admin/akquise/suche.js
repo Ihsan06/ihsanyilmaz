@@ -6,7 +6,7 @@
 // wenig CPU. Die Function liefert nur Bereich und Query und nimmt die
 // Elemente entgegen.
 //
-// GET  ?region=wuerzburg|unterfranken|ort&ort=&radiusKm=
+// GET  ?region=wuerzburg|unterfranken|oberfranken|ort&ort=&radiusKm=
 //   → { ok, region, bbox, query }   (Nominatim weiter serverseitig)
 // POST { region, bbox, elements }   (Body hoechstens 5 MB, 5000 Elemente)
 //   → { ok, gefunden, neu, region, bbox }
@@ -28,8 +28,10 @@ const MAX_ELEMENTE = 5000;
 // Regierungsbezirks. Reihenfolge wie bei Overpass: sued, west, nord, ost.
 const PRESETS = {
   wuerzburg: { bbox: [49.566, 9.605, 50.016, 10.301], name: 'Würzburg 25 km' },
-  wuerzburg50: { bbox: bboxUm(49.7939, 9.9294, 50), name: 'Würzburg 50 km' },
   unterfranken: { bbox: [49.48, 8.97, 50.57, 10.88], name: 'Unterfranken' },
+  // Grobe Huelle: Forchheim im Sueden, Ludwigsstadt im Norden, Bamberger Land
+  // im Westen, Selb im Osten.
+  oberfranken: { bbox: [49.50, 10.40, 50.57, 12.30], name: 'Oberfranken' },
 };
 
 async function mitTimeout(ms, fn) {
