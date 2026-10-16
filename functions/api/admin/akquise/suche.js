@@ -16,7 +16,7 @@
 // waere die Arbeit des Nutzers nach jedem Suchlauf weg. Endgueltig geloeschte
 // (akquise_ausgeschlossen) kommen nicht wieder.
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
-import { websiteNormalisieren, kategorieOhnePruefung } from '../../../_lib/akquise.js';
+import { websiteNormalisieren, kategorieOhnePruefung, istHaendler } from '../../../_lib/akquise.js';
 
 const UA = 'AIY-Akquise/1.0 (kontakt@ihsan-yilmaz.de)';
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
@@ -204,7 +204,8 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     ).bind('suche', regionName, JSON.stringify({ bbox, elemente: elements.length }), gefunden, neu, fehler).run().catch(() => {});
   };
 
-  const zeilen = doppelteEntfernen(elements.map(zeileAus).filter(Boolean));
+  // Nur Autohaeuser – Werkstaetten nur, wenn der Name nach Haendler klingt.
+  const zeilen = doppelteEntfernen(elements.map(zeileAus).filter(z => z && istHaendler(z.name, z.art)));
 
   try {
     // Welche gibt es schon, welche sind endgueltig geloescht? Nur die

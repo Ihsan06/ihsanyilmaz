@@ -16,7 +16,7 @@
 // Dauerhaft geschlossene Betriebe fallen weg, endgueltig geloeschte
 // (akquise_ausgeschlossen) auch.
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
-import { istBoersenSeite, kategorieOhnePruefung } from '../../../_lib/akquise.js';
+import { istBoersenSeite, kategorieOhnePruefung, istHaendler } from '../../../_lib/akquise.js';
 import {
   textSuche, kontingent, fehlerMeldung, fehlerMerken, placeTrifft, adresseAus, websiteAusPlace, abstandM,
   adresseVoll, anschriftSetzen,
@@ -179,7 +179,8 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
       continue;
     }
 
-    // Neu: nur bei Google bekannt.
+    // Neu: nur bei Google bekannt – und nur Autohaeuser (siehe istHaendler).
+    if (!istHaendler(p.displayName?.text, typ)) continue;
     const a = adresseAus(p);
     befehle.push(env.DB.prepare(
       `INSERT INTO akquise_betriebe

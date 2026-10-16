@@ -572,6 +572,14 @@ export function kategorieErmitteln(betrieb, signale, score_website) {
 }
 
 // Kategorie ohne Pruefung – nach dem Eintragen oder Verwerfen einer Adresse.
+// Fokus Autohaeuser (Oktober 2026): reine Werkstaetten fliegen raus. Viele
+// kleine Haendler sind in OSM aber als Werkstatt (shop=car_repair) eingetragen
+// – die bleiben, wenn der Name nach Autohandel klingt.
+export const HAENDLER_RE = /auto[\s-]?haus|automobil|auto[\s-]?handel|gebrauchtwagen|cars\b|autopark|autohalle|fahrzeughandel|autoverkauf|kfz\.?[\s-]?handel/i;
+export function istHaendler(name, art) {
+  return art === 'car' || HAENDLER_RE.test(String(name || ''));
+}
+
 export function kategorieOhnePruefung(website) {
   if (!website) return 'ohne_website';
   if (istBoersenSeite(website)) return 'nur_boerse';

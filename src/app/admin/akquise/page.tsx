@@ -162,6 +162,9 @@ const OVERPASS_TIMEOUT_MS = 120_000;
 const WAYBACK_TIMEOUT_MS = 15_000;
 const PRUEF_ALTER_TAGE = 30;
 
+// Haendlername – Spiegel von HAENDLER_RE in functions/_lib/akquise.js.
+const HAENDLER_RE = /auto[\s-]?haus|automobil|auto[\s-]?handel|gebrauchtwagen|cars\b|autopark|autohalle|fahrzeughandel|autoverkauf|kfz\.?[\s-]?handel/i;
+
 // Boersen und soziale Netze – Spiegel der Liste in functions/_lib/akquise.js,
 // nur fuer die Anzeige ("Börsen-Seite") und den Website-Filter.
 const BOERSEN_RE = /(?:^|\.)(?:mobile\.de|autoscout24\.[a-z]+|(?:ebay-)?kleinanzeigen\.de|ebay\.[a-z]+|facebook\.com|fb\.com|fb\.me|instagram\.com|google\.[a-z]+|g\.page|business\.site|goo\.gl|youtube\.com|youtu\.be|tiktok\.com|whatsapp\.com|wa\.me|linkedin\.com|xing\.com|gelbeseiten\.de|11880\.com|yelp\.[a-z]+|autohaus24\.de|pkw\.de|12gebrauchtwagen\.de|heycar\.[a-z]+|auto\.de|gebrauchtwagen\.de)$/i;
@@ -779,14 +782,14 @@ function AkquiseCockpit() {
     setAblauf(a => (a ? { ...a, [k]: { ...a[k], ...s } } : a));
 
   // Google-Flaechensuche: das Suchgebiet in Felder von ~20 km teilen, je
-  // Feld Autohaeuser und Werkstaetten abfragen. Meldet Google ein Feld als
+  // Feld Autohaeuser abfragen (Werkstaetten seit Oktober 2026 nicht mehr). Meldet Google ein Feld als
   // voll (mehr als 60 Treffer), wird es geviertelt und neu gefragt.
   const googleFlaeche = async (bbox: number[], regionName: string) => {
     const [s0, w0, n0, o0] = bbox;
     const zeilen = Math.max(1, Math.round((n0 - s0) / 0.18));
     const spalten = Math.max(1, Math.round((o0 - w0) / 0.27));
     const felder: { b: number[]; typ: "car" | "car_repair" }[] = [];
-    for (const typ of ["car", "car_repair"] as const) {
+    for (const typ of ["car"] as const) {
       for (let r = 0; r < zeilen; r++) for (let c = 0; c < spalten; c++) {
         const h = (n0 - s0) / zeilen, br = (o0 - w0) / spalten;
         felder.push({ typ, b: [s0 + r * h, w0 + c * br, s0 + (r + 1) * h, w0 + (c + 1) * br] });
@@ -1595,7 +1598,7 @@ function AkquiseCockpit() {
                             Hausnummer fehlt
                           </button>
                         )}
-                        {[b.art === "car_repair" ? "Werkstatt" : "Autohaus", b.ort, b.marken].filter(Boolean).join(" · ")}
+                        {[b.art === "car_repair" && !HAENDLER_RE.test(b.name) ? "Werkstatt" : "Autohaus", b.ort, b.marken].filter(Boolean).join(" · ")}
                       </span>
                       {hinweis && <span className={`akq-zeilenhinweis${hinweis.fehler ? " fehler" : ""}`}>{hinweis.text}</span>}
                     </div>
