@@ -16,7 +16,7 @@
 // Dauerhaft geschlossene Betriebe fallen weg, endgueltig geloeschte
 // (akquise_ausgeschlossen) auch.
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
-import { istBoersenSeite, kategorieOhnePruefung, istHaendler } from '../../../_lib/akquise.js';
+import { istBoersenSeite, kategorieOhnePruefung, istHaendler, gesperrteNamen, namensGesperrt } from '../../../_lib/akquise.js';
 import {
   textSuche, kontingent, fehlerMeldung, fehlerMerken, placeTrifft, adresseAus, websiteAusPlace, abstandM,
   adresseVoll, anschriftSetzen,
@@ -137,6 +137,7 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     geschlossen++;
   }
 
+  let namen = null; // erst laden, wenn ein Betrieb wirklich neu waere
   for (const p of offen) {
     const lat = p.location.latitude, lng = p.location.longitude;
     const bewertung = Number.isFinite(Number(p.rating)) ? Number(p.rating) : null;
@@ -182,6 +183,9 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     // Neu: nur bei Google bekannt – und nur Autohaeuser (siehe istHaendler).
     if (!istHaendler(p.displayName?.text, typ)) continue;
     const a = adresseAus(p);
+    // Geloescht oder im Papierkorb, nur ohne gemerkte Place-ID: nicht neu anlegen.
+    namen ??= await gesperrteNamen(env);
+    if (await namensGesperrt(namen, { name: p.displayName?.text, plz: a.plz, ort: a.ort })) continue;
     befehle.push(env.DB.prepare(
       `INSERT INTO akquise_betriebe
          (quelle, quelle_id, name, art, strasse, plz, ort, lat, lng, telefon, website, website_quelle, kategorie, region,

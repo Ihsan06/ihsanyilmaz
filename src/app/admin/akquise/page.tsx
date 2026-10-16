@@ -147,6 +147,7 @@ const ERKLAERUNG = {
 
 const REGIONEN = [
   { wert: "wuerzburg", label: "Würzburg, 25 km" },
+  { wert: "wuerzburg50", label: "Würzburg, 50 km" },
   { wert: "unterfranken", label: "Unterfranken" },
   { wert: "ort", label: "Ort eingeben" },
 ];

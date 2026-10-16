@@ -572,6 +572,39 @@ export function kategorieErmitteln(betrieb, signale, score_website) {
 }
 
 // Kategorie ohne Pruefung – nach dem Eintragen oder Verwerfen einer Adresse.
+// Sperre ueber den Namen: Endgueltig Geloeschtes kommt sonst zurueck, wenn
+// es unter einer anderen ID auftaucht (neuer OSM-Knoten, Google-Eintrag ohne
+// gemerkte Place-ID). Gespeichert wird nur ein Hash aus Name + PLZ bzw.
+// Name + Ort – kein lesbarer Name (quelle 'name' in akquise_ausgeschlossen).
+const nameNorm = s => umlautfrei(String(s || '').toLowerCase()).replace(/[^a-z0-9]/g, '');
+async function sha(text) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(h)].slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+export async function namensSchluessel({ name, plz, ort }) {
+  const n = nameNorm(name);
+  if (n.length < 3) return [];
+  const teile = [];
+  if (/^\d{5}$/.test(String(plz || ''))) teile.push(`${n}|${plz}`);
+  if (nameNorm(ort)) teile.push(`${n}|${nameNorm(ort)}`);
+  return Promise.all(teile.map(sha));
+}
+// Alle Namensschluessel, die nicht neu angelegt werden duerfen: endgueltig
+// geloeschte und alles, was gerade im Papierkorb liegt.
+export async function gesperrteNamen(env) {
+  const [aus, korb] = await env.DB.batch([
+    env.DB.prepare("SELECT quelle_id FROM akquise_ausgeschlossen WHERE quelle = 'name'"),
+    env.DB.prepare('SELECT name, plz, ort FROM akquise_betriebe WHERE geloescht IS NOT NULL'),
+  ]);
+  const set = new Set((aus.results ?? []).map(r => r.quelle_id));
+  for (const z of korb.results ?? []) for (const k of await namensSchluessel(z)) set.add(k);
+  return set;
+}
+export async function namensGesperrt(set, betrieb) {
+  if (!set.size) return false;
+  return (await namensSchluessel(betrieb)).some(k => set.has(k));
+}
+
 // Fokus Autohaeuser (Oktober 2026): reine Werkstaetten fliegen raus. Viele
 // kleine Haendler sind in OSM aber als Werkstatt (shop=car_repair) eingetragen
 // – die bleiben, wenn der Name nach Autohandel klingt.

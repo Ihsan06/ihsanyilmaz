@@ -18,7 +18,7 @@
 // sonst legte der naechste Suchlauf den Betrieb wieder an.
 // DELETE { id, endgueltig:true }   → wirklich loeschen, Pruefungen mit
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
-import { websiteNormalisieren, kategorieOhnePruefung, kategorieErmitteln, KATEGORIEN, jsonLesen, betriebLaden, letztePruefungLaden, pruefungNeuBewerten } from '../../../_lib/akquise.js';
+import { websiteNormalisieren, kategorieOhnePruefung, kategorieErmitteln, KATEGORIEN, jsonLesen, betriebLaden, letztePruefungLaden, pruefungNeuBewerten, namensSchluessel } from '../../../_lib/akquise.js';
 
 export const ERLAUBTE_STATUS = ['neu', 'beobachten', 'brief', 'kontakt', 'kunde', 'aus'];
 
@@ -233,6 +233,16 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
 
 // Quellschluessel der Betriebe aus "ids" (Unterabfrage) festhalten: OSM-ID
 // bzw. Google-ID des Eintrags und die verknuepfte Place-ID.
+// Dazu die Namensschluessel (Hash, siehe namensSchluessel), damit derselbe
+// Betrieb unter neuer ID nicht wieder auftaucht.
+async function namenAusschliessen(env, ids, werte = []) {
+  const { results } = await env.DB.prepare(`SELECT name, plz, ort FROM akquise_betriebe WHERE id IN (${ids})`).bind(...werte).all();
+  const st = env.DB.prepare("INSERT OR IGNORE INTO akquise_ausgeschlossen (quelle, quelle_id) VALUES ('name', ?)");
+  const out = [];
+  for (const z of results ?? []) for (const k of await namensSchluessel(z)) out.push(st.bind(k));
+  return out;
+}
+
 function ausschliessen(env, ids, werte = []) {
   return [
     env.DB.prepare(`INSERT OR IGNORE INTO akquise_ausgeschlossen (quelle, quelle_id)
@@ -253,6 +263,7 @@ export const onRequestDelete = nurAngemeldet(async ({ request, env }) => {
       AND NOT EXISTS (SELECT 1 FROM akquise_briefe br WHERE br.betrieb_id = b.id AND br.status IN ('gesendet', 'zugestellt'))`;
     const vorher = await env.DB.prepare('SELECT COUNT(*) AS n FROM akquise_betriebe WHERE geloescht IS NOT NULL AND zusammengefuehrt_in IS NULL').first();
     const erg = await env.DB.batch([
+      ...await namenAusschliessen(env, imKorb),
       ...ausschliessen(env, imKorb),
       env.DB.prepare(`DELETE FROM akquise_pruefungen WHERE betrieb_id IN (${imKorb})`),
       env.DB.prepare(`DELETE FROM akquise_betriebe WHERE id IN (${imKorb})`),
@@ -273,6 +284,7 @@ export const onRequestDelete = nurAngemeldet(async ({ request, env }) => {
     ).bind(id).first();
     if (Number(offen?.n || 0) > 0) return json({ ok: false, error: 'Zu diesem Betrieb gibt es verschickte Briefe – erst unter Post löschen.' }, 409);
     await env.DB.batch([
+      ...await namenAusschliessen(env, 'SELECT ?', [id]),
       ...ausschliessen(env, 'SELECT ?', [id]),
       env.DB.prepare('DELETE FROM akquise_pruefungen WHERE betrieb_id = ?').bind(id),
       env.DB.prepare('DELETE FROM akquise_betriebe WHERE id = ?').bind(id),

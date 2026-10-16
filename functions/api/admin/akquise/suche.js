@@ -16,7 +16,7 @@
 // waere die Arbeit des Nutzers nach jedem Suchlauf weg. Endgueltig geloeschte
 // (akquise_ausgeschlossen) kommen nicht wieder.
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
-import { websiteNormalisieren, kategorieOhnePruefung, istHaendler } from '../../../_lib/akquise.js';
+import { websiteNormalisieren, kategorieOhnePruefung, istHaendler, gesperrteNamen, namensGesperrt } from '../../../_lib/akquise.js';
 
 const UA = 'AIY-Akquise/1.0 (kontakt@ihsan-yilmaz.de)';
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
@@ -28,6 +28,7 @@ const MAX_ELEMENTE = 5000;
 // Regierungsbezirks. Reihenfolge wie bei Overpass: sued, west, nord, ost.
 const PRESETS = {
   wuerzburg: { bbox: [49.566, 9.605, 50.016, 10.301], name: 'Würzburg 25 km' },
+  wuerzburg50: { bbox: bboxUm(49.7939, 9.9294, 50), name: 'Würzburg 50 km' },
   unterfranken: { bbox: [49.48, 8.97, 50.57, 10.88], name: 'Unterfranken' },
 };
 
@@ -216,7 +217,15 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     ]);
     const bekannt = new Set((da.results ?? []).map(r => r.quelle_id));
     const ausgeschlossen = new Set((aus.results ?? []).map(r => r.quelle_id));
-    const rein = zeilen.filter(z => !ausgeschlossen.has(z.quelle_id));
+    // Neue Eintraege zusaetzlich gegen den Namen pruefen: Geloeschtes und der
+    // Papierkorb kommen auch unter neuer OSM-ID nicht zurueck.
+    const namen = await gesperrteNamen(env);
+    const rein = [];
+    for (const z of zeilen) {
+      if (ausgeschlossen.has(z.quelle_id)) continue;
+      if (!bekannt.has(z.quelle_id) && await namensGesperrt(namen, z)) continue;
+      rein.push(z);
+    }
     const neu = rein.filter(z => !bekannt.has(z.quelle_id)).length;
 
     const st = env.DB.prepare(UPSERT);
