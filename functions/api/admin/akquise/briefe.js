@@ -188,15 +188,19 @@ export async function onRequestGet({ request, env }) {
          ORDER BY br.angelegt DESC, br.id DESC LIMIT 500`,
       ).bind(...werte),
       env.DB.prepare(
-        `SELECT status, COUNT(*) AS n, SUM(aufrufe) AS aufrufe, SUM(demo_angefordert IS NOT NULL OR demo_geoeffnet IS NOT NULL) AS demo
+        `SELECT status, COUNT(*) AS n,
+                SUM(CASE WHEN art != 'test' THEN aufrufe ELSE 0 END) AS aufrufe,
+                SUM(art != 'test' AND (demo_angefordert IS NOT NULL OR demo_geoeffnet IS NOT NULL)) AS demo,
+                SUM(art != 'test' AND rueckruf_am IS NOT NULL) AS rueckruf
          FROM akquise_briefe GROUP BY status`,
       ),
     ]);
-    const z = { entwurf: 0, freigegeben: 0, gesendet: 0, zugestellt: 0, fehler: 0, storniert: 0, aufrufe: 0, demo: 0 };
+    const z = { entwurf: 0, freigegeben: 0, gesendet: 0, zugestellt: 0, fehler: 0, storniert: 0, aufrufe: 0, demo: 0, rueckruf: 0 };
     for (const r of zaehler.results ?? []) {
       z[r.status] = Number(r.n || 0);
       z.aufrufe += Number(r.aufrufe || 0);
       z.demo += Number(r.demo || 0);
+      z.rueckruf += Number(r.rueckruf || 0);
     }
     return json({ ok: true, briefe: (liste.results ?? []).map(briefAufbereiten), zaehler: z });
   } catch (e) {
@@ -257,8 +261,8 @@ async function entwurfAnlegen(body, env) {
   }
 
   const link = landingLink(e.landing_basis, token);
-  const text = briefFuellen(e.vorlage, {
-    firma: betrieb.name, ort: betrieb.ort, befunde, link, absender: e.absender,
+  const text = briefFuellen(art === 'nachfass' ? e.vorlage_nachfass : e.vorlage, {
+    firma: betrieb.name, ort: betrieb.ort, befunde, link, absender: e.absender, referenz: e.referenz,
   });
   const empfaenger = art === 'test' ? absenderBlock(e.absender) : empfaengerBlock(betrieb);
 

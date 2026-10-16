@@ -4,21 +4,27 @@
 //   akquise.absender      JSON { name, zusatz, strasse, plz_ort, telefon, email, web }
 //   akquise.vorlage       Text mit Platzhaltern
 //   akquise.landing_basis z. B. https://ihsan-yilmaz.de/fuer/
+//   akquise.vorlage_nachfass  Text des zweiten Briefs
+//   akquise.referenz      ein Satz ueber einen Kunden (nur mit dessen Erlaubnis),
+//                         Platzhalter {referenz} und Abschnitt auf der persoenlichen Seite
 //
-// GET → { ok, absender, vorlage, landing_basis, platzhalter, standard:{…} }
-// PUT { absender?, vorlage?, landing_basis? } → { ok }
+// GET → { ok, absender, vorlage, vorlage_nachfass, referenz, landing_basis, platzhalter, standard:{…} }
+// PUT { absender?, vorlage?, vorlage_nachfass?, referenz?, landing_basis? } → { ok }
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
-import { ABSENDER_STANDARD, VORLAGE_STANDARD, LANDING_BASIS_STANDARD, PLATZHALTER } from '../../../_lib/brief.js';
+import { ABSENDER_STANDARD, VORLAGE_STANDARD, VORLAGE_NACHFASS, LANDING_BASIS_STANDARD, PLATZHALTER } from '../../../_lib/brief.js';
 
-const SCHLUESSEL = { absender: 'akquise.absender', vorlage: 'akquise.vorlage', landing_basis: 'akquise.landing_basis' };
+const SCHLUESSEL = {
+  absender: 'akquise.absender', vorlage: 'akquise.vorlage', landing_basis: 'akquise.landing_basis',
+  vorlage_nachfass: 'akquise.vorlage_nachfass', referenz: 'akquise.referenz',
+};
 const ABSENDER_FELDER = ['name', 'zusatz', 'strasse', 'plz_ort', 'telefon', 'email', 'web'];
 
 // Von briefe.js, fuer/[token].js und demo.js mitbenutzt. Fehlt ein Wert,
 // gilt der Standard – so laeuft alles auch ohne je gespeicherte Einstellung.
 export async function postEinstellungenLaden(env) {
   const { results } = await env.DB.prepare(
-    'SELECT schluessel, wert FROM einstellungen WHERE schluessel IN (?, ?, ?)',
-  ).bind(SCHLUESSEL.absender, SCHLUESSEL.vorlage, SCHLUESSEL.landing_basis).all();
+    `SELECT schluessel, wert FROM einstellungen WHERE schluessel IN (${Object.keys(SCHLUESSEL).map(() => '?').join(', ')})`,
+  ).bind(...Object.values(SCHLUESSEL)).all();
   const werte = {};
   for (const z of results ?? []) werte[z.schluessel] = z.wert;
 
@@ -29,6 +35,8 @@ export async function postEinstellungenLaden(env) {
   return {
     absender,
     vorlage: werte[SCHLUESSEL.vorlage] || VORLAGE_STANDARD,
+    vorlage_nachfass: werte[SCHLUESSEL.vorlage_nachfass] || VORLAGE_NACHFASS,
+    referenz: werte[SCHLUESSEL.referenz] || '',
     landing_basis: werte[SCHLUESSEL.landing_basis] || LANDING_BASIS_STANDARD,
   };
 }
@@ -45,7 +53,7 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
   const e = await postEinstellungenLaden(env);
   return json({
     ok: true, ...e, platzhalter: PLATZHALTER,
-    standard: { absender: ABSENDER_STANDARD, vorlage: VORLAGE_STANDARD, landing_basis: LANDING_BASIS_STANDARD },
+    standard: { absender: ABSENDER_STANDARD, vorlage: VORLAGE_STANDARD, vorlage_nachfass: VORLAGE_NACHFASS, referenz: '', landing_basis: LANDING_BASIS_STANDARD },
   });
 });
 
@@ -66,11 +74,18 @@ export const onRequestPut = nurAngemeldet(async ({ request, env }) => {
     }
     setze(SCHLUESSEL.absender, JSON.stringify(a));
   }
-  if (body.vorlage !== undefined) {
-    const v = String(body.vorlage ?? '').replace(/\r/g, '').trim();
-    if (v.length < 20 || v.length > 8000) return json({ ok: false, error: 'Vorlage ist zu kurz oder zu lang (max. 8000 Zeichen).' }, 400);
-    if (!v.includes('{link}')) return json({ ok: false, error: 'Vorlage braucht den Platzhalter {link}.' }, 400);
-    setze(SCHLUESSEL.vorlage, v);
+  for (const [feld, name] of [['vorlage', 'Vorlage'], ['vorlage_nachfass', 'Vorlage für den zweiten Brief']]) {
+    if (body[feld] === undefined) continue;
+    const v = String(body[feld] ?? '').replace(/\r/g, '').trim();
+    if (v.length < 20 || v.length > 8000) return json({ ok: false, error: `${name} ist zu kurz oder zu lang (max. 8000 Zeichen).` }, 400);
+    // Der Widerspruchsweg im Hinweis steht ueber {link_kurz}/nein.
+    if (!/\{link(_kurz)?\}/.test(v)) return json({ ok: false, error: `${name} braucht {link} oder {link_kurz}.` }, 400);
+    setze(SCHLUESSEL[feld], v);
+  }
+  if (body.referenz !== undefined) {
+    const r = String(body.referenz ?? '').replace(/\s+/g, ' ').trim();
+    if (r.length > 300) return json({ ok: false, error: 'Referenz höchstens 300 Zeichen.' }, 400);
+    setze(SCHLUESSEL.referenz, r);
   }
   if (body.landing_basis !== undefined) {
     const b = String(body.landing_basis ?? '').trim();

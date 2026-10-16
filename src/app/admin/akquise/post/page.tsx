@@ -28,6 +28,7 @@ type Brief = {
   empfaenger: string | null; befunde: Befund[]; text: string | null; pdf_schluessel: string | null;
   anbieter: string | null; anbieter_id: string | null; kosten_cent: number | null; fehler: string | null;
   aufrufe: number; zuletzt_aufgerufen: string | null; demo_angefordert: string | null; demo_geoeffnet?: string | null;
+  rueckruf_telefon?: string | null; rueckruf_am?: string | null;
   angelegt: string; gesendet_am: string | null; zugestellt_am: string | null;
   betrieb_name?: string | null; betrieb_ort?: string | null; betrieb_status?: string | null;
   betrieb_geprueft_am?: string | null; betrieb_google_stand?: string | null;
@@ -39,11 +40,11 @@ type BetriebKurz = {
 };
 type Absender = { name: string; zusatz: string; strasse: string; plz_ort: string; telefon: string; email: string; web: string };
 type Einstellungen = {
-  absender: Absender; vorlage: string; landing_basis: string;
+  absender: Absender; vorlage: string; vorlage_nachfass: string; referenz: string; landing_basis: string;
   platzhalter: { name: string; erklaerung: string }[];
-  standard: { absender: Absender; vorlage: string; landing_basis: string };
+  standard: { absender: Absender; vorlage: string; vorlage_nachfass: string; referenz: string; landing_basis: string };
 };
-type Zaehler = { entwurf: number; freigegeben: number; gesendet: number; zugestellt: number; fehler: number; storniert: number; aufrufe: number; demo: number };
+type Zaehler = { entwurf: number; freigegeben: number; gesendet: number; zugestellt: number; fehler: number; storniert: number; aufrufe: number; demo: number; rueckruf?: number };
 type Stand = { eingerichtet: boolean; modus: string; anbieter: string; guthaben_cent?: number; preis_cent?: number };
 type Sperre = { id: number; betrieb_id: number | null; name: string | null; ort: string | null; grund: string | null; angelegt: string };
 type Editor = { brief: Brief; betrieb: BetriebKurz | null; kandidaten: Kandidat[] };
@@ -128,7 +129,7 @@ const STUFEN = [
   { g: 9.5, z: 4.4, a: 1.8, kg: 9, kz: 4.1, kzw: 0.8, bg: 13, bz: 5.2 },
 ];
 const CTA = {
-  scan: "Ihre persönliche Seite: mit der Handykamera scannen oder die Adresse eintippen. Dort finden Sie die Demo und den Admin-Zugang.",
+  scan: "Ihre persönliche Seite: mit der Handykamera scannen oder die Adresse eintippen. Dort finden Sie die Demo und können um einen Rückruf bitten.",
   anrufen: "Oder anrufen:",
   teaser: "Rückseite: So kann Ihre Website aussehen »",
 };
@@ -772,6 +773,9 @@ export default function PostSeite() {
   // Vorlage & Absender
   const [absenderForm, setAbsenderForm] = useState<Absender | null>(null);
   const [vorlageForm, setVorlageForm] = useState("");
+  const [nachfassForm, setNachfassForm] = useState("");
+  const [referenzForm, setReferenzForm] = useState("");
+  const [vorlageArt, setVorlageArt] = useState<"brief" | "nachfass">("brief");
   const [basisForm, setBasisForm] = useState("");
 
   // Sperrliste
@@ -787,7 +791,7 @@ export default function PostSeite() {
   const ladeEinstellungen = useCallback(() =>
     api("/api/admin/akquise/post-einstellungen").then(d => {
       const e = d as Einstellungen;
-      setEinst(e); setAbsenderForm(e.absender); setVorlageForm(e.vorlage); setBasisForm(e.landing_basis);
+      setEinst(e); setAbsenderForm(e.absender); setVorlageForm(e.vorlage); setNachfassForm(e.vorlage_nachfass); setReferenzForm(e.referenz || ""); setBasisForm(e.landing_basis);
     }).catch(zeigeFehler), []);
   const ladeSperrliste = useCallback(() =>
     api("/api/admin/akquise/briefe?sperrliste=1").then(d => setSperrliste(d.sperrliste || [])).catch(zeigeFehler), []);
@@ -846,15 +850,18 @@ export default function PostSeite() {
   // Beispielbetrieb (live), den gewaehlten Brief der Liste oder ein Beispiel.
   const schau = useMemo<Schau | null>(() => {
     if (!einst) return null;
-    const beispiel = (vorlage: string, absender: Absender, basis: string, chip: string): Schau => {
+    const beispiel = (vorlage: string, absender: Absender, basis: string, chip: string, referenz = einst.referenz): Schau => {
       const l = landingLink(basis, VORSCHAU_TOKEN);
       return {
         chip, titel: BEISPIEL.name, absender, link: l, datumText: heute, empfaenger: empfaengerBlock(BEISPIEL) as string,
-        text: briefFuellen(vorlage, { firma: BEISPIEL.name, ort: BEISPIEL.ort, befunde: BEFUNDE_BEISPIEL, link: l, absender, datum: heute }) as string,
+        text: briefFuellen(vorlage, { firma: BEISPIEL.name, ort: BEISPIEL.ort, befunde: BEFUNDE_BEISPIEL, link: l, absender, datum: heute, referenz }) as string,
         befunde: BEFUNDE_BEISPIEL as Befund[], geprueftAm: heuteIso, googleStand: heuteIso,
       };
     };
-    if (reiter === "vorlage" && absenderForm) return beispiel(vorlageForm, absenderForm, basisForm, "Vorlage");
+    if (reiter === "vorlage" && absenderForm) {
+      return beispiel(vorlageArt === "nachfass" ? nachfassForm : vorlageForm, absenderForm, basisForm,
+        vorlageArt === "nachfass" ? "Vorlage zweiter Brief" : "Vorlage", referenzForm);
+    }
     if (reiter === "brief" && editor) {
       return {
         chip: STATUS_LABEL[editor.brief.status] || editor.brief.status,
@@ -870,7 +877,8 @@ export default function PostSeite() {
       return {
         chip: infoZuGewaehlt ? "Noch kein Entwurf" : "Lädt …", titel: gewaehlt.name, absender: einst.absender, link: l, datumText: heute,
         empfaenger: empfaengerBlock(gewaehlt) as string,
-        text: briefFuellen(einst.vorlage, { firma: gewaehlt.name, ort: gewaehlt.ort, befunde, link: l, absender: einst.absender, datum: heute }) as string,
+        text: briefFuellen(infoZuGewaehlt?.verschickt ? einst.vorlage_nachfass : einst.vorlage,
+          { firma: gewaehlt.name, ort: gewaehlt.ort, befunde, link: l, absender: einst.absender, datum: heute, referenz: einst.referenz }) as string,
         befunde, geprueftAm: gewaehlt.geprueft_am, googleStand: gewaehlt.google_stand,
       };
     }
@@ -887,7 +895,7 @@ export default function PostSeite() {
       }
     }
     return beispiel(einst.vorlage, einst.absender, einst.landing_basis, "Beispiel");
-  }, [einst, reiter, absenderForm, vorlageForm, basisForm, editor, text, empf, link, gewaehlt, infoZuGewaehlt, sichtbar, vorschauId, heute, heuteIso]);
+  }, [einst, reiter, absenderForm, vorlageForm, nachfassForm, referenzForm, vorlageArt, basisForm, editor, text, empf, link, gewaehlt, infoZuGewaehlt, sichtbar, vorschauId, heute, heuteIso]);
 
   // QR-Code zum Link der Vorschau – gespeichert mit dem Link, zu dem er
   // gehoert, damit nach einem Wechsel nie der alte Code neben dem neuen steht.
@@ -972,9 +980,9 @@ export default function PostSeite() {
 
   const textAusVorlage = (befunde: Befund[]) => {
     if (!editor || !einst) return "";
-    return briefFuellen(einst.vorlage, {
+    return briefFuellen(editor.brief.art === "nachfass" ? einst.vorlage_nachfass : einst.vorlage, {
       firma: editor.betrieb?.name || editor.brief.betrieb_name || "", ort: editor.betrieb?.ort || "",
-      befunde, link, absender: einst.absender, datum: datumDeutsch(new Date()),
+      befunde, link, absender: einst.absender, datum: datumDeutsch(new Date()), referenz: einst.referenz,
     }) as string;
   };
 
@@ -1075,7 +1083,7 @@ export default function PostSeite() {
     e.preventDefault();
     setFehler(""); setMeldung("");
     try {
-      await api("/api/admin/akquise/post-einstellungen", { method: "PUT", body: JSON.stringify({ absender: absenderForm, vorlage: vorlageForm, landing_basis: basisForm }) });
+      await api("/api/admin/akquise/post-einstellungen", { method: "PUT", body: JSON.stringify({ absender: absenderForm, vorlage: vorlageForm, vorlage_nachfass: nachfassForm, referenz: referenzForm, landing_basis: basisForm }) });
       await ladeEinstellungen();
       setMeldung("Gespeichert.");
     } catch (err) { zeigeFehler(err); }
@@ -1147,6 +1155,7 @@ export default function PostSeite() {
         <Kachel titel="Gesendet" wert={zahl(gesendetGesamt)} unter={zaehler?.zugestellt ? `${zaehler.zugestellt} zugestellt` : undefined} />
         <Kachel titel="Aufrufe" wert={zahl(zaehler?.aufrufe)} unter="persönliche Seiten" />
         <Kachel titel="Demo angesehen" wert={zahl(zaehler?.demo)} unter="geöffnet oder angefordert" />
+        <Kachel titel="Rückrufbitten" wert={zahl(zaehler?.rueckruf)} unter="über die persönliche Seite" />
       </div>
 
       <p className="post-versand">
@@ -1250,6 +1259,11 @@ export default function PostSeite() {
                             {zahl(b.aufrufe)}
                             {b.demo_geoeffnet && <span className="post-unter post-demo">Demo geöffnet {datum(b.demo_geoeffnet)}</span>}
                             {b.demo_angefordert && <span className="post-unter post-demo">Zugang angefordert {datum(b.demo_angefordert)}</span>}
+                            {b.rueckruf_telefon && (
+                              <a className="post-unter post-rueckruf" href={`tel:${b.rueckruf_telefon.replace(/[^\d+]/g, "")}`} onClick={e => e.stopPropagation()}>
+                                Rückruf erbeten {datum(b.rueckruf_am || "")}: {b.rueckruf_telefon}
+                              </a>
+                            )}
                           </td>
                           <td className="num">{b.kosten_cent != null ? euro(b.kosten_cent) : "—"}</td>
                           <td onClick={e => e.stopPropagation()}>{aktionen(b)}</td>
@@ -1447,7 +1461,21 @@ export default function PostSeite() {
           </div>
 
           <h2 className="mt-6">Vorlage</h2>
-          <textarea className="field px-3 py-2 post-text" value={vorlageForm} onChange={e => setVorlageForm(e.target.value)} rows={24} spellCheck />
+          <div className="post-schau-wahl mb-3" role="tablist" aria-label="Welche Vorlage">
+            {([["brief", "Erster Brief"], ["nachfass", "Zweiter Brief"]] as ["brief" | "nachfass", string][]).map(([k, l]) => (
+              <button key={k} type="button" role="tab" aria-selected={vorlageArt === k} className={vorlageArt === k ? "an" : ""} onClick={() => setVorlageArt(k)}>{l}</button>
+            ))}
+          </div>
+          {vorlageArt === "brief"
+            ? <textarea className="field px-3 py-2 post-text" value={vorlageForm} onChange={e => setVorlageForm(e.target.value)} rows={24} spellCheck />
+            : <textarea className="field px-3 py-2 post-text" value={nachfassForm} onChange={e => setNachfassForm(e.target.value)} rows={24} spellCheck />}
+          {vorlageArt === "nachfass" && <p className="post-hinweis">Gilt für jeden weiteren Brief an einen Betrieb, der schon Post bekommen hat.</p>}
+          <div className="mt-4">
+            <label htmlFor="referenz" className="post-abschnitt-titel">Referenz (nur mit Erlaubnis des Kunden)</label>
+            <input id="referenz" className="field px-3 py-2 text-sm w-full" value={referenzForm} maxLength={300} onChange={e => setReferenzForm(e.target.value)}
+                   placeholder="z. B. Ein Beispiel aus der Region: Autohaus … nutzt die Lösung bereits – zu sehen unter …" />
+            <p className="post-hinweis">Steht im Brief an der Stelle von {"{referenz}"} und auf der persönlichen Seite. Leer lassen, solange es keine Zusage gibt.</p>
+          </div>
           <p className="post-hinweis">Erste Zeile ist der Betreff, Zeilen mit „– “ werden zum Befund-Kasten, „PS:“ zum PS, „---“ trennt den Hinweis ab (höchstens vier Zeilen). Link und QR-Code stehen automatisch im Handlungsblock unten. Keine Ausrufezeichen, keine Superlative – der Brief soll nachprüfbar bleiben.</p>
           <p className="post-abschnitt-titel mt-4">Platzhalter</p>
           <ul className="post-platzhalter">
@@ -1455,7 +1483,7 @@ export default function PostSeite() {
           </ul>
           <div className="akq-steuerung mt-5">
             <button type="submit" className="btn-primary px-4 py-2 text-sm">Speichern</button>
-            <button type="button" className="akq-knopf" onClick={() => { setAbsenderForm(einst.standard.absender); setVorlageForm(einst.standard.vorlage); setBasisForm(einst.standard.landing_basis); }}>
+            <button type="button" className="akq-knopf" onClick={() => { setAbsenderForm(einst.standard.absender); setVorlageForm(einst.standard.vorlage); setNachfassForm(einst.standard.vorlage_nachfass); setBasisForm(einst.standard.landing_basis); }}>
               Standard einsetzen
             </button>
             <span className="akq-hinweis">Änderungen gelten für neue Entwürfe; bestehende Briefe behalten ihren Text.</span>

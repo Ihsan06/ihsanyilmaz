@@ -910,6 +910,7 @@ html, body {
 .akq-brief-marke:hover { background:rgba(29,138,82,.2); }
 .akq-brief-marke.entwurf { color:var(--fg-muted); background:var(--mon-off); font-weight:600; }
 button.akq-brief-marke { border:0; font-family:inherit; line-height:inherit; cursor:pointer; }
+.akq-brief-marke.rueckruf { color:#fff; background:#b45309; }
 .akq-brief-marke.fehlt { color:#b45309; background:rgba(245,158,11,.14); }
 .akq-brief-marke.fehlt:hover { background:rgba(245,158,11,.24); }
 .akq-anschrift-feld { display:grid; grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr); gap:4px; }

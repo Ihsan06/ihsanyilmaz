@@ -11,6 +11,7 @@
 import { TOKEN_RE, CHECK_LABELS, rueckChecks, quellenZeile } from '../_lib/brief.js';
 import { eigenerAufruf } from '../_lib/auth.js';
 import { postEinstellungenLaden } from '../api/admin/akquise/post-einstellungen.js';
+import { betriebMelden } from '../_lib/mitteilung.js';
 
 const STARTSEITE = 'https://ihsan-yilmaz.de';
 const DEMO_URL = 'https://autohaus-demo.pages.dev';
@@ -127,7 +128,11 @@ const CSS = `
   .vorschau p { margin-bottom:16px; }
   form { display:grid; gap:12px; margin-top:16px; }
   label { font-size:.85rem; color:#B4BFC9; display:block; }
-  input[type=email], select { width:100%; padding:12px 14px; border-radius:10px; border:1px solid #243039; background:#182129; color:#F2F5F7; font:inherit; }
+  .rueckruf-karte { border-color:#1B6FA8; background:linear-gradient(180deg, #13202b, #111820); }
+  .rueckruf-karte h2 { margin-bottom:4px; }
+  .rueckruf-karte p { margin:0 0 14px; color:#B4BFC9; }
+  .rueckruf-karte .klein { margin:10px 0 0; }
+  input[type=email], input[type=tel], select { width:100%; font-size:1.05rem; padding:12px 14px; border-radius:10px; border:1px solid #243039; background:#182129; color:#F2F5F7; font:inherit; }
   input:focus, select:focus { outline:none; border-color:#4DA3E0; box-shadow:0 0 0 3px rgba(77,163,224,.18); }
   .fax { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
   .meldung { font-size:.92rem; margin-top:8px; }
@@ -227,17 +232,22 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
   // Testbriefe und die ersten zwei Tage nach dem Versand – da kann der Brief
   // noch nicht angekommen sein, Aufrufe sind dann eigene Kontrollen.
   if (!(await eigenerAufruf(request, env))) {
+    // Beim allerersten Aufruf eine Mail an mich – dann weiss ich, wer reagiert.
     const zaehlung = env.DB.prepare(
       `UPDATE akquise_briefe SET aufrufe = aufrufe + 1, zuletzt_aufgerufen = datetime('now')
        WHERE id = ? AND art != 'test' AND gesendet_am IS NOT NULL AND gesendet_am <= datetime('now', '-2 days')
-         AND (zuletzt_aufgerufen IS NULL OR zuletzt_aufgerufen < datetime('now', '-60 seconds'))`,
-    ).bind(brief.id).run().catch(() => {});
+         AND (zuletzt_aufgerufen IS NULL OR zuletzt_aufgerufen < datetime('now', '-60 seconds'))
+       RETURNING aufrufe, betrieb_id`,
+    ).bind(brief.id).first()
+      .then(z => (z && z.aufrufe === 1 ? betriebMelden(env, request, z.betrieb_id, 'Persönliche Seite geöffnet') : null))
+      .catch(() => {});
     if (typeof waitUntil === 'function') waitUntil(zaehlung); else await zaehlung;
   }
 
   const e = await postEinstellungenLaden(env).catch(() => null);
   const telefon = e?.absender?.telefon || '';
   const email = e?.absender?.email || KONTAKT;
+  const referenz = e?.referenz || '';
   const firma = brief.name || 'Ihren Betrieb';
   // Was die Vorschau persoenlich macht – nur aus OpenStreetMap (Marken,
   // Oeffnungszeiten), nichts von der Website des Betriebs. Die Quelle steht
@@ -292,6 +302,23 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
     </div>
 
     <section>
+      <div class="karte rueckruf-karte">
+        <h2>Lieber kurz sprechen?</h2>
+        <p>Nummer eintragen – ich rufe Sie bis zum nächsten Werktag zurück.</p>
+        <form id="rueckruf" autocomplete="on">
+          <label for="telefon">Ihre Telefonnummer</label>
+          <div class="aktionen">
+            <input type="tel" id="telefon" name="telefon" required maxlength="30" inputmode="tel" autocomplete="tel" placeholder="0931 123456">
+            <button class="knopf gross" type="submit">Rückruf erbitten</button>
+          </div>
+          <div class="fax" aria-hidden="true"><label>Fax<input type="text" name="fax" tabindex="-1" autocomplete="off"></label></div>
+          <p class="meldung" id="rueckruf-meldung" aria-live="polite"></p>
+        </form>
+        <p class="klein">Die Nummer nutze ich nur für diesen Rückruf.</p>
+      </div>
+    </section>
+
+    <section>
       <h2>Das ist mir aufgefallen</h2>
       <div class="karte">${befundeHtml}${quelle ? `<p class="quelle">${esc(quelle)}</p>` : ''}</div>
     </section>
@@ -308,6 +335,11 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
       ${sliderHtml(ADMIN_SLIDES, 'Verwaltung')}
     </section>
 
+    ${referenz ? `<section>
+      <h2>Bereits im Einsatz</h2>
+      <div class="karte"><p style="margin:0">${esc(referenz)}</p></div>
+    </section>` : ''}
+
     <section>
       <h2>Was es kostet</h2>
       <div class="karte preis">
@@ -321,8 +353,8 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
       <h2>So geht es weiter</h2>
       <ol class="schritte">
         <li><b>Demo ansehen</b> – direkt oben, ohne Anmeldung.</li>
-        <li><b>Admin-Zugang anfordern</b> – für den Verwaltungsbereich, per E-Mail.</li>
-        <li><b>Kurz sprechen</b> – danach ein Angebot, unverbindlich.</li>
+        <li><b>Rückruf erbitten</b> – Nummer eintragen, ich melde mich.</li>
+        <li><b>Angebot</b> – zum Festpreis, unverbindlich.</li>
       </ol>
     </section>
 
@@ -373,6 +405,20 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
           var b = JSON.stringify({ token: ${JSON.stringify(token)}, aktion: 'demo' });
           try { navigator.sendBeacon('/api/fuer', new Blob([b], { type: 'application/json' })); }
           catch (e) { fetch('/api/fuer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: b, keepalive: true }); }
+        });
+        var rf = document.getElementById('rueckruf'), rm = document.getElementById('rueckruf-meldung');
+        rf.addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          var b = rf.querySelector('button'); b.disabled = true; rm.textContent = 'Wird gesendet …'; rm.className = 'meldung';
+          var d = { token: ${JSON.stringify(token)}, aktion: 'rueckruf', telefon: rf.telefon.value, fax: rf.fax.value };
+          fetch('/api/fuer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })
+            .then(function (r) { return r.json().catch(function () { return {}; }); })
+            .then(function (a) {
+              if (a && a.ok) { rm.textContent = 'Danke – ich rufe Sie bis zum nächsten Werktag an.'; rm.className = 'meldung ok'; rf.telefon.value = ''; }
+              else { rm.textContent = a && a.fehler === 'telefon' ? 'Bitte eine Telefonnummer mit Vorwahl angeben.' : 'Das hat nicht geklappt. Rufen Sie mich gern direkt an.'; rm.className = 'meldung fehler'; }
+            })
+            .catch(function () { rm.textContent = 'Keine Verbindung. Bitte später noch einmal versuchen.'; rm.className = 'meldung fehler'; })
+            .then(function () { b.disabled = false; });
         });
         var f = document.getElementById('demo'), m = document.getElementById('meldung');
         f.addEventListener('submit', function (ev) {

@@ -253,3 +253,8 @@ ALTER TABLE akquise_briefe ADD COLUMN demo_geoeffnet TEXT;
 -- Zeitpunkt, zu dem die fehlende Anschrift aus OpenStreetMap (Nominatim) ergaenzt
 -- werden sollte – damit der Suchlauf es nicht bei jedem Lauf wiederholt.
 ALTER TABLE akquise_betriebe ADD COLUMN anschrift_stand TEXT;
+
+-- Rueckrufbitte von der persoenlichen Seite /fuer/<token>: Nummer und Zeitpunkt
+-- am Brief; geloescht, sobald nicht mehr gebraucht (spaetestens nach 12 Monaten).
+ALTER TABLE akquise_briefe ADD COLUMN rueckruf_telefon TEXT;
+ALTER TABLE akquise_briefe ADD COLUMN rueckruf_am TEXT;
