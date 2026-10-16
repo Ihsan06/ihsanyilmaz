@@ -129,6 +129,22 @@ export function adresseAus(place) {
   return { strasse, plz: hol('postal_code'), ort: hol('locality') || hol('postal_town') || hol('administrative_area_level_3') };
 }
 
+// Anschrift von Google nur, wenn sie vollstaendig ist (Strasse mit Nummer,
+// fuenfstellige PLZ, Ort) – sonst null. OSM-Anschriften sind oft veraltet
+// (Rueckläufer im Oktober 2026), deshalb gilt Google, ausser die Anschrift
+// wurde von Hand eingetragen (anschrift_stand = 'manuell').
+export function adresseVoll(place) {
+  const a = adresseAus(place);
+  return a.strasse && /\d/.test(a.strasse) && /^\d{5}$/.test(a.plz || '') && a.ort ? a : null;
+}
+// SQL-Baustein fuer ein UPDATE: ", strasse = …, plz = …, ort = …" samt Werten,
+// leer, wenn Google keine vollstaendige Anschrift hat.
+export function anschriftSetzen(a) {
+  if (!a) return { sql: '', werte: [] };
+  const wenn = feld => `${feld} = CASE WHEN COALESCE(anschrift_stand, '') = 'manuell' THEN ${feld} ELSE ? END`;
+  return { sql: `, ${wenn('strasse')}, ${wenn('plz')}, ${wenn('ort')}`, werte: [a.strasse.slice(0, 200), a.plz, a.ort.slice(0, 200)] };
+}
+
 // Website aus dem Profil: normalisiert und nur, wenn die Function sie abrufen
 // duerfte (keine IP, kein localhost).
 export function websiteAusPlace(place) {

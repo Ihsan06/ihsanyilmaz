@@ -56,6 +56,8 @@ ich bin Webentwickler in Würzburg und habe mir angesehen, was ein Kunde findet,
 
 Für Autohäuser und Werkstätten habe ich eine eigene Website-Lösung entwickelt – gebaut mit den KI-Werkzeugen von heute, deshalb zu einem Preis, der vor wenigen Jahren nicht möglich war. Die Rückseite zeigt ein Beispiel.
 
+{referenz}
+
 Mit freundlichen Grüßen
 
 {absender_name}

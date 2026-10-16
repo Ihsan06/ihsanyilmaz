@@ -121,6 +121,8 @@ export const onRequestPatch = nurAngemeldet(async ({ request, env }) => {
     if (feld === 'plz' && wert && !/^\d{5}$/.test(wert)) return json({ ok: false, error: 'PLZ muss fünfstellig sein.' }, 400);
     setze(feld, wert); antwort[feld] = wert;
   }
+  // Von Hand gesetzt: Google und OSM ueberschreiben diese Anschrift nicht mehr.
+  if (['strasse', 'plz', 'ort'].some(f => body[f] !== undefined)) setze('anschrift_stand', 'manuell');
 
   // Nach Bestaetigen oder Verwerfen werden die Signale der letzten Pruefung
   // neu gerechnet (der Chip "Website geraten" soll verschwinden). Eine neue

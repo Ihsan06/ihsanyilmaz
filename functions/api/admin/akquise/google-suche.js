@@ -19,6 +19,7 @@ import { json, nurAngemeldet } from '../../../_lib/auth.js';
 import { istBoersenSeite, kategorieOhnePruefung } from '../../../_lib/akquise.js';
 import {
   textSuche, kontingent, fehlerMeldung, fehlerMerken, placeTrifft, adresseAus, websiteAusPlace, abstandM,
+  adresseVoll, anschriftSetzen,
 } from '../../../_lib/places.js';
 
 const FELDER = [
@@ -121,6 +122,21 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     return google;
   };
 
+  // Bei Google dauerhaft geschlossen: bekannte Betriebe in den Papierkorb,
+  // damit kein Brief mehr an eine tote Anschrift geht.
+  let geschlossen = 0;
+  for (const p of places) {
+    if (p?.businessStatus !== 'CLOSED_PERMANENTLY') continue;
+    const z = nachId.get(String(p.id));
+    if (!z) continue;
+    befehle.push(env.DB.prepare(
+      `UPDATE akquise_betriebe SET geloescht = datetime('now'),
+         notiz = TRIM(COALESCE(notiz || ' · ', '') || 'Bei Google dauerhaft geschlossen'), geaendert = datetime('now')
+       WHERE id = ? AND geloescht IS NULL`,
+    ).bind(z.id));
+    geschlossen++;
+  }
+
   for (const p of offen) {
     const lat = p.location.latitude, lng = p.location.longitude;
     const bewertung = Number.isFinite(Number(p.rating)) ? Number(p.rating) : null;
@@ -132,11 +148,12 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     if (!schon && ausgeschlossen.has(String(p.id))) continue;
     if (schon) {
       const w = websiteFuer(schon.website, schon.website_quelle, website);
+      const an = anschriftSetzen(adresseVoll(p));
       befehle.push(env.DB.prepare(
         `UPDATE akquise_betriebe SET google_bewertung = ?, google_anzahl = ?, google_stand = ?,
-           website = COALESCE(?, website), website_quelle = CASE WHEN ? IS NOT NULL THEN 'google' ELSE website_quelle END,
+           website = COALESCE(?, website), website_quelle = CASE WHEN ? IS NOT NULL THEN 'google' ELSE website_quelle END${an.sql},
            geaendert = datetime('now') WHERE id = ?`,
-      ).bind(bewertung, anzahl, stand, w, w, schon.id));
+      ).bind(bewertung, anzahl, stand, w, w, ...an.werte, schon.id));
       aktualisiert++;
       continue;
     }
@@ -151,12 +168,13 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     if (best) {
       vergeben.add(best.id);
       const w = websiteFuer(best.website, best.website_quelle, website);
+      const an = anschriftSetzen(adresseVoll(p));
       befehle.push(env.DB.prepare(
         `UPDATE akquise_betriebe SET google_place_id = ?, google_bewertung = ?, google_anzahl = ?, google_stand = ?,
            website = COALESCE(?, website), website_quelle = CASE WHEN ? IS NOT NULL THEN 'google' ELSE website_quelle END,
-           kategorie = CASE WHEN ? IS NOT NULL AND website IS NULL THEN ? ELSE kategorie END,
+           kategorie = CASE WHEN ? IS NOT NULL AND website IS NULL THEN ? ELSE kategorie END${an.sql},
            geaendert = datetime('now') WHERE id = ?`,
-      ).bind(String(p.id), bewertung, anzahl, stand, w, w, w, kategorieOhnePruefung(w), best.id));
+      ).bind(String(p.id), bewertung, anzahl, stand, w, w, w, kategorieOhnePruefung(w), ...an.werte, best.id));
       verknuepft++;
       continue;
     }
@@ -179,5 +197,5 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   }
 
   for (let i = 0; i < befehle.length; i += BLOCK) await env.DB.batch(befehle.slice(i, i + BLOCK));
-  return json({ ok: true, gefunden: offen.length, neu, verknuepft, aktualisiert, voll, kontingent: await kontingent(env) });
+  return json({ ok: true, gefunden: offen.length, neu, verknuepft, aktualisiert, geschlossen, voll, kontingent: await kontingent(env) });
 });

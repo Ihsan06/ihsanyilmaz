@@ -18,9 +18,9 @@ import {
   betriebPruefen, istBoersenSeite, hostVon, betriebLaden, istMehrfach, letztePruefungLaden, pruefungSpeichern,
   pruefungNeuBewerten, pruefAntwort,
 } from '../../../_lib/akquise.js';
-import { textSuche, kontingent, fehlerMeldung, fehlerMerken, placeTrifft, websiteAusPlace } from '../../../_lib/places.js';
+import { textSuche, kontingent, fehlerMeldung, fehlerMerken, placeTrifft, websiteAusPlace, adresseVoll, anschriftSetzen } from '../../../_lib/places.js';
 
-const FELDER = 'places.id,places.displayName,places.formattedAddress,places.websiteUri,places.rating,places.userRatingCount,places.businessStatus';
+const FELDER = 'places.id,places.displayName,places.formattedAddress,places.addressComponents,places.websiteUri,places.rating,places.userRatingCount,places.businessStatus';
 const NICHT_EINGERICHTET = 'Google Places nicht eingerichtet: PLACES_KEY in Cloudflare hinterlegen.';
 
 // GET → { ok, eingerichtet, kontingent:{ monat, genutzt, grenze, frei } }
@@ -93,15 +93,29 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
 
   const felder = ['google_place_id = ?', 'google_bewertung = ?', 'google_anzahl = ?', 'google_stand = ?'];
   const werte = [google.google_place_id, google.google_bewertung, google.google_anzahl, google.google_stand];
+  // Bei Google dauerhaft geschlossen: in den Papierkorb, kein Brief mehr dorthin.
+  const zu = place.businessStatus === 'CLOSED_PERMANENTLY';
+  if (zu) {
+    felder.push("geloescht = COALESCE(geloescht, datetime('now'))", "notiz = TRIM(COALESCE(notiz || ' · ', '') || 'Bei Google dauerhaft geschlossen')");
+  }
+  // Vollstaendige Anschrift von Google ersetzt die aus OSM (ausser von Hand eingetragen).
+  const an = anschriftSetzen(adresseVoll(place));
+  const anschriftVorher = [betrieb.strasse, betrieb.plz, betrieb.ort].join('|');
   if (websiteNeu) { felder.push('website = ?'); werte.push(websiteNeu); betrieb.website = websiteNeu; }
   if (quelleNeu) { felder.push('website_quelle = ?'); werte.push(quelleNeu); betrieb.website_quelle = quelleNeu; }
-  await env.DB.prepare(`UPDATE akquise_betriebe SET ${felder.join(', ')}, geaendert = datetime('now') WHERE id = ?`).bind(...werte, id).run();
+  await env.DB.prepare(`UPDATE akquise_betriebe SET ${felder.join(', ')}${an.sql}, geaendert = datetime('now') WHERE id = ?`).bind(...werte, ...an.werte, id).run();
+  if (an.sql) {
+    const neu = await env.DB.prepare('SELECT strasse, plz, ort FROM akquise_betriebe WHERE id = ?').bind(id).first();
+    Object.assign(betrieb, neu);
+  }
 
   const mehrfach = await istMehrfach(env, betrieb);
   const extra = {
     gefunden: true,
     google: { ...google, name: place.displayName?.text || null, adresse: place.formattedAddress || null, website: websiteGoogle, status: place.businessStatus || null },
     website_uebernommen: !!websiteNeu,
+    anschrift_geaendert: [betrieb.strasse, betrieb.plz, betrieb.ort].join('|') !== anschriftVorher,
+    geschlossen: zu,
   };
 
   // Neue Website: normal pruefen. Boerse: keine Analyse, Bewertung steht fest.
