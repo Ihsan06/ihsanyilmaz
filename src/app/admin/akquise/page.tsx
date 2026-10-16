@@ -24,6 +24,7 @@ type LetztePruefung = {
   erreichbar: number | null; https: number | null; viewport: number | null;
   cms: string | null; baukasten: string | null; copyright_jahr: number | null;
   psi_leistung: number | null;
+  psi_fehler?: string | null;
   wayback_erster: string | null; wayback_letzter: string | null; wayback_anzahl: number | null;
   fehler: string | null;
 };
@@ -210,7 +211,7 @@ const ohneHausnummer = (b: Betrieb) => !!b.strasse && !/\d/.test(b.strasse);
 const brauchtAnschrift = (b: Betrieb) => ohneAnschrift(b) && b.lat != null && !b.anschrift_stand;
 // PageSpeed nur fuer eigene, erreichbare Websites ohne Messwert.
 const brauchtPsi = (b: Betrieb) =>
-  !!b.website && !istBoerse(b.website) && !!b.letzte_pruefung?.erreichbar && b.letzte_pruefung?.psi_leistung == null;
+  !!b.website && !istBoerse(b.website) && !!b.letzte_pruefung?.erreichbar && b.letzte_pruefung?.psi_leistung == null && !b.letzte_pruefung?.psi_fehler;
 const warte = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 // Wayback im Browser: archive.org/wayback/available erlaubt CORS, der
@@ -750,6 +751,13 @@ function AkquiseCockpit() {
       const msg = e instanceof Error ? e.message : "PageSpeed fehlgeschlagen.";
       if (PSI_GESPERRT.test(msg)) { hinweisSetzen(b.id, "", false, 1); throw new Error(msg); }
       hinweisSetzen(b.id, msg, true, 8000);
+      // Diese eine Seite ist nicht messbar (der Server hat es gemerkt): kein
+      // Grund, den ganzen Schritt anzuhalten, und beim naechsten Mal nicht
+      // wieder faellig.
+      if (/nicht messbar/.test(msg)) {
+        if (b.letzte_pruefung) zeileAendern(b.id, { letzte_pruefung: { ...b.letzte_pruefung, psi_fehler: msg } });
+        return;
+      }
       return msg;
     }
   };

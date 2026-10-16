@@ -258,3 +258,7 @@ ALTER TABLE akquise_betriebe ADD COLUMN anschrift_stand TEXT;
 -- am Brief; geloescht, sobald nicht mehr gebraucht (spaetestens nach 12 Monaten).
 ALTER TABLE akquise_briefe ADD COLUMN rueckruf_telefon TEXT;
 ALTER TABLE akquise_briefe ADD COLUMN rueckruf_am TEXT;
+
+-- PageSpeed konnte die Seite nicht laden: Grund an der Pruefung, damit sie
+-- nicht bei jedem Lauf wieder faellig ist (neue Pruefung → neuer Versuch).
+ALTER TABLE akquise_pruefungen ADD COLUMN psi_fehler TEXT;

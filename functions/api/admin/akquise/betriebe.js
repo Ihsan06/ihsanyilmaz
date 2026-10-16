@@ -28,7 +28,7 @@ const LISTE = `SELECT b.*,
     p.zeitpunkt AS p_zeitpunkt, p.erreichbar AS p_erreichbar, p.https AS p_https,
     p.viewport AS p_viewport, p.cms AS p_cms, p.baukasten AS p_baukasten,
     p.copyright_jahr AS p_copyright_jahr, p.psi_leistung AS p_psi_leistung,
-    p.psi_lcp AS p_psi_lcp, p.psi_cls AS p_psi_cls,
+    p.psi_lcp AS p_psi_lcp, p.psi_cls AS p_psi_cls, p.psi_fehler AS p_psi_fehler,
     p.wayback_erster AS p_wayback_erster, p.wayback_letzter AS p_wayback_letzter,
     p.wayback_anzahl AS p_wayback_anzahl,
     p.fehler AS p_fehler, p.signale AS p_signale,
@@ -80,7 +80,7 @@ export const onRequestGet = nurAngemeldet(async ({ request, env }) => {
     b.letzte_pruefung = z.p_zeitpunkt ? {
       zeitpunkt: z.p_zeitpunkt, erreichbar: z.p_erreichbar, https: z.p_https, viewport: z.p_viewport,
       cms: z.p_cms, baukasten: z.p_baukasten, copyright_jahr: z.p_copyright_jahr,
-      psi_leistung: z.p_psi_leistung, psi_lcp: z.p_psi_lcp, psi_cls: z.p_psi_cls,
+      psi_leistung: z.p_psi_leistung, psi_lcp: z.p_psi_lcp, psi_cls: z.p_psi_cls, psi_fehler: z.p_psi_fehler,
       wayback_erster: z.p_wayback_erster, wayback_letzter: z.p_wayback_letzter, wayback_anzahl: z.p_wayback_anzahl,
       fehler: z.p_fehler,
     } : null;

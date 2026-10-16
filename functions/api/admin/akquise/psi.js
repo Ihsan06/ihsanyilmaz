@@ -43,21 +43,30 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
     daten = await r.json().catch(() => ({}));
     if (!r.ok) {
       const klar = klartext(r.status, daten?.error, 'PageSpeed Insights API');
-      // 400/500 ohne Schluessel-Grund: Google konnte die Seite nicht laden.
-      const msg = klar ? `PageSpeed: ${klar}` : 'PageSpeed: Google konnte die Seite nicht laden';
       const nichtFrei = /gesperrt|nicht aktiviert|ungültig|beschränkt|Abrechnung/.test(klar);
-      if (nichtFrei) await fehlerMerken(env, 'psi', `Betrieb ${id}`, msg);
-      return json({ ok: false, error: msg, code: nichtFrei ? 'psi_nicht_frei' : 'psi_seite' });
+      if (nichtFrei) await fehlerMerken(env, 'psi', `Betrieb ${id}`, `PageSpeed: ${klar}`);
+      if (klar) return json({ ok: false, error: `PageSpeed: ${klar}`, code: nichtFrei ? 'psi_nicht_frei' : 'psi_pause' });
+      // Ohne Schluessel-Grund: Lighthouse konnte genau diese Seite nicht laden
+      // (Zertifikat, Weiterleitung, Server zu langsam …). Das liegt an der
+      // Seite – gemerkt an der Pruefung, damit sie nicht bei jedem Lauf wieder
+      // faellig ist. Die naechste regulaere Pruefung (nach 30 Tagen) versucht es neu.
+      const meldung = String(daten?.error?.message || `HTTP ${r.status}`);
+      // Voruebergehende Stoerung bei Google („try again“) ist kein Seitenfehler.
+      if (/try again|backend ?error|internal error|unavailable/i.test(meldung) && !/Lighthouse returned error/i.test(meldung)) {
+        return json({ ok: false, error: 'PageSpeed: Google gerade überlastet – später erneut', code: 'psi_pause' });
+      }
+      return seiteNichtMessbar(env, letzte, meldung);
     }
   } catch (e) {
-    return json({ ok: false, error: e?.name === 'AbortError' ? 'PageSpeed: Zeitüberschreitung' : 'PageSpeed nicht erreichbar.', code: 'psi_seite' });
+    if (e?.name === 'AbortError') return seiteNichtMessbar(env, letzte, 'Zeitüberschreitung');
+    return json({ ok: false, error: 'PageSpeed nicht erreichbar.', code: 'psi_pause' });
   } finally {
     clearTimeout(t);
   }
 
   const lr = daten?.lighthouseResult || {};
   const score = Number(lr?.categories?.performance?.score);
-  if (!Number.isFinite(score)) return json({ ok: false, error: 'PageSpeed: kein Messwert', code: 'psi_seite' });
+  if (!Number.isFinite(score)) return seiteNichtMessbar(env, letzte, 'kein Messwert');
   const lcp = Number(lr?.audits?.['largest-contentful-paint']?.numericValue);
   const cls = Number(lr?.audits?.['cumulative-layout-shift']?.numericValue);
   const ergebnis = await pruefungNeuBewerten(env, betrieb, letzte, {
@@ -67,3 +76,9 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   });
   return json(pruefAntwort(betrieb, ergebnis, ergebnis.pruefung));
 });
+
+async function seiteNichtMessbar(env, letzte, grund) {
+  const kurz = grund.replace(/^Lighthouse returned error:\s*/i, '').replace(/\s+/g, ' ').slice(0, 160);
+  await env.DB.prepare('UPDATE akquise_pruefungen SET psi_fehler = ? WHERE id = ?').bind(kurz, letzte.id).run().catch(() => {});
+  return json({ ok: false, error: `PageSpeed: Seite nicht messbar (${kurz})`, code: 'psi_seite' });
+}

@@ -17,6 +17,7 @@ export type KartenBetrieb = {
   kategorie: string | null; prioritaet: number | null;
   website: string | null; google_bewertung: number | null; google_anzahl: number | null;
   auswahl: number;
+  brief_gesendet?: string | null;
 };
 
 // Dieselben Farben wie die Kategorie-Chips in globals.css (.akq-kat.*).
@@ -49,7 +50,8 @@ function punkteZeichnen(z: Zustand, betriebe: KartenBetrieb[]) {
     const prio = b.prioritaet ?? 0;
     const radius = 4 + Math.round(Math.max(0, Math.min(100, prio)) / 12);
     const punkt: CircleMarker = L.circleMarker([b.lat, b.lng], {
-      radius, color: b.auswahl ? "#f59e0b" : "#ffffff", weight: b.auswahl ? 3 : 1.5,
+      // Ring: gruen = Brief verschickt, orange = Auswahl, sonst weiss.
+      radius, color: b.brief_gesendet ? "#1d8a52" : b.auswahl ? "#f59e0b" : "#ffffff", weight: b.brief_gesendet || b.auswahl ? 3 : 1.5,
       fillColor: farbe, fillOpacity: prio >= 60 ? 0.95 : 0.75,
     });
     const website = b.website
@@ -62,6 +64,7 @@ function punkteZeichnen(z: Zustand, betriebe: KartenBetrieb[]) {
       `<b>${esc(b.name)}</b>` +
       `<span>${esc([b.art === "car_repair" ? "Werkstatt" : "Autohaus", b.ort].filter(Boolean).join(" · "))}</span>` +
       google + `<span>${website}</span>` +
+      (b.brief_gesendet ? `<span class="akq-karte-popup-brief">Brief verschickt ${esc(b.brief_gesendet.slice(8, 10) + "." + b.brief_gesendet.slice(5, 7) + ".")}</span>` : "") +
       `<button type="button" data-details="${b.id}">Details in der Liste</button></div>`,
       { closeButton: false, className: "akq-popup-huelle" },
     );
