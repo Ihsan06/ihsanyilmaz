@@ -1329,7 +1329,6 @@ export default function PostSeite() {
               </div>
             </div>
           )}
-          <p className="post-hinweis">Der Brief bekommt Anschrift, die vier stärksten Befunde und den Text aus der Vorlage – so wie links in der Vorschau. Danach lässt sich alles ändern.</p>
         </section>
       )}
 
