@@ -35,7 +35,7 @@ const LISTE = `SELECT b.*,
     -- Brief-Stand fuer die Markierung in der Liste (Testbriefe zaehlen nicht)
     (SELECT MAX(gesendet_am) FROM akquise_briefe WHERE betrieb_id = b.id AND art != 'test' AND status IN ('gesendet', 'zugestellt')) AS brief_gesendet,
     (SELECT COUNT(*) FROM akquise_briefe WHERE betrieb_id = b.id AND art != 'test' AND status IN ('entwurf', 'freigegeben')) AS brief_entwurf,
-    (SELECT rueckruf_telefon FROM akquise_briefe WHERE betrieb_id = b.id AND art != 'test' AND rueckruf_am IS NOT NULL ORDER BY rueckruf_am DESC LIMIT 1) AS rueckruf_telefon
+    (SELECT MAX(kontakt_erlaubt) FROM akquise_briefe WHERE betrieb_id = b.id AND art != 'test') AS kontakt_erlaubt
   FROM akquise_betriebe b
   LEFT JOIN akquise_pruefungen p ON p.id = (
     SELECT id FROM akquise_pruefungen WHERE betrieb_id = b.id ORDER BY zeitpunkt DESC, id DESC LIMIT 1

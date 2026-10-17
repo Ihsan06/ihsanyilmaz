@@ -66,7 +66,7 @@ PS: Die Seite hinter dem QR-Code ist nur für {firma} angelegt – ohne Konto, o
 Hinweis nach Art. 14 und 21 DSGVO: Ihre Firmenanschrift stammt aus OpenStreetMap, dem Google-Karteneintrag oder Ihrer Website. Ich nutze sie nur für dieses Anschreiben (Art. 6 Abs. 1 f DSGVO); Druck und Versand übernimmt ein Dienstleister in meinem Auftrag, sonst erhält sie niemand. Der Aufruf Ihrer persönlichen Seite wird nur gezählt, ohne Cookie und IP-Adresse. Keine weitere Post: {link_kurz}/nein oder eine E-Mail an {absender_email}. Mehr: ihsan-yilmaz.de/datenschutz`;
 
 // Zweiter Brief an Betriebe ohne Reaktion: kein neuer Befund-Kasten, sondern
-// der Rueckruf als kleinster Schritt. Die Referenz steht bewusst nicht im
+// der Ein-Klick-Kontakt als kleinster Schritt. Die Referenz steht bewusst nicht im
 // Brief, sondern auf der persoenlichen Seite (mit Link).
 export const VORLAGE_NACHFASS = `Noch einmal: eine Idee für {firma}
 
@@ -74,7 +74,7 @@ Sehr geehrte Damen und Herren,
 
 vor ein paar Wochen habe ich Ihnen geschrieben, was mir an Ihrem Auftritt im Internet aufgefallen ist. Vielleicht ist der Brief im Alltag untergegangen – deshalb ein kurzer zweiter Anlauf.
 
-Ihre persönliche Seite ist weiterhin für Sie angelegt. Dort sehen Sie die Demo und können um einen Rückruf bitten: Nummer eintragen, ich melde mich bis zum nächsten Werktag.
+Ihre persönliche Seite ist weiterhin für Sie angelegt. Dort sehen Sie die Demo – und mit einem Klick können Sie mich bitten, mich bei Ihnen zu melden.
 
 Wenn es gerade nicht passt, ist das völlig in Ordnung – dann bleibt es bei diesem Brief.
 

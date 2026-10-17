@@ -130,10 +130,11 @@ const CSS = `
   label { font-size:.85rem; color:#B4BFC9; display:block; }
   .referenz p { margin:0 0 14px; color:#E6EBEF; }
   .referenz .knopf { white-space:normal; text-align:center; }
-  .rueckruf-karte { border-color:#1B6FA8; background:linear-gradient(180deg, #13202b, #111820); }
-  .rueckruf-karte h2 { margin-bottom:4px; }
-  .rueckruf-karte p { margin:0 0 14px; color:#B4BFC9; }
-  .rueckruf-karte .klein { margin:10px 0 0; }
+  .kontakt-karte { border-color:#1B6FA8; background:linear-gradient(180deg, #13202b, #111820); }
+  .kontakt-karte h2 { margin-bottom:4px; }
+  .kontakt-karte p { margin:0 0 14px; color:#B4BFC9; }
+  .kontakt-karte .klein { margin:10px 0 0; }
+  .kontakt-karte .knopf.erledigt { background:#2F9E5F; cursor:default; }
   input[type=email], input[type=tel], select { width:100%; font-size:1.05rem; padding:12px 14px; border-radius:10px; border:1px solid #243039; background:#182129; color:#F2F5F7; font:inherit; }
   input:focus, select:focus { outline:none; border-color:#4DA3E0; box-shadow:0 0 0 3px rgba(77,163,224,.18); }
   .fax { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
@@ -317,19 +318,12 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
     </div>
 
     <section>
-      <div class="karte rueckruf-karte">
-        <h2>Lieber kurz sprechen?</h2>
-        <p>Nummer eintragen – ich rufe Sie bis zum nächsten Werktag zurück.</p>
-        <form id="rueckruf" autocomplete="on">
-          <label for="telefon">Ihre Telefonnummer</label>
-          <div class="aktionen">
-            <input type="tel" id="telefon" name="telefon" required maxlength="30" inputmode="tel" autocomplete="tel" placeholder="0931 123456">
-            <button class="knopf gross" type="submit">Rückruf erbitten</button>
-          </div>
-          <div class="fax" aria-hidden="true"><label>Fax<input type="text" name="fax" tabindex="-1" autocomplete="off"></label></div>
-          <p class="meldung" id="rueckruf-meldung" aria-live="polite"></p>
-        </form>
-        <p class="klein">Die Nummer nutze ich nur für diesen Rückruf.</p>
+      <div class="karte kontakt-karte">
+        <h2>Interesse?</h2>
+        <p>Ein Klick genügt – ich melde mich per Telefon oder E-Mail bei Ihnen.</p>
+        <button class="knopf gross" type="button" id="kontakt-knopf">Ja, bitte melden Sie sich</button>
+        <p class="meldung" id="kontakt-meldung" aria-live="polite"></p>
+        <p class="klein">Damit erlauben Sie mir, ${esc(firma)} zu diesem Angebot per Telefon oder E-Mail zu kontaktieren. Sie können das jederzeit formlos widerrufen.</p>
       </div>
     </section>
 
@@ -371,7 +365,7 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
       <h2>So geht es weiter</h2>
       <ol class="schritte">
         <li><b>Demo ansehen</b> – direkt oben, ohne Anmeldung.</li>
-        <li><b>Rückruf erbitten</b> – Nummer eintragen, ich melde mich.</li>
+        <li><b>Kontakt erlauben</b> – ein Klick, ich melde mich.</li>
         <li><b>Angebot</b> – zum Festpreis, unverbindlich.</li>
       </ol>
     </section>
@@ -424,19 +418,16 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
           try { navigator.sendBeacon('/api/fuer', new Blob([b], { type: 'application/json' })); }
           catch (e) { fetch('/api/fuer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: b, keepalive: true }); }
         });
-        var rf = document.getElementById('rueckruf'), rm = document.getElementById('rueckruf-meldung');
-        rf.addEventListener('submit', function (ev) {
-          ev.preventDefault();
-          var b = rf.querySelector('button'); b.disabled = true; rm.textContent = 'Wird gesendet …'; rm.className = 'meldung';
-          var d = { token: ${JSON.stringify(token)}, aktion: 'rueckruf', telefon: rf.telefon.value, fax: rf.fax.value };
-          fetch('/api/fuer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })
+        var kk = document.getElementById('kontakt-knopf'), km = document.getElementById('kontakt-meldung');
+        kk.addEventListener('click', function () {
+          kk.disabled = true; km.textContent = ''; km.className = 'meldung';
+          fetch('/api/fuer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: ${JSON.stringify(token)}, aktion: 'kontakt' }) })
             .then(function (r) { return r.json().catch(function () { return {}; }); })
             .then(function (a) {
-              if (a && a.ok) { rm.textContent = 'Danke – ich rufe Sie bis zum nächsten Werktag an.'; rm.className = 'meldung ok'; rf.telefon.value = ''; }
-              else { rm.textContent = a && a.fehler === 'telefon' ? 'Bitte eine Telefonnummer mit Vorwahl angeben.' : 'Das hat nicht geklappt. Rufen Sie mich gern direkt an.'; rm.className = 'meldung fehler'; }
+              if (a && a.ok) { kk.textContent = 'Danke – ich melde mich'; kk.className = 'knopf gross erledigt'; km.textContent = 'In den nächsten Tagen, per Telefon oder E-Mail.'; km.className = 'meldung ok'; }
+              else { kk.disabled = false; km.textContent = 'Das hat nicht geklappt. Rufen Sie mich gern direkt an.'; km.className = 'meldung fehler'; }
             })
-            .catch(function () { rm.textContent = 'Keine Verbindung. Bitte später noch einmal versuchen.'; rm.className = 'meldung fehler'; })
-            .then(function () { b.disabled = false; });
+            .catch(function () { kk.disabled = false; km.textContent = 'Keine Verbindung. Bitte später noch einmal versuchen.'; km.className = 'meldung fehler'; });
         });
         var f = document.getElementById('demo'), m = document.getElementById('meldung');
         f.addEventListener('submit', function (ev) {

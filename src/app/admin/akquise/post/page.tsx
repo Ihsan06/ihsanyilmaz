@@ -28,7 +28,7 @@ type Brief = {
   empfaenger: string | null; befunde: Befund[]; text: string | null; pdf_schluessel: string | null;
   anbieter: string | null; anbieter_id: string | null; kosten_cent: number | null; fehler: string | null;
   aufrufe: number; zuletzt_aufgerufen: string | null; demo_angefordert: string | null; demo_geoeffnet?: string | null;
-  rueckruf_telefon?: string | null; rueckruf_am?: string | null;
+  kontakt_erlaubt?: string | null; betrieb_telefon?: string | null;
   angelegt: string; gesendet_am: string | null; zugestellt_am: string | null;
   betrieb_name?: string | null; betrieb_ort?: string | null; betrieb_status?: string | null;
   betrieb_geprueft_am?: string | null; betrieb_google_stand?: string | null;
@@ -44,7 +44,7 @@ type Einstellungen = {
   platzhalter: { name: string; erklaerung: string }[];
   standard: { absender: Absender; vorlage: string; vorlage_nachfass: string; referenz: string; landing_basis: string };
 };
-type Zaehler = { entwurf: number; freigegeben: number; gesendet: number; zugestellt: number; fehler: number; storniert: number; aufrufe: number; demo: number; rueckruf?: number };
+type Zaehler = { entwurf: number; freigegeben: number; gesendet: number; zugestellt: number; fehler: number; storniert: number; aufrufe: number; demo: number; kontakt?: number };
 type Stand = { eingerichtet: boolean; modus: string; anbieter: string; guthaben_cent?: number; preis_cent?: number };
 type Sperre = { id: number; betrieb_id: number | null; name: string | null; ort: string | null; grund: string | null; angelegt: string };
 type Editor = { brief: Brief; betrieb: BetriebKurz | null; kandidaten: Kandidat[] };
@@ -129,7 +129,7 @@ const STUFEN = [
   { g: 9.5, z: 4.4, a: 1.8, kg: 9, kz: 4.1, kzw: 0.8, bg: 13, bz: 5.2 },
 ];
 const CTA = {
-  scan: "Ihre persönliche Seite: mit der Handykamera scannen oder die Adresse eintippen. Dort finden Sie die Demo und können um einen Rückruf bitten.",
+  scan: "Ihre persönliche Seite: mit der Handykamera scannen oder die Adresse eintippen. Dort finden Sie die Demo und können mit einem Klick um Kontakt bitten.",
   anrufen: "Oder anrufen:",
   teaser: "Rückseite: So kann Ihre Website aussehen »",
 };
@@ -159,7 +159,7 @@ const RUECK = {
   handy2: { rahmen: [151.2, 146.8, 30, 61.7, 3.6] as const, ring: [152.2, 147.8, 28, 59.7, 2.8] as const, bild: [152.6, 148.2, 27.2, 58.9] as const },
   panel: [20, 216, 170, 46, 3] as const, qrBox: [25, 221, 36, 36, 1.5] as const, qr: [29, 225, 28] as const,
   titel3: "Demo ansehen – so geht es", titel3Y: 222, schrittX: 66, textX: 72, schrittY: [229.5, 241.5, 248], linkY: 234.5,
-  schritte: ["QR-Code scannen oder Adresse eingeben:", "Demo direkt ansehen – ohne Anmeldung, ohne Newsletter.", "Anrufen:"],
+  schritte: ["QR-Code scannen oder Adresse eingeben:", "Demo direkt ansehen – ohne Anmeldung, ohne Newsletter.", "Einfach anrufen:"],
   nameY: 255.5, nameZusatz: "Webentwickler, Würzburg",
   bilder: { handy: "/leistungen/druck-handy-start.jpg", desktop: "/leistungen/druck-web-fahrzeuge.jpg", handy2: "/leistungen/druck-handy-fahrzeuge.jpg" },
   schatten: [[0.4, 0.6], [0.8, 1.2]],
@@ -1152,7 +1152,7 @@ export default function PostSeite() {
         <Kachel titel="Gesendet" wert={zahl(gesendetGesamt)} unter={zaehler?.zugestellt ? `${zaehler.zugestellt} zugestellt` : undefined} />
         <Kachel titel="Aufrufe" wert={zahl(zaehler?.aufrufe)} unter="persönliche Seiten" />
         <Kachel titel="Demo angesehen" wert={zahl(zaehler?.demo)} unter="geöffnet oder angefordert" />
-        <Kachel titel="Rückrufbitten" wert={zahl(zaehler?.rueckruf)} unter="über die persönliche Seite" />
+        <Kachel titel="Kontakt erlaubt" wert={zahl(zaehler?.kontakt)} unter="per Klick auf der persönlichen Seite" />
       </div>
 
       <p className="post-versand">
@@ -1256,11 +1256,11 @@ export default function PostSeite() {
                             {zahl(b.aufrufe)}
                             {b.demo_geoeffnet && <span className="post-unter post-demo">Demo geöffnet {datum(b.demo_geoeffnet)}</span>}
                             {b.demo_angefordert && <span className="post-unter post-demo">Zugang angefordert {datum(b.demo_angefordert)}</span>}
-                            {b.rueckruf_telefon && (
-                              <a className="post-unter post-rueckruf" href={`tel:${b.rueckruf_telefon.replace(/[^\d+]/g, "")}`} onClick={e => e.stopPropagation()}>
-                                Rückruf erbeten {datum(b.rueckruf_am || "")}: {b.rueckruf_telefon}
-                              </a>
-                            )}
+                            {b.kontakt_erlaubt && (b.betrieb_telefon
+                              ? <a className="post-unter post-kontakt" href={`tel:${b.betrieb_telefon.replace(/[^\d+]/g, "")}`} onClick={e => e.stopPropagation()}>
+                                  Kontakt erlaubt {datum(b.kontakt_erlaubt)} · {b.betrieb_telefon}
+                                </a>
+                              : <span className="post-unter post-kontakt">Kontakt erlaubt {datum(b.kontakt_erlaubt)}</span>)}
                           </td>
                           <td className="num">{b.kosten_cent != null ? euro(b.kosten_cent) : "—"}</td>
                           <td onClick={e => e.stopPropagation()}>{aktionen(b)}</td>

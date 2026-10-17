@@ -1,5 +1,5 @@
 // Kurze Nachricht an mich selbst, wenn sich auf einer persoenlichen Seite
-// /fuer/<token> etwas tut (erster Aufruf, Demo geoeffnet, Rueckrufbitte).
+// /fuer/<token> etwas tut (erster Aufruf, Demo geoeffnet, Kontakt erlaubt).
 //
 // Mail ueber Resend an CONTACT_TO (wie Kontaktformular und Demo-Zugang);
 // Telegram nur, wenn `telegram` gesetzt ist, und dann ohne Personendaten –

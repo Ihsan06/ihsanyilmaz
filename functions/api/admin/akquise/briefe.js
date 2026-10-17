@@ -180,7 +180,7 @@ export async function onRequestGet({ request, env }) {
     const [liste, zaehler] = await env.DB.batch([
       env.DB.prepare(
         `SELECT br.*, b.name AS betrieb_name, b.ort AS betrieb_ort, b.status AS betrieb_status,
-                b.geprueft_am AS betrieb_geprueft_am, b.google_stand AS betrieb_google_stand
+                b.geprueft_am AS betrieb_geprueft_am, b.google_stand AS betrieb_google_stand, b.telefon AS betrieb_telefon
          FROM akquise_briefe br LEFT JOIN akquise_betriebe b ON b.id = br.betrieb_id
          ${wo.length ? 'WHERE ' + wo.join(' AND ') : ''}
          ORDER BY br.angelegt DESC, br.id DESC LIMIT 500`,
@@ -189,16 +189,16 @@ export async function onRequestGet({ request, env }) {
         `SELECT status, COUNT(*) AS n,
                 SUM(CASE WHEN art != 'test' THEN aufrufe ELSE 0 END) AS aufrufe,
                 SUM(art != 'test' AND (demo_angefordert IS NOT NULL OR demo_geoeffnet IS NOT NULL)) AS demo,
-                SUM(art != 'test' AND rueckruf_am IS NOT NULL) AS rueckruf
+                SUM(art != 'test' AND kontakt_erlaubt IS NOT NULL) AS kontakt
          FROM akquise_briefe GROUP BY status`,
       ),
     ]);
-    const z = { entwurf: 0, freigegeben: 0, gesendet: 0, zugestellt: 0, fehler: 0, storniert: 0, aufrufe: 0, demo: 0, rueckruf: 0 };
+    const z = { entwurf: 0, freigegeben: 0, gesendet: 0, zugestellt: 0, fehler: 0, storniert: 0, aufrufe: 0, demo: 0, kontakt: 0 };
     for (const r of zaehler.results ?? []) {
       z[r.status] = Number(r.n || 0);
       z.aufrufe += Number(r.aufrufe || 0);
       z.demo += Number(r.demo || 0);
-      z.rueckruf += Number(r.rueckruf || 0);
+      z.kontakt += Number(r.kontakt || 0);
     }
     return json({ ok: true, briefe: (liste.results ?? []).map(briefAufbereiten), zaehler: z });
   } catch (e) {

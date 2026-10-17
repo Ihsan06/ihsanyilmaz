@@ -262,3 +262,8 @@ ALTER TABLE akquise_briefe ADD COLUMN rueckruf_am TEXT;
 -- PageSpeed konnte die Seite nicht laden: Grund an der Pruefung, damit sie
 -- nicht bei jedem Lauf wieder faellig ist (neue Pruefung → neuer Versuch).
 ALTER TABLE akquise_pruefungen ADD COLUMN psi_fehler TEXT;
+
+-- Ein Klick „Ja, bitte melden Sie sich“ auf /fuer/<token>: Zeitpunkt der
+-- Erlaubnis, per Telefon oder E-Mail Kontakt aufzunehmen (ersetzt die
+-- Rueckrufbitte mit Telefonnummer).
+ALTER TABLE akquise_briefe ADD COLUMN kontakt_erlaubt TEXT;

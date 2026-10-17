@@ -5,9 +5,8 @@
 // { token, aktion:'demo' } → merkt den ersten Klick auf „Demo jetzt ansehen“
 // (akquise_briefe.demo_geoeffnet); die Seite schickt das per sendBeacon, der
 // Link selbst fuehrt direkt zur Demo. Beim ersten Mal kommt eine Mail an mich.
-// { token, aktion:'rueckruf', telefon, fax } → Rueckrufbitte: Nummer am Brief
-// speichern, Betrieb auf 'kontakt', Mail (und Telegram ohne Nummer) an mich.
-// Wer darum bittet, darf angerufen werden – das ist der Sinn des Knopfs.
+// { token, aktion:'kontakt' } → ein Klick: Kontakt per Telefon/E-Mail erlaubt
+// (akquise_briefe.kontakt_erlaubt), Betrieb auf 'kontakt', Mail an mich.
 // Oeffentlich, deshalb: Tokenformat vor der Datenbank pruefen,
 // nichts ueber den Betrieb verraten, nie 5xx (davor schiebt Cloudflare eine
 // eigene Fehlerseite, die der Browser nicht lesen kann).
@@ -22,7 +21,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   let d;
   try { d = await request.json(); } catch { return json({ ok: false, fehler: 'ungueltig' }, 400); }
   const token = String(d?.token || '');
-  if (!TOKEN_RE.test(token) || !['nein', 'demo', 'rueckruf'].includes(d?.aktion)) return json({ ok: false, fehler: 'ungueltig' }, 400);
+  if (!TOKEN_RE.test(token) || !['nein', 'demo', 'kontakt'].includes(d?.aktion)) return json({ ok: false, fehler: 'ungueltig' }, 400);
   if (!env.DB) return json({ ok: false, fehler: 'nichtGespeichert' });
 
   if (d.aktion === 'demo') {
@@ -36,7 +35,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     return json({ ok: true });
   }
 
-  if (d.aktion === 'rueckruf') return rueckruf(d, token, request, env, waitUntil);
+  if (d.aktion === 'kontakt') return kontaktErlauben(token, request, env, waitUntil);
 
   try {
     const brief = await env.DB.prepare(
@@ -68,41 +67,39 @@ function nebenbei(waitUntil, lauf) {
 }
 
 
-// Telefonnummer: nur Ziffern, Leerzeichen und + ( ) / - . – 6 bis 16 Ziffern.
-const TELEFON_RE = /^[\d\s+()\/.-]{6,30}$/;
-
-async function rueckruf(d, token, request, env, waitUntil) {
-  if (d.fax) return json({ ok: true }); // Bot-Falle
-  const telefon = String(d.telefon || '').replace(/\s+/g, ' ').trim();
-  const ziffern = telefon.replace(/\D/g, '').length;
-  if (!TELEFON_RE.test(telefon) || ziffern < 6 || ziffern > 16) return json({ ok: false, fehler: 'telefon' }, 400);
+// Ein Klick „Ja, bitte melden Sie sich“: der Betrieb erlaubt, dass ich mich zu
+// diesem Angebot per Telefon oder E-Mail melde. Kein Eingabefeld – die
+// Kontaktdaten stehen am Betrieb (OSM/Google/Website). Gespeichert wird nur
+// der Zeitpunkt am Brief; eigene Geraete zaehlen nicht (sonst gaebe ein
+// Test eine Erlaubnis, die es nicht gibt).
+async function kontaktErlauben(token, request, env, waitUntil) {
+  if (await eigenerAufruf(request, env)) return json({ ok: true });
   try {
     const brief = await env.DB.prepare(
-      `SELECT br.id, br.betrieb_id, br.art, br.rueckruf_telefon, br.rueckruf_am > datetime('now', '-10 minutes') AS frisch,
-              b.name, b.ort, b.status
+      `SELECT br.id, br.betrieb_id, br.art, br.kontakt_erlaubt, b.name, b.ort, b.status, b.telefon, b.email, b.website
        FROM akquise_briefe br LEFT JOIN akquise_betriebe b ON b.id = br.betrieb_id WHERE br.token = ?`,
     ).bind(token).first();
     if (!brief) return json({ ok: false, fehler: 'unbekannt' }, 404);
-    // Doppelklick oder zweimal abgeschickt: keine zweite Mail.
-    if (brief.frisch && brief.rueckruf_telefon === telefon) return json({ ok: true });
+    if (brief.kontakt_erlaubt) return json({ ok: true }); // schon erlaubt, keine zweite Mail
 
-    const schreiben = [env.DB.prepare("UPDATE akquise_briefe SET rueckruf_telefon = ?, rueckruf_am = datetime('now') WHERE id = ?").bind(telefon, brief.id)];
+    const schreiben = [env.DB.prepare("UPDATE akquise_briefe SET kontakt_erlaubt = datetime('now') WHERE id = ? AND kontakt_erlaubt IS NULL").bind(brief.id)];
     if (brief.betrieb_id && brief.art !== 'test' && ['neu', 'beobachten', 'brief'].includes(brief.status)) {
       schreiben.push(env.DB.prepare("UPDATE akquise_betriebe SET status = 'kontakt', geaendert = datetime('now') WHERE id = ?").bind(brief.betrieb_id));
     }
     await env.DB.batch(schreiben);
 
     const firma = brief.name || 'Unbekannter Betrieb';
-    const tel = telefon.replace(/[^\d+]/g, '');
+    const tel = String(brief.telefon || '').replace(/[^\d+]/g, '');
     nebenbei(waitUntil, mirMitteilen(env, {
-      betreff: `Rückrufbitte: ${firma}${brief.art === 'test' ? ' (Testbrief)' : ''}`,
+      betreff: `Kontakt erlaubt: ${firma}`,
       zeilen: [
-        `<b>${esc(firma)}</b>${brief.ort ? ` · ${esc(brief.ort)}` : ''} bittet um einen Rückruf.`,
-        `Telefon: <a href="tel:${esc(tel)}">${esc(telefon)}</a>`,
-        'Zugesagt ist ein Rückruf bis zum nächsten Werktag.',
+        `<b>${esc(firma)}</b>${brief.ort ? ` · ${esc(brief.ort)}` : ''} hat auf der persönlichen Seite erlaubt, dass du dich per Telefon oder E-Mail meldest.`,
+        brief.telefon ? `Telefon: <a href="tel:${esc(tel)}">${esc(brief.telefon)}</a>` : 'Telefon: nicht hinterlegt – bitte im Internet nachsehen',
+        brief.email ? `E-Mail: <a href="mailto:${esc(brief.email)}">${esc(brief.email)}</a>` : '',
+        brief.website ? `Website: <a href="${esc(brief.website)}">${esc(brief.website)}</a>` : '',
       ],
       link: adminLink(request),
-      telegram: '📞 Akquise: neue Rückrufbitte über eine persönliche Seite – Nummer in deinem Postfach.',
+      telegram: '📞 Akquise: ein Betrieb hat Kontakt erlaubt – Details in deinem Postfach.',
     }));
     return json({ ok: true });
   } catch {

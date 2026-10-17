@@ -41,7 +41,7 @@ type PruefungVoll = LetztePruefung & {
 
 type Betrieb = {
   id: number;
-  brief_gesendet?: string | null; brief_entwurf?: number; rueckruf_telefon?: string | null; anschrift_stand?: string | null;
+  brief_gesendet?: string | null; brief_entwurf?: number; kontakt_erlaubt?: string | null; anschrift_stand?: string | null;
   quelle: string; quelle_id: string | null;
   name: string; art: string | null; marken: string | null;
   strasse: string | null; plz: string | null; ort: string | null;
@@ -1534,11 +1534,11 @@ function AkquiseCockpit() {
                         {b.brief_gesendet
                           ? <a className="akq-brief-marke" href="/admin/akquise/post" title="Brief verschickt – unter Post ansehen"><Mail size={10} aria-hidden="true" />Brief {datum(b.brief_gesendet)}</a>
                           : b.brief_entwurf ? <span className="akq-brief-marke entwurf" title="Entwurf unter Post">Entwurf</span> : null}
-                        {b.rueckruf_telefon && (
-                          <a className="akq-brief-marke rueckruf" href={`tel:${b.rueckruf_telefon.replace(/[^\d+]/g, "")}`} title="Rückruf erbeten – anrufen">
-                            Rückruf: {b.rueckruf_telefon}
-                          </a>
-                        )}
+                        {b.kontakt_erlaubt && (b.telefon
+                          ? <a className="akq-brief-marke kontakt" href={`tel:${b.telefon.replace(/[^\d+]/g, "")}`} title={`Kontakt erlaubt am ${datum(b.kontakt_erlaubt)} – anrufen`}>
+                              Kontakt erlaubt · {b.telefon}
+                            </a>
+                          : <span className="akq-brief-marke kontakt" title={`Kontakt erlaubt am ${datum(b.kontakt_erlaubt)} – Nummer im Internet nachsehen`}>Kontakt erlaubt</span>)}
                         {ohneAnschrift(b) && !b.geloescht && (
                           <button type="button" className="akq-brief-marke fehlt" onClick={() => aufklappen(b.id)}
                                   title={b.anschrift_stand ? "In OpenStreetMap nicht gefunden – bitte von Hand eintragen" : "Wird beim nächsten Suchlauf aus OpenStreetMap ergänzt"}>
