@@ -1503,7 +1503,8 @@ function AkquiseCockpit() {
               <b>{zahl(sichtbar.length)}</b>{sichtbar.length !== liste.length && <> / {zahl(liste.length)}</>}
             </span>
             {filterAktiv(filter) && (
-              <button onClick={() => setFilter(f => ({ ...FILTER_LEER, papierkorb: f.papierkorb, sort: f.sort }))} className="akq-textknopf">Zurücksetzen</button>
+              <button onClick={() => setFilter(f => ({ ...FILTER_LEER, papierkorb: f.papierkorb, sort: f.sort }))} className="akq-zuruecksetzen"
+                      title="Filter zurücksetzen" aria-label="Filter zurücksetzen"><RotateCcw size={13} /></button>
             )}
             <InfoTipp breite={340}>
               <span className="flex flex-col gap-1.5">

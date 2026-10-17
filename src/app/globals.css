@@ -654,6 +654,9 @@ html, body {
 .akq-textknopf { all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:4px; font-size:.8rem; font-weight:600; color:var(--accent); }
 .akq-textknopf:hover { text-decoration:underline; }
 .akq-textknopf:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+.akq-zuruecksetzen { all:unset; cursor:pointer; flex:none; width:26px; height:26px; border-radius:50%; display:inline-grid; place-items:center; color:var(--accent); border:1px solid var(--border); background:var(--surface); }
+.akq-zuruecksetzen:hover { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.akq-zuruecksetzen:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
 /* Schritte des Suchlaufs: sechs Stationen, jede mit Zustand und Zahl. */
 .akq-schritte { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; }
