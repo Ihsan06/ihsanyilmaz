@@ -337,6 +337,16 @@ const SORT_SCHLUESSEL: SortSchluessel[] = ["auswahl", "prioritaet", "name", "web
 // jeweils lesen will.
 const SORT_TEXT = new Set<SortSchluessel>(["name", "website", "kategorie"]);
 
+// Rueckweg von „Post“: Filter-URL und Zeile merken, die Post-Seite zeigt dann
+// „Zurück zu Betriebe“ und springt per #betrieb-<id> wieder an dieselbe Stelle.
+const RUECKWEG = "akquise.rueckweg";
+const SPRUNG = "akquise.sprung";
+function rueckwegMerken(b: { id: number; name: string }) {
+  try {
+    sessionStorage.setItem(RUECKWEG, JSON.stringify({ url: window.location.pathname + window.location.search, id: b.id, name: b.name }));
+  } catch { /* privat oder gesperrt – dann eben ohne Rueckweg */ }
+}
+
 // Zustand in der URL: ?q=…&kat=a,b&sort=prioritaet:ab,name:auf – Reload und
 // Teilen behalten Filter und Sortierung.
 function filterAusUrl(search: string): Filter {
@@ -580,6 +590,53 @@ function AkquiseCockpit() {
       .catch(e => { setBetriebe([]); setFehler(e instanceof Error ? e.message : "Ging nicht."); }), []);
   const googleEingerichtet = stand?.google ? stand.google.eingerichtet : null;
 
+  // Zurueck von „Post“: #betrieb-<id> lesen, bevor der Filter-Effekt die URL
+  // ohne Hash neu schreibt, und die Zeile anspringen, sobald sie gezeichnet
+  // ist (die Liste kommt erst nach dem Laden; hoechstens 8 s warten).
+  // Das Ziel kommt ueber sessionStorage (gesetzt vom Knopf auf der Post-Seite);
+  // der Hash allein ueberlebt den Start der Seite nicht zuverlaessig.
+  useEffect(() => {
+    let id = /^#betrieb-\d+$/.test(window.location.hash) ? window.location.hash.slice(1) : "";
+    // Nicht sofort loeschen: die Seite kann beim Start einmal neu eingehaengt
+    // werden (Anmeldepruefung) – geloescht wird erst, wenn die Zeile gefunden
+    // ist; aelter als 20 s gilt nicht mehr.
+    try {
+      const gemerkt = JSON.parse(sessionStorage.getItem(SPRUNG) || "null");
+      if (gemerkt && Date.now() - gemerkt.t < 20000) id = `betrieb-${gemerkt.id}`;
+    } catch { /* ohne Speicher nur per Hash */ }
+    if (!id) return;
+    // Der Browser stellt beim Laden gern die alte Position (oben) wieder her,
+    // und Karte/Kacheln verschieben die Liste noch – deshalb bis zu 6 s lang
+    // nachrichten, solange die Zeile nicht im Bild ist. Sobald der Nutzer
+    // selbst scrollt oder tippt, ist Schluss.
+    const vorher = history.scrollRestoration;
+    history.scrollRestoration = "manual";
+    let schluss = false, markiert = false;
+    const stopp = () => { schluss = true; };
+    const ereignisse = ["wheel", "touchstart", "keydown", "mousedown"] as const;
+    ereignisse.forEach(e => window.addEventListener(e, stopp, { passive: true }));
+    const start = Date.now();
+    const t = setInterval(() => {
+      const ziel = document.getElementById(id);
+      // Erst am Ende (oder wenn der Nutzer uebernimmt) den Merker loeschen –
+      // haengt sich die Seite zwischendurch neu ein, springt sie erneut.
+      if (schluss || Date.now() - start > 6000) {
+        if (markiert) { try { sessionStorage.removeItem(SPRUNG); } catch { /* egal */ } }
+        aufraeumen(); return;
+      }
+      if (!ziel) return;
+      const r = ziel.getBoundingClientRect();
+      // Sofort, nicht weich: die Seite scrollt sonst ueber Sekunden hinterher.
+      if (r.top < 80 || r.bottom > window.innerHeight - 40) ziel.scrollIntoView({ block: "center", behavior: "instant" });
+      if (!markiert) { markiert = true; ziel.classList.add("blitz"); setTimeout(() => ziel.classList.remove("blitz"), 2200); }
+    }, 150);
+    function aufraeumen() {
+      clearInterval(t);
+      ereignisse.forEach(e => window.removeEventListener(e, stopp));
+      history.scrollRestoration = vorher;
+    }
+    return aufraeumen;
+  }, []);
   useEffect(() => {
     window.history.replaceState(null, "", filterInUrl(filter));
   }, [filter]);
@@ -1532,7 +1589,7 @@ function AkquiseCockpit() {
                       <span className="akq-unter">
                         {b.geloescht && <span className="akq-geloescht-am">Gelöscht {datum(b.geloescht)}</span>}
                         {b.brief_gesendet
-                          ? <a className="akq-brief-marke" href="/admin/akquise/post" title="Brief verschickt – unter Post ansehen"><Mail size={10} aria-hidden="true" />Brief {datum(b.brief_gesendet)}</a>
+                          ? <a className="akq-brief-marke" href="/admin/akquise/post" onClick={() => rueckwegMerken(b)} title="Brief verschickt – unter Post ansehen"><Mail size={10} aria-hidden="true" />Brief {datum(b.brief_gesendet)}</a>
                           : b.brief_entwurf ? <span className="akq-brief-marke entwurf" title="Entwurf unter Post">Entwurf</span> : null}
                         {b.kontakt_erlaubt && (b.telefon
                           ? <a className="akq-brief-marke kontakt" href={`tel:${b.telefon.replace(/[^\d+]/g, "")}`} title={`Kontakt erlaubt am ${datum(b.kontakt_erlaubt)} – anrufen`}>
@@ -1588,7 +1645,7 @@ function AkquiseCockpit() {
                                   title="Neu prüfen: Google, Anschrift, Website" aria-label={`${b.name} neu prüfen`}>
                             <RefreshCw size={14} className={arbeitet ? "akq-dreht" : undefined} />
                           </button>
-                          <a href={`/admin/akquise/post?betrieb=${b.id}`} className="akq-knopf akq-symbol" title="Brief vorbereiten" aria-label="Brief vorbereiten"><Mail size={14} /></a>
+                          <a href={`/admin/akquise/post?betrieb=${b.id}`} onClick={() => rueckwegMerken(b)} className="akq-knopf akq-symbol" title="Brief vorbereiten" aria-label="Brief vorbereiten"><Mail size={14} /></a>
                         </>
                       )}
                       <button onClick={() => aufklappen(b.id)} className="akq-knopf akq-symbol" aria-expanded={istOffen} aria-label="Details" title="Details">

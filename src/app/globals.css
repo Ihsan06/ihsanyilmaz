@@ -798,6 +798,9 @@ html, body {
 /* Brief verschickt: ganze Zeile leicht gruen hinterlegt, links ein gruener Strich */
 .akq-eintrag.versendet { background:rgba(29,138,82,.07); box-shadow:inset 0 0 0 1.5px #1d8a52, inset 5px 0 0 #1d8a52; border-radius:10px; margin:3px -12px; padding-left:14px; padding-right:12px; }
 .akq-karte-popup-brief { color:#1d8a52; font-weight:700; }
+/* Zeile, an die „Zurück zu Betriebe“ springt: kurz aufleuchten. */
+.akq-eintrag.blitz { animation:akq-blitz 2.2s ease-out; }
+@keyframes akq-blitz { 0%,30% { background:color-mix(in srgb, var(--accent) 18%, transparent); } 100% { background:transparent; } }
 .akq-eintrag.versendet:hover { background:rgba(29,138,82,.11); }
 .akq-eintrag.versendet.offen { background:rgba(29,138,82,.09); }
 .akq-eintrag > .akq-raster > div { min-width:0; }

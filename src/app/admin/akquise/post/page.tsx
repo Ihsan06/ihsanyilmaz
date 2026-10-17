@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { LineCapStyle, PDFDocument, PageSizes, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
-import { ExternalLink, FileText, Maximize2, RefreshCw, Trash2, X } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText, Maximize2, RefreshCw, Trash2, X } from "lucide-react";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
 import { BEFUNDE_BEISPIEL, befundZeile, briefAufbauen, briefFuellen, datumDeutsch, empfaengerBlock, landingLink, quellenZeile, rueckChecks } from "../../../../../functions/_lib/brief.js";
 import { LOGO_BREIT, LOGO_FARBE, LOGO_HOCH, LOGO_PFADE, LOGO_X0 } from "./briefLogo";
@@ -773,6 +773,16 @@ export default function PostSeite() {
   const [ueberlauf, setUeberlauf] = useState(0);
   // Vorschau links: das Blatt oder die persoenliche Seite (nur mit Token).
   const [schauArt, setSchauArt] = useState<"brief" | "seite">("brief");
+  // Rueckweg zur Betriebe-Liste (gesetzt beim Klick auf „Brief vorbereiten“).
+  const [rueckweg, setRueckweg] = useState<{ url: string; id: number; name: string } | null>(null);
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      try {
+        const r = JSON.parse(sessionStorage.getItem("akquise.rueckweg") || "null");
+        if (r && typeof r.url === "string" && r.url.startsWith("/admin/akquise") && Number.isInteger(r.id)) setRueckweg(r);
+      } catch { /* kein Rueckweg */ }
+    });
+  }, []);
 
   // Vorlage & Absender
   const [absenderForm, setAbsenderForm] = useState<Absender | null>(null);
@@ -1145,6 +1155,12 @@ export default function PostSeite() {
     <AdminShell titel="Post" eyebrow="Akquise" lead="Briefe an Betriebe: Vorschau, PDF, Versand.">
       {fehler && <p className="mb-4 text-sm" style={{ color: "#dc2626" }}>{fehler}</p>}
       {meldung && <p className="mb-4 text-sm" style={{ color: "#1d8a52" }}>{meldung}</p>}
+      {rueckweg && (
+        <a className="akq-knopf post-rueckweg" href={`${rueckweg.url}#betrieb-${rueckweg.id}`}
+           onClick={() => { try { sessionStorage.setItem("akquise.sprung", JSON.stringify({ id: rueckweg.id, t: Date.now() })); } catch { /* dann nur per Hash */ } }}>
+          <ArrowLeft size={14} /> Zurück zu Betriebe · {rueckweg.name}
+        </a>
+      )}
 
       <div className="mon-kennzahlen">
         <Kachel titel="Entwürfe" wert={zahl(zaehler?.entwurf)} unter={zaehler?.fehler ? `${zaehler.fehler} mit Fehler` : undefined} />
