@@ -205,9 +205,7 @@
 .post-rueck .post-r-schritt .ziffer { position:absolute; left:0; font-weight:600; color:#12557F; }
 .post-rueck .post-r-schritt.post-r-anruf { font-size:10pt; font-weight:600; color:#0F172A; }
 .post-rueck .post-r-link { position:absolute; left:72mm; top:234.5mm; font-size:11pt; font-weight:600; line-height:4.5mm; color:#12557F; white-space:nowrap; }
-.post-rueck .post-r-rueckruf { position:absolute; left:72mm; top:253mm; width:114mm; margin:0; font-size:9.5pt; line-height:4.5mm; color:#334155; }
-.post-rueck .post-r-name { position:absolute; left:72mm; top:263.5mm; margin:0; font-size:8pt; line-height:3.2mm; color:#64748B; white-space:nowrap; }
-.post-rueck .post-r-hinweis { position:absolute; left:25mm; right:20mm; top:272mm; margin:0; font-size:7pt; line-height:3mm; color:#555; }
+.post-rueck .post-r-name { position:absolute; left:72mm; top:255.5mm; margin:0; font-size:8pt; line-height:3.2mm; color:#64748B; white-space:nowrap; }
 .post-rueck .post-b-fuss { justify-content:flex-start; }
 
 /* Vorlage & Absender */

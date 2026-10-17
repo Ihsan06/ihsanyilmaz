@@ -157,13 +157,10 @@ const RUECK = {
   // wie auf ihsan-yilmaz.de unter „Smart Websites“. Unterkante 208,5 mm, bleibt
   // also vor dem Falz bei 210 mm.
   handy2: { rahmen: [151.2, 146.8, 30, 61.7, 3.6] as const, ring: [152.2, 147.8, 28, 59.7, 2.8] as const, bild: [152.6, 148.2, 27.2, 58.9] as const },
-  panel: [20, 216, 170, 52, 3] as const, qrBox: [25, 224, 36, 36, 1.5] as const, qr: [29, 228, 28] as const,
+  panel: [20, 216, 170, 46, 3] as const, qrBox: [25, 221, 36, 36, 1.5] as const, qr: [29, 225, 28] as const,
   titel3: "Demo ansehen – so geht es", titel3Y: 222, schrittX: 66, textX: 72, schrittY: [229.5, 241.5, 248], linkY: 234.5,
   schritte: ["QR-Code scannen oder Adresse eingeben:", "Demo direkt ansehen – ohne Anmeldung, ohne Newsletter.", "Anrufen:"],
-  rueckruf: "Wenn ich nicht abhebe, rufe ich bis zum nächsten Werktag zurück – danach ein schriftliches Angebot, unverbindlich.",
-  rueckrufY: 253, rueckrufZeile: 4.5, rueckrufBreite: 114,
-  nameY: 263.5, nameZusatz: "Webentwickler, Würzburg",
-  hinweis: "Abbildungen: eigene Demo für das fiktive Autohaus Mustermann mit Beispieldaten – keine Aufnahmen Ihres Betriebs.", hinweisY: 272,
+  nameY: 255.5, nameZusatz: "Webentwickler, Würzburg",
   bilder: { handy: "/leistungen/druck-handy-start.jpg", desktop: "/leistungen/druck-web-fahrzeuge.jpg", handy2: "/leistungen/druck-handy-fahrzeuge.jpg" },
   schatten: [[0.4, 0.6], [0.8, 1.2]],
 };
@@ -504,10 +501,7 @@ async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf:
       else text(s, R.textX, R.schrittY[i], 9.5, font, FARBE.sekundaer);
     });
     text(kurz, R.textX, R.linkY, 11, fett, FARBE.akzent);
-    yy = R.rueckrufY;
-    for (const l of umbrechen(R.rueckruf, 9.5, mm(R.rueckrufBreite)).slice(0, 2)) { text(l, R.textX, yy, 9.5, font, FARBE.sekundaer); yy += R.rueckrufZeile; }
     text(`${a.name} · ${R.nameZusatz}`, R.textX, R.nameY, 8, font, FARBE.grau2);
-    text(R.hinweis, LAYOUT.textX, R.hinweisY, 7, font, FARBE.klein);
     text([a.name, a.strasse, a.plz_ort, a.telefon, a.email, a.web].filter(Boolean).join(" · "), LAYOUT.textX, LAYOUT.fussY, LAYOUT.fussGroesse, font, FARBE.klein);
   }
 
@@ -714,9 +708,7 @@ function Rueckseite({ link, qr, absender, befunde }: { link: string; qr: string;
           </p>
         ))}
         <b className="post-r-link">{linkKurz(link)}</b>
-        <p className="post-r-rueckruf">{R.rueckruf}</p>
         <p className="post-r-name">{absender.name} · {R.nameZusatz}</p>
-        <p className="post-r-hinweis">{R.hinweis}</p>
         <div className="post-b-fuss"><span>{[absender.name, absender.strasse, absender.plz_ort, absender.telefon, absender.email, absender.web].filter(Boolean).join(" · ")}</span></div>
       </div>
     </>
