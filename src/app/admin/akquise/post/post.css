@@ -221,3 +221,6 @@ a.post-kontakt:hover { text-decoration:underline; }
   .post-gewaehlt { grid-template-columns:1fr; }
 }
 .post-rueckweg { display:inline-flex; align-items:center; gap:6px; margin:0 0 14px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.post-versandt { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:12px; padding:12px 14px; border-radius:10px; background:rgba(29,138,82,.08); border:1px solid rgba(29,138,82,.35); }
+.post-versandt p { margin:0; font-size:.84rem; color:var(--fg-muted); line-height:1.5; }
+.post-versandt b { color:#1d8a52; }

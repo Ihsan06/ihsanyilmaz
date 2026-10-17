@@ -1432,6 +1432,23 @@ export default function PostSeite() {
                     </>
                   )}
                 </div>
+                {(editor.brief.status === "gesendet" || editor.brief.status === "zugestellt") && (
+                  <div className="post-versandt">
+                    <p>
+                      <b>✓ Brief an LetterXpress übergeben</b>{editor.brief.gesendet_am ? ` · ${datum(editor.brief.gesendet_am)}` : ""}
+                      <br />
+                      {stand?.modus === "live"
+                        ? "Wird gedruckt und verschickt. Stornieren geht noch 15 Minuten."
+                        : "Testmodus: Der Brief liegt in deiner LetterXpress-Postbox und geht erst raus, wenn du ihn dort freigibst."}
+                    </p>
+                    {rueckweg && (
+                      <a className="akq-knopf" href={`${rueckweg.url}#betrieb-${rueckweg.id}`}
+                         onClick={() => { try { sessionStorage.setItem("akquise.sprung", JSON.stringify({ id: rueckweg.id, t: Date.now() })); } catch { /* dann nur per Hash */ } }}>
+                        <ArrowLeft size={14} /> Zurück zu Betriebe
+                      </a>
+                    )}
+                  </div>
+                )}
                 {!stand?.eingerichtet && <p className="post-hinweis">Briefversand nicht eingerichtet. PDF und Freigabe gehen trotzdem.</p>}
                 {editor.brief.art !== "test" && editor.betrieb && imEntwurf && (
                   <p className="post-hinweis">
