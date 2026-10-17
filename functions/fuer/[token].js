@@ -129,6 +129,7 @@ const CSS = `
   form { display:grid; gap:12px; margin-top:16px; }
   label { font-size:.85rem; color:#B4BFC9; display:block; }
   .referenz p { margin:0 0 14px; color:#E6EBEF; }
+  .referenz .knopf { white-space:normal; text-align:center; }
   .rueckruf-karte { border-color:#1B6FA8; background:linear-gradient(180deg, #13202b, #111820); }
   .rueckruf-karte h2 { margin-bottom:4px; }
   .rueckruf-karte p { margin:0 0 14px; color:#B4BFC9; }
@@ -353,7 +354,7 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
       <h2>Bereits im Einsatz</h2>
       <div class="karte referenz">
         <p>${referenzHtml(referenz)}</p>
-        ${referenzUrl(referenz) ? `<a class="knopf gross leise" href="${esc(referenzUrl(referenz))}" target="_blank" rel="noopener">Live ansehen: ${esc(referenzUrl(referenz).replace(/^https:\/\//, ''))}</a>` : ''}
+        ${referenzUrl(referenz) ? `<a class="knopf gross leise" href="${esc(referenzUrl(referenz))}" target="_blank" rel="noopener">Website live ansehen</a>` : ''}
       </div>
     </section>` : ''}
 
