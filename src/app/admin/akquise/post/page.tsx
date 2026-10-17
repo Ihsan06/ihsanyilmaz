@@ -22,6 +22,15 @@ import "./post.css";
 // (post.css) nutzt dieselben Zahlen.
 
 type Befund = { code: string; text: string };
+// Sammelversand: Betriebe ohne verschickten Brief, wie sie die Betriebe-Liste liefert.
+type SammelBetrieb = {
+  id: number; name: string; ort: string | null; strasse: string | null; plz: string | null; kategorie: string | null;
+  auswahl: number; google_anzahl: number | null; google_bewertung: number | null; brief_gesendet?: string | null;
+  brief_entwurf?: number; geprueft_am: string | null; google_stand: string | null; geloescht?: string | null;
+};
+type SammelStand = { art: "laeuft" | "bereit" | "ok" | "fehler"; text: string; briefId?: number };
+const SAMMEL_KAT: [string, string][] = [["auswahl", "★ Auswahl"], ["nur_boerse", "Nur Börse"], ["ohne_website", "Ohne Website"], ["veraltet", "Veraltet"], ["baukasten", "Baukasten"], ["alle", "Alle"]];
+const anschriftOk = (b: SammelBetrieb) => /\d/.test(b.strasse || "") && /^\d{5}$/.test(b.plz || "") && !!(b.ort || "").trim();
 type Kandidat = Befund & { punkte: number; vorgewaehlt: boolean };
 type Brief = {
   id: number; betrieb_id: number; token: string; status: string; art: string;
@@ -48,7 +57,7 @@ type Zaehler = { entwurf: number; freigegeben: number; gesendet: number; zugeste
 type Stand = { eingerichtet: boolean; modus: string; anbieter: string; guthaben_cent?: number; preis_cent?: number };
 type Sperre = { id: number; betrieb_id: number | null; name: string | null; ort: string | null; grund: string | null; angelegt: string };
 type Editor = { brief: Brief; betrieb: BetriebKurz | null; kandidaten: Kandidat[] };
-type Reiter = "briefe" | "brief" | "vorlage" | "sperrliste";
+type Reiter = "briefe" | "brief" | "sammel" | "vorlage" | "sperrliste";
 // Was links in der Vorschau steht: chip sagt, woher (Entwurf, Beispiel …).
 type Schau = {
   chip: string; titel: string; text: string; empfaenger: string; absender: Absender; link: string; datumText: string; briefId?: number;
@@ -738,6 +747,12 @@ function GrossAnsicht({ schau, qr, onZu }: { schau: Schau; qr: string; onZu: () 
 
 export default function PostSeite() {
   const [reiter, setReiter] = useState<Reiter>("briefe");
+  // Sammelversand
+  const [sammel, setSammel] = useState<SammelBetrieb[]>([]);
+  const [sammelKat, setSammelKat] = useState("auswahl");
+  const [haken, setHaken] = useState<Set<number>>(new Set());
+  const [sammelStand, setSammelStand] = useState<Record<number, SammelStand>>({});
+  const [sammelLauf, setSammelLauf] = useState(false);
   const [fehler, setFehler] = useState("");
   const [meldung, setMeldung] = useState("");
   const [briefe, setBriefe] = useState<Brief[]>([]);
@@ -817,7 +832,7 @@ export default function PostSeite() {
     const tab = p.get("tab") as Reiter | null;
     const betriebId = Number(p.get("betrieb"));
     Promise.all([ladeBriefe(), ladeStand(), ladeEinstellungen(), ladeSperrliste()]).then(() => {
-      if (tab && ["briefe", "brief", "vorlage", "sperrliste"].includes(tab)) setReiter(tab);
+      if (tab && ["briefe", "brief", "sammel", "vorlage", "sperrliste"].includes(tab)) setReiter(tab);
       if (betriebId) setReiter("brief");
     }).finally(() => setLaedt(false));
     if (betriebId) {
@@ -1045,6 +1060,80 @@ export default function PostSeite() {
 
   const statusSetzen = (b: Brief, status: string) => mitSperre(b.id, async () => { await patch(b.id, { status }); });
 
+  // ---- Sammelversand: anhaken, alle vorbereiten (Entwurf + PDF + Freigabe),
+  // dann mit einer Bestaetigung nacheinander senden. Gleiche Schritte wie
+  // beim einzelnen Brief; was ueberlaeuft, bleibt als Entwurf zum Kuerzen.
+  const ladeSammel = useCallback(() =>
+    api("/api/admin/akquise/betriebe")
+      .then(d => setSammel(((d.betriebe || []) as SammelBetrieb[]).filter(b => !b.geloescht && !b.brief_gesendet)))
+      .catch(zeigeFehler), []);
+  useEffect(() => { if (reiter === "sammel") ladeSammel(); }, [reiter, ladeSammel]);
+  const sammelSichtbar = useMemo(() => sammel
+    .filter(b => sammelKat === "alle" || (sammelKat === "auswahl" ? b.auswahl : b.kategorie === sammelKat))
+    .sort((a, b) => (b.google_anzahl ?? -1) - (a.google_anzahl ?? -1)), [sammel, sammelKat]);
+  const sammelZaehlt = (b: SammelBetrieb) => anschriftOk(b) && !b.brief_entwurf && !sammelStand[b.id];
+  const sammelSetzen = (id: number, st: SammelStand) => setSammelStand(v => ({ ...v, [id]: st }));
+  const hakenUmschalten = (id: number) => setHaken(h => { const n = new Set(h); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const sammelAlle = (an: boolean) => setHaken(h => {
+    const n = new Set(h);
+    for (const b of sammelSichtbar) if (sammelZaehlt(b)) { if (an) n.add(b.id); else n.delete(b.id); }
+    return n;
+  });
+  const sammelZiele = sammelSichtbar.filter(b => haken.has(b.id) && sammelZaehlt(b));
+  const sammelBereit = Object.values(sammelStand).filter(x => x.art === "bereit" && x.briefId);
+
+  const sammelVorbereiten = async () => {
+    if (!einst || !sammelZiele.length) return;
+    setSammelLauf(true); setFehler(""); setMeldung("");
+    for (const b of sammelZiele) {
+      sammelSetzen(b.id, { art: "laeuft", text: "Brief anlegen …" });
+      let briefId: number | undefined;
+      try {
+        const d = await api("/api/admin/akquise/briefe", { method: "POST", body: JSON.stringify({ betrieb_id: b.id, art: "brief" }) });
+        const brief = d.brief as Brief;
+        briefId = brief.id;
+        sammelSetzen(b.id, { art: "laeuft", text: "PDF erzeugen …", briefId });
+        const { bytes, ueberlauf: zuViel } = await pdfErzeugen({
+          text: brief.text || "", empfaenger: brief.empfaenger || "", absender: einst.absender,
+          link: landingLink(einst.landing_basis, brief.token) as string, datum: datumDeutsch(new Date()) as string,
+          befunde: brief.befunde, geprueftAm: d.betrieb?.geprueft_am, googleStand: d.betrieb?.google_stand,
+        });
+        if (zuViel > 0) { sammelSetzen(b.id, { art: "fehler", text: `Text ${zuViel} mm zu lang – unter „Briefe“ einzeln kürzen`, briefId }); continue; }
+        const fd = new FormData();
+        fd.append("pdf", new Blob([bytes as BlobPart], { type: "application/pdf" }), `brief-${brief.token}.pdf`);
+        fd.append("id", String(brief.id));
+        await api("/api/admin/akquise/briefe", { method: "POST", body: fd, headers: {} });
+        await api("/api/admin/akquise/briefe", { method: "PATCH", body: JSON.stringify({ id: brief.id, status: "freigegeben" }) });
+        sammelSetzen(b.id, { art: "bereit", text: "bereit", briefId });
+      } catch (e) {
+        sammelSetzen(b.id, { art: "fehler", text: e instanceof Error ? e.message : "Ging nicht.", briefId });
+      }
+    }
+    setSammelLauf(false);
+    ladeBriefe();
+  };
+
+  const sammelSenden = async () => {
+    const liste = Object.entries(sammelStand).filter(([, x]) => x.art === "bereit" && x.briefId);
+    if (!liste.length) return;
+    const modus = stand?.modus === "live" ? "Live – wird gedruckt und verschickt" : "Testmodus – landet nur in der Postbox";
+    if (!confirm(`${liste.length} Briefe jetzt senden?\n\nKosten je Brief ${preisText}\n${modus}`)) return;
+    setSammelLauf(true); setFehler(""); setMeldung("");
+    let gut = 0;
+    for (const [id, x] of liste) {
+      sammelSetzen(Number(id), { ...x, art: "laeuft", text: "sendet …" });
+      try {
+        await api("/api/admin/akquise/briefe", { method: "POST", body: JSON.stringify({ aktion: "senden", id: x.briefId }) });
+        sammelSetzen(Number(id), { ...x, art: "ok", text: "gesendet ✓" }); gut++;
+      } catch (e) {
+        sammelSetzen(Number(id), { ...x, art: "fehler", text: e instanceof Error ? e.message : "Senden fehlgeschlagen." });
+      }
+    }
+    setSammelLauf(false);
+    setMeldung(`${gut} von ${liste.length} Briefen an LetterXpress übergeben${stand?.modus === "live" ? "." : " – im Testmodus liegen sie in deiner Postbox und gehen erst nach Freigabe dort raus."}`);
+    ladeBriefe(); ladeStand();
+  };
+
   const preisText = stand?.preis_cent != null ? `${euro(stand.preis_cent)} netto` : PREIS_FALLBACK;
 
   const senden = (b: Brief) => {
@@ -1185,7 +1274,7 @@ export default function PostSeite() {
       </p>
 
       <div className="post-reiter" role="tablist">
-        {([["briefe", "Briefe"], ["brief", editor ? "Brief" : "Neuer Brief"], ["vorlage", "Vorlage & Absender"], ["sperrliste", "Sperrliste"]] as [Reiter, string][]).map(([k, l]) => (
+        {([["briefe", "Briefe"], ["brief", editor ? "Brief" : "Neuer Brief"], ["sammel", "Mehrere senden"], ["vorlage", "Vorlage & Absender"], ["sperrliste", "Sperrliste"]] as [Reiter, string][]).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={reiter === k} className={reiter === k ? "aktiv" : ""} onClick={() => setReiter(k)}>
             {l}{k === "briefe" && briefe.length > 0 && <b>{briefe.length}</b>}{k === "sperrliste" && sperrliste.length > 0 && <b>{sperrliste.length}</b>}
           </button>
@@ -1194,7 +1283,7 @@ export default function PostSeite() {
 
       {/* Wie bei „Content erstellen“: links die Vorschau, sie bleibt beim
           Scrollen stehen; rechts der Reiter. Nur die Sperrliste braucht keine. */}
-      {reiter !== "sperrliste" && (
+      {reiter !== "sperrliste" && reiter !== "sammel" && (
       <div className={`post-arbeit${schau ? "" : " ohne-schau"}`}>
         {schau && (
           <aside className="post-schau" aria-label="Vorschau" ref={schauRef}>
@@ -1519,6 +1608,63 @@ export default function PostSeite() {
       {gross && schau && <GrossAnsicht schau={schau} qr={qr} onZu={grossZu} />}
 
       {/* ---------------- Sperrliste */}
+      {reiter === "sammel" && (
+        <section className="mon-block">
+          <h2>Mehrere Briefe auf einmal</h2>
+          <p className="post-hinweis mb-4">
+            Anhaken, „Vorbereiten“ legt je Betrieb den Brief mit den vorgeschlagenen Befunden an, erzeugt das PDF und gibt es frei.
+            Danach mit einem Klick alle senden. Was zu lang wird, bleibt als Entwurf unter „Briefe“ zum Kürzen.
+          </p>
+          <div className="post-sammel-kat">
+            {SAMMEL_KAT.map(([k, l]) => (
+              <button key={k} type="button" className={sammelKat === k ? "an" : ""} onClick={() => setSammelKat(k)}>
+                {l} <b>{sammel.filter(b => k === "alle" || (k === "auswahl" ? b.auswahl : b.kategorie === k)).length}</b>
+              </button>
+            ))}
+          </div>
+          <div className="akq-steuerung my-4">
+            <button type="button" className="akq-knopf" onClick={() => sammelAlle(true)} disabled={sammelLauf}>Alle anhaken</button>
+            <button type="button" className="akq-knopf" onClick={() => sammelAlle(false)} disabled={sammelLauf}>Keine</button>
+            <button type="button" className="btn-primary px-4 py-2 text-sm disabled:opacity-60" onClick={sammelVorbereiten} disabled={sammelLauf || !sammelZiele.length}>
+              {sammelZiele.length} {sammelZiele.length === 1 ? "Brief" : "Briefe"} vorbereiten
+            </button>
+            <button type="button" className="btn-primary px-4 py-2 text-sm disabled:opacity-60" onClick={sammelSenden} disabled={sammelLauf || !sammelBereit.length || !stand?.eingerichtet}
+                    title={stand?.eingerichtet ? `Kosten je Brief ${preisText}` : "Versand nicht eingerichtet"}>
+              {sammelBereit.length} {sammelBereit.length === 1 ? "Brief" : "Briefe"} senden
+            </button>
+          </div>
+          {sammelSichtbar.length === 0 ? <p className="mon-leer">{sammelKat === "auswahl" ? "Noch keine Betriebe mit Stern – unter „Betriebe“ markieren oder oben eine Kategorie wählen." : "Keine Betriebe ohne Brief in dieser Kategorie."}</p> : (
+            <div className="post-huelle">
+              <table className="mon-tabelle post-tabelle post-sammel">
+                <thead><tr><th></th><th>Betrieb</th><th>Kategorie</th><th className="num">Google</th><th>Stand</th></tr></thead>
+                <tbody>
+                  {sammelSichtbar.map(b => {
+                    const st = sammelStand[b.id];
+                    const sperre = !anschriftOk(b) ? "Anschrift unvollständig" : b.brief_entwurf ? "Entwurf offen – unter „Briefe“" : "";
+                    return (
+                      <tr key={b.id} className={sperre ? "gesperrt" : undefined}>
+                        <td><input type="checkbox" checked={haken.has(b.id) && !sperre} disabled={!!sperre || !!st || sammelLauf} onChange={() => hakenUmschalten(b.id)} aria-label={`${b.name} auswählen`} /></td>
+                        <td className="stark">{b.name}<span className="post-unter">{[b.strasse, [b.plz, b.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</span></td>
+                        <td>{SAMMEL_KAT.find(([k]) => k === b.kategorie)?.[1] || b.kategorie || "—"}</td>
+                        <td className="num">{b.google_anzahl != null ? `★ ${String(b.google_bewertung ?? "").replace(".", ",")} · ${b.google_anzahl}` : "—"}</td>
+                        <td>
+                          {st ? (
+                            <span className={`post-sammel-stand ${st.art}`}>
+                              {st.text}
+                              {st.briefId && (st.art === "bereit" || st.art === "ok") && <> · <a href={`/api/admin/akquise/briefe?pdf=${st.briefId}`} target="_blank" rel="noopener noreferrer">PDF</a></>}
+                            </span>
+                          ) : <span className="post-leise">{sperre || "—"}</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
       {reiter === "sperrliste" && (
         <section className="mon-block">
           <h2>Sperrliste</h2>

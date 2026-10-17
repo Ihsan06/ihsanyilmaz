@@ -224,3 +224,16 @@ a.post-kontakt:hover { text-decoration:underline; }
 .post-versandt { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:12px; padding:12px 14px; border-radius:10px; background:rgba(29,138,82,.08); border:1px solid rgba(29,138,82,.35); }
 .post-versandt p { margin:0; font-size:.84rem; color:var(--fg-muted); line-height:1.5; }
 .post-versandt b { color:#1d8a52; }
+.post-sammel-kat { display:flex; flex-wrap:wrap; gap:6px; }
+.post-sammel-kat button { font:inherit; font-size:.8rem; font-weight:600; padding:6px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--fg-muted); cursor:pointer; }
+.post-sammel-kat button b { margin-left:4px; font-weight:700; color:var(--fg-subtle); }
+.post-sammel-kat button.an { background:var(--accent); border-color:var(--accent); color:#fff; }
+.post-sammel-kat button.an b { color:rgba(255,255,255,.8); }
+.post-sammel tr.gesperrt td { opacity:.55; }
+.post-sammel td:first-child { width:28px; }
+.post-sammel-stand { font-size:.8rem; font-weight:600; }
+.post-sammel-stand.laeuft { color:var(--fg-muted); }
+.post-sammel-stand.bereit { color:#12557F; }
+.post-sammel-stand.ok { color:#1d8a52; }
+.post-sammel-stand.fehler { color:#dc2626; }
+
