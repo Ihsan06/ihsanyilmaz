@@ -5,6 +5,7 @@
 //   → { ok, betriebe:[ …Spalten, signale (letzte Pruefung, geparst),
 //                      letzte_pruefung:{…}|null ] }   (max. 1500)
 //   Geloeschte sind standardmaessig ausgeblendet; papierkorb=1 zeigt NUR sie.
+// PATCH  { ids:[…], auswahl }   → Stern fuer viele auf einmal (hoechstens 1500)
 // PATCH  { id, auswahl?, kategorie?, status?, notiz?, website?, website_quelle? }
 //   website: neue Adresse → website_quelle 'manuell'; leer/null → verwerfen
 //   (website und website_quelle NULL). website_quelle 'bestaetigt' allein →
@@ -96,6 +97,12 @@ export const onRequestGet = nurAngemeldet(async ({ request, env }) => {
 export const onRequestPatch = nurAngemeldet(async ({ request, env }) => {
   let body;
   try { body = await request.json(); } catch { return json({ ok: false, error: 'Ungültiger Body.' }, 400); }
+  if (Array.isArray(body?.ids) && body.auswahl !== undefined) {
+    const ids = [...new Set(body.ids.map(Number).filter(n => Number.isInteger(n) && n > 0))].slice(0, 1500);
+    const st = env.DB.prepare('UPDATE akquise_betriebe SET auswahl = ?, geaendert = datetime(\'now\') WHERE id = ? AND geloescht IS NULL');
+    for (let i = 0; i < ids.length; i += 50) await env.DB.batch(ids.slice(i, i + 50).map(id => st.bind(body.auswahl ? 1 : 0, id)));
+    return json({ ok: true, anzahl: ids.length });
+  }
   const id = Number(body?.id);
   if (!id) return json({ ok: false, error: 'ID fehlt.' }, 400);
 

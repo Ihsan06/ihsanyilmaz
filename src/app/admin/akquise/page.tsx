@@ -984,6 +984,13 @@ function AkquiseCockpit() {
     patch({ id: b.id, auswahl }).then(() => ladeStand()).catch(e => setFehler(e.message));
   };
 
+  // Stern fuer viele auf einmal: alle sichtbaren auswaehlen oder alle abwaehlen.
+  const auswahlMehrere = (ids: number[], an: boolean) => {
+    if (!ids.length) return;
+    setBetriebe(bs => bs && bs.map(b => (ids.includes(b.id) ? { ...b, auswahl: an ? 1 : 0 } : b)));
+    patch({ ids, auswahl: an ? 1 : 0 }).then(() => ladeStand()).catch(e => setFehler(e.message));
+  };
+
   const statusSetzen = (id: number, status: string) => {
     zeileAendern(id, { status });
     patch({ id, status }).then(() => ladeStand()).catch(e => setFehler(e.message));
@@ -1502,6 +1509,10 @@ function AkquiseCockpit() {
             <span className="akq-anzahl" title={`${zahl(sichtbar.length)} von ${zahl(liste.length)} sichtbar`}>
               <b>{zahl(sichtbar.length)}</b>{sichtbar.length !== liste.length && <> / {zahl(liste.length)}</>}
             </span>
+            {!filter.papierkorb && sichtbar.some(b => !b.auswahl) && (
+              <button onClick={() => auswahlMehrere(sichtbar.filter(b => !b.auswahl).map(b => b.id), true)} className="akq-zuruecksetzen"
+                      title={`Alle ${zahl(sichtbar.length)} sichtbaren auswählen (Stern)`} aria-label="Alle sichtbaren auswählen"><Star size={13} /></button>
+            )}
             {filterAktiv(filter) && (
               <button onClick={() => setFilter(f => ({ ...FILTER_LEER, papierkorb: f.papierkorb, sort: f.sort }))} className="akq-zuruecksetzen"
                       title="Filter zurücksetzen" aria-label="Filter zurücksetzen"><RotateCcw size={13} /></button>
@@ -1812,6 +1823,19 @@ function AkquiseCockpit() {
         </div>
       )}
 
+      {!filter.papierkorb && liste.some(b => b.auswahl) && (
+        <div className="akq-auswahl-leiste" role="region" aria-label="Auswahl">
+          <span><Star size={13} aria-hidden="true" /> <b>{zahl(liste.filter(b => b.auswahl).length)}</b> ausgewählt</span>
+          <button type="button" className="akq-textknopf" onClick={() => setzeFilter({ auswahl: !filter.auswahl })}>
+            {filter.auswahl ? "Alle zeigen" : "Nur Auswahl zeigen"}
+          </button>
+          <button type="button" className="akq-textknopf" onClick={() => auswahlMehrere(liste.filter(b => b.auswahl).map(b => b.id), false)}>Aufheben</button>
+          <a className="btn-primary px-4 py-2 text-sm" href="/admin/akquise/post?tab=sammel&kat=auswahl&alle=1"
+             onClick={() => { const b = liste.find(x => x.auswahl); if (b) rueckwegMerken(b); }}>
+            <Mail size={13} aria-hidden="true" /> Briefe an Auswahl
+          </a>
+        </div>
+      )}
       {weitUnten && (
         <button type="button" className="akq-nach-oben" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Nach oben">
           <ArrowUpToLine size={18} />

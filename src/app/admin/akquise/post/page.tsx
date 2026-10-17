@@ -753,6 +753,7 @@ export default function PostSeite() {
   const [haken, setHaken] = useState<Set<number>>(new Set());
   const [sammelStand, setSammelStand] = useState<Record<number, SammelStand>>({});
   const [sammelLauf, setSammelLauf] = useState(false);
+  const sammelVorwahl = useRef<{ kat: string; alle: boolean } | null>(null);
   const [fehler, setFehler] = useState("");
   const [meldung, setMeldung] = useState("");
   const [briefe, setBriefe] = useState<Brief[]>([]);
@@ -831,7 +832,11 @@ export default function PostSeite() {
     const p = new URLSearchParams(window.location.search);
     const tab = p.get("tab") as Reiter | null;
     const betriebId = Number(p.get("betrieb"));
+    // Von „Betriebe → Briefe an Auswahl“: Gruppe setzen und alles anhaken.
+    const kat = p.get("kat");
+    if (kat && SAMMEL_KAT.some(([k]) => k === kat)) sammelVorwahl.current = { kat, alle: p.get("alle") === "1" };
     Promise.all([ladeBriefe(), ladeStand(), ladeEinstellungen(), ladeSperrliste()]).then(() => {
+      if (sammelVorwahl.current) setSammelKat(sammelVorwahl.current.kat);
       if (tab && ["briefe", "brief", "sammel", "vorlage", "sperrliste"].includes(tab)) setReiter(tab);
       if (betriebId) setReiter("brief");
     }).finally(() => setLaedt(false));
@@ -1065,7 +1070,15 @@ export default function PostSeite() {
   // beim einzelnen Brief; was ueberlaeuft, bleibt als Entwurf zum Kuerzen.
   const ladeSammel = useCallback(() =>
     api("/api/admin/akquise/betriebe")
-      .then(d => setSammel(((d.betriebe || []) as SammelBetrieb[]).filter(b => !b.geloescht && !b.brief_gesendet)))
+      .then(d => {
+        const liste = ((d.betriebe || []) as SammelBetrieb[]).filter(b => !b.geloescht && !b.brief_gesendet);
+        setSammel(liste);
+        const v = sammelVorwahl.current;
+        if (v?.alle) {
+          sammelVorwahl.current = null;
+          setHaken(new Set(liste.filter(b => (v.kat === "alle" || (v.kat === "auswahl" ? b.auswahl : b.kategorie === v.kat)) && anschriftOk(b) && !b.brief_entwurf).map(b => b.id)));
+        }
+      })
       .catch(zeigeFehler), []);
   useEffect(() => { if (reiter === "sammel") ladeSammel(); }, [reiter, ladeSammel]);
   const sammelSichtbar = useMemo(() => sammel
