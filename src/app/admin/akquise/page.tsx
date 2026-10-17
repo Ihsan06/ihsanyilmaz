@@ -14,7 +14,6 @@ import Karte from "./Karte";
 // oder die Dienste zu langsam sind, und reicht nur das Ergebnis weiter:
 //   Overpass  (Betriebe suchen)      → POST /suche { region, bbox, elements }
 //   Wayback   (archive.org/available) → PATCH /pruefen { wayback }
-//   PageSpeed (Google, optional)      → PATCH /pruefen { psi }
 // Google Places laeuft serverseitig (kleine Antwort, Schluessel bleibt geheim).
 
 type Signal = { code: string; text: string; punkte: number; seite: "website" | "betrieb" };
@@ -68,7 +67,7 @@ type Stand = {
 };
 
 // Der Suchlauf in Schritten – jeder zeigt Zustand und Zahlen.
-type SchrittKey = "osm" | "google" | "abgleich" | "doppelte" | "anschrift" | "pruefen" | "psi";
+type SchrittKey = "osm" | "google" | "abgleich" | "doppelte" | "anschrift" | "pruefen";
 type SchrittStand = { status: "wartet" | "laeuft" | "fertig" | "fehler" | "aus"; text: string; fertig?: number; gesamt?: number };
 const SCHRITTE: { key: SchrittKey; titel: string }[] = [
   { key: "osm", titel: "OpenStreetMap" },
@@ -77,7 +76,6 @@ const SCHRITTE: { key: SchrittKey; titel: string }[] = [
   { key: "doppelte", titel: "Zusammenführen" },
   { key: "anschrift", titel: "Anschriften" },
   { key: "pruefen", titel: "Websites prüfen" },
-  { key: "psi", titel: "PageSpeed" },
 ];
 
 type GoogleInfo = { google_place_id: string | null; google_bewertung: number | null; google_anzahl: number | null; google_stand: string | null };
@@ -210,9 +208,6 @@ const ohneAnschrift = (b: Betrieb) => !b.strasse || !b.plz || !b.ort;
 const ohneHausnummer = (b: Betrieb) => !!b.strasse && !/\d/.test(b.strasse);
 // Automatisch ergaenzen nur einmal – danach bleibt es beim Eintrag von Hand.
 const brauchtAnschrift = (b: Betrieb) => ohneAnschrift(b) && b.lat != null && !b.anschrift_stand;
-// PageSpeed nur fuer eigene, erreichbare Websites ohne Messwert.
-const brauchtPsi = (b: Betrieb) =>
-  !!b.website && !istBoerse(b.website) && !!b.letzte_pruefung?.erreichbar && b.letzte_pruefung?.psi_leistung == null && !b.letzte_pruefung?.psi_fehler;
 const warte = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 // Wayback im Browser: archive.org/wayback/available erlaubt CORS, der
@@ -546,10 +541,9 @@ function AkquiseCockpit() {
   const [ort, setOrt] = useState("");
   const [radius, setRadius] = useState("25");
   // Suchlauf: ein Klick fuer alles – OSM, Google, Abgleich, Zusammenfuehren,
-  // Pruefen, PageSpeed. "laeuft" sperrt die Knoepfe, "ablauf" zeigt die Schritte.
+  // Pruefen. "laeuft" sperrt die Knoepfe, "ablauf" zeigt die Schritte.
   const [laeuft, setLaeuft] = useState(false);
   const [ablauf, setAblauf] = useState<Record<SchrittKey, SchrittStand> | null>(null);
-  const [psiHinweis, setPsiHinweis] = useState("");
 
   // Zeilenzustand
   const [inArbeit, setInArbeit] = useState<Set<number>>(new Set());
@@ -739,30 +733,6 @@ function AkquiseCockpit() {
     }
   };
 
-  // PageSpeed mit Schluessel auf dem Server. Ist die API am Schluessel nicht
-  // freigegeben, wirft sie – der Suchlauf haelt diesen Schritt dann an.
-  const PSI_GESPERRT = /aktiviert|gesperrt|ungültig|beschränkt|Abrechnung|nicht eingerichtet/;
-  const psiMessen = async (b: Betrieb): Promise<string | void> => {
-    hinweisSetzen(b.id, "PageSpeed …");
-    try {
-      const a = (await api("/api/admin/akquise/psi", { method: "POST", body: JSON.stringify({ id: b.id }) })) as PruefAntwort;
-      pruefungUebernehmen(b.id, a);
-      hinweisSetzen(b.id, `PageSpeed ${a.pruefung?.psi_leistung ?? "–"}`, false, 5000);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "PageSpeed fehlgeschlagen.";
-      if (PSI_GESPERRT.test(msg)) { hinweisSetzen(b.id, "", false, 1); throw new Error(msg); }
-      hinweisSetzen(b.id, msg, true, 8000);
-      // Diese eine Seite ist nicht messbar (der Server hat es gemerkt): kein
-      // Grund, den ganzen Schritt anzuhalten, und beim naechsten Mal nicht
-      // wieder faellig.
-      if (/nicht messbar/.test(msg)) {
-        if (b.letzte_pruefung) zeileAendern(b.id, { letzte_pruefung: { ...b.letzte_pruefung, psi_fehler: msg } });
-        return;
-      }
-      return msg;
-    }
-  };
-
   // Mehrere zugleich abarbeiten. Liefert ein Schritt dreimal hintereinander
   // denselben Fehler, liegt es an der Einrichtung, nicht am Betrieb – dann
   // steht der Grund oben statt hundertfach in den Zeilen. Ein Wurf haelt
@@ -840,7 +810,7 @@ function AkquiseCockpit() {
   // ohne neue Suche in OSM und Google.
   const suchlauf = async (mitSuche: boolean) => {
     abbruch.current = false;
-    setLaeuft(true); setFehler(""); setPsiHinweis("");
+    setLaeuft(true); setFehler("");
     const start = {} as Record<SchrittKey, SchrittStand>;
     for (const s of SCHRITTE) start[s.key] = { status: !mitSuche && (s.key === "osm" || s.key === "google") ? "aus" : "wartet", text: "" };
     setAblauf(start);
@@ -921,20 +891,6 @@ function AkquiseCockpit() {
         schritt("pruefen", grund ? { status: "fehler", text: grund } : { status: "fertig", text: `${zahl(faelligP.length)} geprüft` });
       }
       if (abbruch.current) return;
-
-      // 6 PageSpeed fuer alle erreichbaren eigenen Websites ohne Messwert
-      aktuell = "psi";
-      aktive = await holeAktive();
-      const faelligPsi = aktive.filter(brauchtPsi);
-      if (!faelligPsi.length) schritt("psi", { status: "fertig", text: "alle gemessen" });
-      else {
-        schritt("psi", { status: "laeuft", text: `0 von ${zahl(faelligPsi.length)}`, fertig: 0, gesamt: faelligPsi.length });
-        const grund = await nebenher(faelligPsi, 3, psiMessen, n => schritt("psi", { text: `${zahl(n)} von ${zahl(faelligPsi.length)}`, fertig: n }));
-        if (grund && PSI_GESPERRT.test(grund)) {
-          setPsiHinweis(grund);
-          schritt("psi", { status: "aus", text: "am Google-Schlüssel noch nicht freigegeben" });
-        } else schritt("psi", grund ? { status: "fehler", text: grund } : { status: "fertig", text: `${zahl(faelligPsi.length)} gemessen` });
-      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Suchlauf fehlgeschlagen.";
       schritt(aktuell, { status: "fehler", text: msg });
@@ -951,7 +907,7 @@ function AkquiseCockpit() {
     }
   };
 
-  // Eine Zeile komplett auffrischen: Google (falls nie), pruefen, PageSpeed.
+  // Eine Zeile komplett auffrischen: Google, Anschrift, pruefen.
   // Ausdruecklich „neu pruefen“: Google immer frisch abfragen (eine Abfrage
   // vom Monatskontingent), nicht nur, wenn noch nie gefragt wurde – sonst
   // bleiben Bewertung und Anzahl auf dem alten Stand.
@@ -959,10 +915,6 @@ function AkquiseCockpit() {
     if (googleEingerichtet) await googleSuchen(b);
     if (ohneAnschrift(b)) await anschriftErgaenzen(b);
     await pruefen(b, { oeffnen: true });
-    const frisch = (await holeAktive()).find(x => x.id === b.id);
-    if (frisch && brauchtPsi(frisch)) {
-      try { await psiMessen(frisch); } catch (e) { setPsiHinweis(e instanceof Error ? e.message : ""); }
-    }
     ladeStand();
   };
 
@@ -1034,9 +986,6 @@ function AkquiseCockpit() {
         zeileAendern(b.id, { score_website: null, score_betrieb: null, prioritaet: null, signale: [] });
         const neu = { ...b, website: d.website as string, website_quelle: "manuell" };
         await pruefen(neu);
-        // Nach einer neuen Adresse auch gleich PageSpeed – sonst fehlt der Wert bis zum naechsten Lauf.
-        const frisch = (await holeAktive()).find(x => x.id === b.id);
-        if (frisch && brauchtPsi(frisch)) { try { await psiMessen(frisch); } catch (e) { setPsiHinweis(e instanceof Error ? e.message : ""); } }
       }
       ladeStand();
     } catch (e) {
@@ -1214,7 +1163,7 @@ function AkquiseCockpit() {
   };
 
   const korbLeer = filter.papierkorb && !laedt && liste.length === 0;
-  const faellig = filter.papierkorb ? 0 : liste.filter(b => brauchtPruefung(b) || brauchtPsi(b) || brauchtAnschrift(b) || (googleEingerichtet && brauchtGoogle(b))).length;
+  const faellig = filter.papierkorb ? 0 : liste.filter(b => brauchtPruefung(b) || brauchtAnschrift(b) || (googleEingerichtet && brauchtGoogle(b))).length;
   const letzterLauf = stand?.laeufe?.[0];
   const unsichereDoppelte = (dubletten || []).filter(g => !g.sicher).length;
 
@@ -1260,7 +1209,7 @@ function AkquiseCockpit() {
                   <b className="text-[var(--fg)]">OpenStreetMap und Google Maps, automatisch zusammengeführt und geprüft.</b>
                   <span>
                     Ein Klick erledigt alles: Betriebe aus OpenStreetMap holen, dieselbe Gegend bei Google Maps absuchen,
-                    beides abgleichen, Doppelte zusammenführen, jede Website prüfen und PageSpeed messen.
+                    beides abgleichen, Doppelte zusammenführen, Anschriften ergänzen und jede Website prüfen.
                   </span>
                   <span>Bestehende Einträge behalten Stern, Notiz und Papierkorb.</span>
                 </span>
@@ -1288,7 +1237,7 @@ function AkquiseCockpit() {
                     <Search size={15} /> Suchlauf starten
                   </button>
                   {faellig > 0 && (
-                    <button onClick={() => suchlauf(false)} className="akq-knopf" title="Ohne neue Suche: offene Abgleiche, fällige Prüfungen und fehlende PageSpeed-Werte nachholen">
+                    <button onClick={() => suchlauf(false)} className="akq-knopf" title="Ohne neue Suche: offene Abgleiche, Anschriften und fällige Prüfungen nachholen">
                       <RefreshCw size={13} /> Nur prüfen ({zahl(faellig)})
                     </button>
                   )}
@@ -1339,12 +1288,6 @@ function AkquiseCockpit() {
                 </button>
               )}
             </div>
-            {psiHinweis && (
-              <p className="akq-warn akq-lauf-hinweis">
-                PageSpeed pausiert: {psiHinweis.replace(/^PageSpeed: /, "").replace(/\.$/, "")}. In der Google Cloud (Projekt „AIY Vertrieb“) die
-                „PageSpeed Insights API“ aktivieren und am Schlüssel bei den API-Einschränkungen anhaken – dann läuft es beim nächsten Suchlauf mit.
-              </p>
-            )}
 
             {dublettenOffen && dubletten && dubletten.length > 0 && (
               <div className="akq-dubletten">
@@ -1642,7 +1585,7 @@ function AkquiseCockpit() {
                       ) : (
                         <>
                           <button onClick={() => zeileAuffrischen(b)} disabled={arbeitet || laeuft} className="akq-knopf akq-symbol"
-                                  title="Neu prüfen: Google, Website, PageSpeed" aria-label={`${b.name} neu prüfen`}>
+                                  title="Neu prüfen: Google, Anschrift, Website" aria-label={`${b.name} neu prüfen`}>
                             <RefreshCw size={14} className={arbeitet ? "akq-dreht" : undefined} />
                           </button>
                           <a href={`/admin/akquise/post?betrieb=${b.id}`} className="akq-knopf akq-symbol" title="Brief vorbereiten" aria-label="Brief vorbereiten"><Mail size={14} /></a>
@@ -1697,11 +1640,8 @@ function AkquiseCockpit() {
                         </div>
 
                         <div>
-                          <p className="akq-dt">PageSpeed &amp; Wayback</p>
+                          <p className="akq-dt">Wayback</p>
                           <dl className="akq-dl">
-                            <dt>Leistung</dt><dd>{lp?.psi_leistung ?? voll?.psi_leistung ?? "—"}</dd>
-                            <dt>LCP</dt><dd>{voll?.psi_lcp != null ? `${voll.psi_lcp.toFixed(1).replace(".", ",")} s` : "—"}</dd>
-                            <dt>CLS</dt><dd>{voll?.psi_cls != null ? voll.psi_cls.toFixed(2).replace(".", ",") : "—"}</dd>
                             <dt>Erster Snapshot</dt><dd>{datum(lp?.wayback_erster)}</dd>
                             <dt>Letzter Snapshot</dt><dd>{datum(lp?.wayback_letzter)}</dd>
                           </dl>

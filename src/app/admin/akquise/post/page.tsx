@@ -1316,8 +1316,7 @@ export default function PostSeite() {
                 )}
               </div>
               {/* Ein Hauptknopf, der selbst weiss, was dran ist: offener Entwurf →
-                  oeffnen, schon verschickt → zweiter Brief, sonst erster Brief.
-                  Der Test an die eigene Anschrift ist ein leiser Nebenweg. */}
+                  oeffnen, schon verschickt → zweiter Brief, sonst erster Brief. */}
               <div className="post-aktionen post-aktionen-senkrecht">
                 {infoZuGewaehlt?.offenerEntwurf ? (
                   <button className="btn-primary px-4 py-2 text-sm" onClick={() => briefOeffnen(infoZuGewaehlt.offenerEntwurf as number)}>Entwurf öffnen</button>
@@ -1327,8 +1326,6 @@ export default function PostSeite() {
                     {infoZuGewaehlt?.verschickt ? "Zweiten Brief anlegen" : "Brief anlegen"}
                   </button>
                 )}
-                <button type="button" className="post-test-link" onClick={() => entwurfAnlegen(gewaehlt, "test")}
-                        title="Gleicher Brief, aber an Ihre eigene Anschrift – zum Ansehen auf Papier">Test an mich schicken</button>
               </div>
             </div>
           )}
@@ -1474,7 +1471,7 @@ export default function PostSeite() {
             <label htmlFor="referenz" className="post-abschnitt-titel">Referenz (nur mit Erlaubnis des Kunden)</label>
             <input id="referenz" className="field px-3 py-2 text-sm w-full" value={referenzForm} maxLength={300} onChange={e => setReferenzForm(e.target.value)}
                    placeholder="z. B. Ein Beispiel aus der Region: Autohaus … nutzt die Lösung bereits – zu sehen unter …" />
-            <p className="post-hinweis">Steht im Brief an der Stelle von {"{referenz}"} und auf der persönlichen Seite. Leer lassen, solange es keine Zusage gibt.</p>
+            <p className="post-hinweis">Steht nur auf der persönlichen Seite unter „Bereits im Einsatz“ – eine Adresse wie autohaus-diezmann.de wird dort zum Link. Nicht im Brief.</p>
           </div>
           <p className="post-hinweis">Erste Zeile ist der Betreff, Zeilen mit „– “ werden zum Befund-Kasten, „PS:“ zum PS, „---“ trennt den Hinweis ab (höchstens vier Zeilen). Link und QR-Code stehen automatisch im Handlungsblock unten. Keine Ausrufezeichen, keine Superlative – der Brief soll nachprüfbar bleiben.</p>
           <p className="post-abschnitt-titel mt-4">Platzhalter</p>

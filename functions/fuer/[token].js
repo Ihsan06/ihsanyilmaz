@@ -128,6 +128,7 @@ const CSS = `
   .vorschau p { margin-bottom:16px; }
   form { display:grid; gap:12px; margin-top:16px; }
   label { font-size:.85rem; color:#B4BFC9; display:block; }
+  .referenz p { margin:0 0 14px; color:#E6EBEF; }
   .rueckruf-karte { border-color:#1B6FA8; background:linear-gradient(180deg, #13202b, #111820); }
   .rueckruf-karte h2 { margin-bottom:4px; }
   .rueckruf-karte p { margin:0 0 14px; color:#B4BFC9; }
@@ -203,6 +204,19 @@ function fussHtml(token, osm = false) {
     <a href="${STARTSEITE}/datenschutz">Datenschutz</a>
     ${osm ? '<span>Angaben teils aus OpenStreetMap (© OpenStreetMap-Mitwirkende)</span>' : ''}
   </div>`;
+}
+
+// Referenz-Satz aus den Einstellungen: die erste Domain darin (z. B.
+// autohaus-diezmann.de) wird zum Link und bekommt einen eigenen Knopf.
+const DOMAIN_RE = /\b((?:[a-z0-9-]+\.)+(?:de|com|net|eu|info))\b/i;
+function referenzUrl(text) {
+  const m = String(text || '').match(DOMAIN_RE);
+  return m ? `https://${m[1].toLowerCase()}` : '';
+}
+function referenzHtml(text) {
+  const url = referenzUrl(text);
+  const sicher = esc(text);
+  return url ? sicher.replace(DOMAIN_RE, d => `<a href="${esc(url)}" target="_blank" rel="noopener">${d}</a>`) : sicher;
 }
 
 // Wischleiste aus Browser-Bildern; Pfeile und Punkte steuert das Skript unten.
@@ -337,7 +351,10 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
 
     ${referenz ? `<section>
       <h2>Bereits im Einsatz</h2>
-      <div class="karte"><p style="margin:0">${esc(referenz)}</p></div>
+      <div class="karte referenz">
+        <p>${referenzHtml(referenz)}</p>
+        ${referenzUrl(referenz) ? `<a class="knopf gross leise" href="${esc(referenzUrl(referenz))}" target="_blank" rel="noopener">Live ansehen: ${esc(referenzUrl(referenz).replace(/^https:\/\//, ''))}</a>` : ''}
+      </div>
     </section>` : ''}
 
     <section>
