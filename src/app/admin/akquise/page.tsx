@@ -1509,13 +1509,13 @@ function AkquiseCockpit() {
             <span className="akq-anzahl" title={`${zahl(sichtbar.length)} von ${zahl(liste.length)} sichtbar`}>
               <b>{zahl(sichtbar.length)}</b>{sichtbar.length !== liste.length && <> / {zahl(liste.length)}</>}
             </span>
-            {!filter.papierkorb && sichtbar.some(b => !b.auswahl) && (
-              <button onClick={() => auswahlMehrere(sichtbar.filter(b => !b.auswahl).map(b => b.id), true)} className="akq-zuruecksetzen"
-                      title={`Alle ${zahl(sichtbar.length)} sichtbaren auswählen (Stern)`} aria-label="Alle sichtbaren auswählen"><Star size={13} /></button>
-            )}
             {filterAktiv(filter) && (
               <button onClick={() => setFilter(f => ({ ...FILTER_LEER, papierkorb: f.papierkorb, sort: f.sort }))} className="akq-zuruecksetzen"
                       title="Filter zurücksetzen" aria-label="Filter zurücksetzen"><RotateCcw size={13} /></button>
+            )}
+            {!filter.papierkorb && sichtbar.some(b => !b.auswahl) && (
+              <button onClick={() => auswahlMehrere(sichtbar.filter(b => !b.auswahl).map(b => b.id), true)} className="akq-alle-waehlen"
+                      title={`Alle ${zahl(sichtbar.length)} sichtbaren Betriebe auswählen (Stern)`}><Star size={12} aria-hidden="true" /> Alle wählen</button>
             )}
             <InfoTipp breite={340}>
               <span className="flex flex-col gap-1.5">
