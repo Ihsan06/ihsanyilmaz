@@ -540,7 +540,7 @@ function AkquiseCockpit() {
   const [stand, setStand] = useState<Stand | null>(null);
   const [fehler, setFehler] = useState("");
   // Kurze Meldung unten in der Mitte – nach dem Papierkorb mit "Rueckgaengig".
-  const [meldung, setMeldung] = useState<{ text: string; zurueck?: Betrieb } | null>(null);
+  const [meldung, setMeldung] = useState<{ text: string; zurueck?: Betrieb; sterne?: { ids: number[]; an: boolean } } | null>(null);
   const meldungTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Filter und Sortierung stehen in der URL, damit Reload und Teilen sie behalten.
@@ -985,10 +985,23 @@ function AkquiseCockpit() {
   };
 
   // Stern fuer viele auf einmal: alle sichtbaren auswaehlen oder alle abwaehlen.
-  const auswahlMehrere = (ids: number[], an: boolean) => {
+  // Immer mit „Rückgängig“ (stellt genau diese Betriebe wieder her); Aufheben
+  // und grosse Mengen fragen vorher nach.
+  const auswahlMehrere = (ids: number[], an: boolean, ohneRueckfrage = false) => {
     if (!ids.length) return;
+    if (!ohneRueckfrage) {
+      const frage = an
+        ? (ids.length > 30 ? `${ids.length} Betriebe auswählen (Stern)?` : "")
+        : `Bei allen ${ids.length} ausgewählten Betrieben den Stern entfernen?`;
+      if (frage && !confirm(frage)) return;
+    }
     setBetriebe(bs => bs && bs.map(b => (ids.includes(b.id) ? { ...b, auswahl: an ? 1 : 0 } : b)));
-    patch({ ids, auswahl: an ? 1 : 0 }).then(() => ladeStand()).catch(e => setFehler(e.message));
+    patch({ ids, auswahl: an ? 1 : 0 })
+      .then(() => {
+        ladeStand();
+        if (!ohneRueckfrage) melden(an ? `${ids.length} Betriebe ausgewählt.` : `Auswahl von ${ids.length} Betrieben aufgehoben.`, undefined, { ids, an: !an });
+      })
+      .catch(e => setFehler(e.message));
   };
 
   const statusSetzen = (id: number, status: string) => {
@@ -1068,10 +1081,10 @@ function AkquiseCockpit() {
     patch({ id: b.id, website: null }).then(d => { patchUebernehmen(b.id, d); ladeStand(); }).catch(e => setFehler(e.message));
   };
 
-  const melden = (text: string, zurueck?: Betrieb) => {
+  const melden = (text: string, zurueck?: Betrieb, sterne?: { ids: number[]; an: boolean }) => {
     if (meldungTimer.current) clearTimeout(meldungTimer.current);
-    setMeldung({ text, zurueck });
-    meldungTimer.current = setTimeout(() => setMeldung(null), zurueck ? 8000 : 5000);
+    setMeldung({ text, zurueck, sterne });
+    meldungTimer.current = setTimeout(() => setMeldung(null), zurueck || sterne ? 12000 : 5000);
   };
   useEffect(() => () => { if (meldungTimer.current) clearTimeout(meldungTimer.current); }, []);
 
@@ -1085,6 +1098,8 @@ function AkquiseCockpit() {
   };
 
   const rueckgaengig = async () => {
+    const st = meldung?.sterne;
+    if (st) { setMeldung(null); auswahlMehrere(st.ids, st.an, true); return; }
     const b = meldung?.zurueck;
     if (!b) return;
     setMeldung(null);
@@ -1816,7 +1831,7 @@ function AkquiseCockpit() {
       {meldung && (
         <div className="akq-toast" role="status">
           <span>{meldung.text}</span>
-          {meldung.zurueck && (
+          {(meldung.zurueck || meldung.sterne) && (
             <button type="button" onClick={rueckgaengig} className="akq-toast-knopf"><Undo2 size={14} /> Rückgängig</button>
           )}
           <button type="button" onClick={() => setMeldung(null)} className="akq-toast-zu" aria-label="Meldung schließen">×</button>
