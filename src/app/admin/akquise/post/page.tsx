@@ -153,6 +153,10 @@ const RUECK = {
   fenster: [34.8, 110, 140.4, 93.95, 3] as const, leiste: 6.5, punkte: [39, 42.4, 45.8], punktY: 113.25,
   pille: [62, 111.05, 86, 4.4, 2.2] as const, pilleText: "Demo · Autohaus Mustermann · Beispieldaten", pilleGroesse: 7.5,
   desktop: [36, 116.5, 138, 86.25] as const,
+  // Handy mit derselben Fahrzeugliste ueber der rechten unteren Browser-Ecke –
+  // wie auf ihsan-yilmaz.de unter „Smart Websites“. Unterkante 208,5 mm, bleibt
+  // also vor dem Falz bei 210 mm.
+  handy2: { rahmen: [151.2, 146.8, 30, 61.7, 3.6] as const, ring: [152.2, 147.8, 28, 59.7, 2.8] as const, bild: [152.6, 148.2, 27.2, 58.9] as const },
   panel: [20, 216, 170, 52, 3] as const, qrBox: [25, 224, 36, 36, 1.5] as const, qr: [29, 228, 28] as const,
   titel3: "Demo ansehen – so geht es", titel3Y: 222, schrittX: 66, textX: 72, schrittY: [229.5, 241.5, 248], linkY: 234.5,
   schritte: ["QR-Code scannen oder Adresse eingeben:", "Demo direkt ansehen – ohne Anmeldung, ohne Newsletter.", "Anrufen:"],
@@ -160,7 +164,7 @@ const RUECK = {
   rueckrufY: 253, rueckrufZeile: 4.5, rueckrufBreite: 114,
   nameY: 263.5, nameZusatz: "Webentwickler, Würzburg",
   hinweis: "Abbildungen: eigene Demo für das fiktive Autohaus Mustermann mit Beispieldaten – keine Aufnahmen Ihres Betriebs.", hinweisY: 272,
-  bilder: { handy: "/leistungen/druck-handy-start.jpg", desktop: "/leistungen/druck-web-fahrzeuge.jpg" },
+  bilder: { handy: "/leistungen/druck-handy-start.jpg", desktop: "/leistungen/druck-web-fahrzeuge.jpg", handy2: "/leistungen/druck-handy-fahrzeuge.jpg" },
   schatten: [[0.4, 0.6], [0.8, 1.2]],
 };
 // Bilddateien, die nur dann aufs Blatt kommen, wenn es sie gibt.
@@ -248,15 +252,15 @@ async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf:
   pdf.registerFontkit(fontkit);
   // LetterXpress verlangt eingebettete Schriften – pdf-lib bettet die TTF
   // als Untermenge der benutzten Zeichen ein.
-  const [regular, semibold, portraetPng, unterschriftPng, handyJpg, deskJpg] = await Promise.all([
+  const [regular, semibold, portraetPng, unterschriftPng, handyJpg, deskJpg, handy2Jpg] = await Promise.all([
     fontLaden("regular"), fontLaden("semibold"), pngLaden(DATEI.portraet), pngLaden(DATEI.unterschrift),
-    bildLaden(RUECK.bilder.handy), bildLaden(RUECK.bilder.desktop),
+    bildLaden(RUECK.bilder.handy), bildLaden(RUECK.bilder.desktop), bildLaden(RUECK.bilder.handy2),
   ]);
   const font = await pdf.embedFont(regular, { subset: true });
   const fett = await pdf.embedFont(semibold, { subset: true });
   const bPortraet = portraetPng ? await pdf.embedPng(portraetPng).catch(() => null) : null;
   const bUnterschrift = unterschriftPng ? await pdf.embedPng(unterschriftPng).catch(() => null) : null;
-  const [bHandy, bDesk] = await Promise.all([pdf.embedJpg(handyJpg), pdf.embedJpg(deskJpg)]);
+  const [bHandy, bDesk, bHandy2] = await Promise.all([pdf.embedJpg(handyJpg), pdf.embedJpg(deskJpg), pdf.embedJpg(handy2Jpg)]);
   pdf.setTitle("Brief");
   pdf.setAuthor(d.absender.name);
   pdf.setLanguage("de-DE");
@@ -473,7 +477,7 @@ async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf:
     form(...R.handy.ring, { color: FARBE.ring });
     bild(bHandy, ...R.handy.bild);
 
-    // Feld 2: die Fahrzeugliste gross im hellen Browserfenster.
+    // Feld 2: die Fahrzeugliste gross im hellen Browserfenster, davor das Handy.
     const [fx, fy, fw, fh, fr] = R.fenster;
     schatten(fx, fy, fw, fh, fr);
     form(fx, fy, fw, fh, fr, { color: FARBE.chrom, rand: FARBE.chromRand, randBreite: 0.3 });
@@ -481,6 +485,13 @@ async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf:
     form(...R.pille, { color: FARBE.weiss, rand: FARBE.chromRand, randBreite: 0.25 });
     mitte(R.pilleText, R.pille[0] + R.pille[2] / 2, R.pille[1] + 0.95, R.pilleGroesse, fett, FARBE.sekundaer);
     bild(bDesk, ...R.desktop);
+    {
+      const [kx, ky, kw, kh, kr] = R.handy2.rahmen;
+      schatten(kx, ky, kw, kh, kr);
+      form(kx, ky, kw, kh, kr, { color: FARBE.rahmen });
+      form(...R.handy2.ring, { color: FARBE.ring });
+      bild(bHandy2, ...R.handy2.bild);
+    }
 
     // Feld 3: QR, drei Schritte, Telefon.
     form(...R.panel, { color: FARBE.toenung });
@@ -693,6 +704,7 @@ function Rueckseite({ link, qr, absender, befunde }: { link: string; qr: string;
           <span className="post-r-pille">{R.pilleText}</span>
           <img src={R.bilder.desktop} alt="" />
         </div>
+        <div className="post-r-handy klein" style={pos(R.handy2.rahmen)}><img src={R.bilder.handy2} alt="" /></div>
         <div className="post-r-panel" style={pos(R.panel)} />
         <div className="post-r-qrbox" style={pos(R.qrBox)}>{qr && <img src={qr} alt="QR-Code zum Link" />}</div>
         <p className="post-r-titel3">{R.titel3}</p>

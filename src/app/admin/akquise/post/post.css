@@ -189,6 +189,9 @@
 .post-rueck .post-r-handy { position:absolute; border-radius:4.2mm; background:#1E293B; padding:1.6mm; box-shadow:0.4mm 0.6mm 0 rgba(0,0,0,.1), 0.8mm 1.2mm 0 rgba(0,0,0,.1); }
 .post-rueck .post-r-handy::before { content:""; position:absolute; inset:1.2mm; border:0.4mm solid #64748B; border-radius:3.2mm; pointer-events:none; }
 .post-rueck .post-r-handy img { display:block; width:100%; height:100%; object-fit:cover; border-radius:2.8mm; }
+.post-rueck .post-r-handy.klein { border-radius:3.6mm; padding:1.4mm; z-index:1; }
+.post-rueck .post-r-handy.klein::before { inset:1mm; border-radius:2.8mm; }
+.post-rueck .post-r-handy.klein img { border-radius:2.4mm; }
 .post-rueck .post-r-browser { position:absolute; border-radius:3mm; background:#E2E8F0; border:0.3mm solid #CBD5E1; box-shadow:0.4mm 0.6mm 0 rgba(0,0,0,.1), 0.8mm 1.2mm 0 rgba(0,0,0,.1); }
 .post-rueck .post-r-leiste { position:absolute; left:3mm; top:0; height:6.5mm; display:flex; align-items:center; gap:1.6mm; }
 .post-rueck .post-r-leiste i { width:1.8mm; height:1.8mm; border-radius:50%; background:#94A3B8; }
