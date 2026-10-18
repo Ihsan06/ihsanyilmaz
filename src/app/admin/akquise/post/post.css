@@ -12,9 +12,6 @@
 .post-reiter button.aktiv { background:var(--accent); border-color:var(--accent); color:#fff; }
 .post-reiter button b { font-weight:700; margin-left:5px; opacity:.75; }
 
-.post-versand { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; font-size:.86rem; color:var(--fg-muted); margin-bottom:18px; }
-.post-versand i { display:inline-block; width:9px; height:9px; border-radius:50%; background:#1d8a52; }
-.post-versand i.aus { background:#b45309; }
 
 /* Status als Badge */
 .post-status { display:inline-block; font-size:.7rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; padding:3px 9px; border-radius:999px; background:var(--surface-2); color:var(--fg-muted); white-space:nowrap; }
@@ -236,4 +233,27 @@ a.post-kontakt:hover { text-decoration:underline; }
 .post-sammel-stand.bereit { color:#12557F; }
 .post-sammel-stand.ok { color:#1d8a52; }
 .post-sammel-stand.fehler { color:#dc2626; }
+
+/* Kennzahlen oben: zwei Bloecke nebeneinander, je drei Zahlen. */
+.post-zahlen { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; margin-bottom:22px; }
+@media (max-width:1000px) { .post-zahlen { grid-template-columns:1fr; } }
+.post-zahlen-block { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px 22px 16px; display:flex; flex-direction:column; gap:14px; }
+.post-zahlen-block header { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.post-zahlen-block h2 { margin:0; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-subtle); }
+.post-zahlen-block footer { display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px 14px; padding-top:12px; border-top:1px solid var(--border); font-size:.78rem; color:var(--fg-subtle); }
+.post-zahlen-offen { color:#b45309; font-weight:600; }
+.post-zahlen-leise { font-size:.78rem; color:var(--fg-subtle); }
+.post-zahlen-reihe { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); }
+.post-zahl { padding:0 14px; border-left:1px solid var(--border); min-width:0; }
+.post-zahl:first-child { padding-left:0; border-left:0; }
+.post-zahl-titel { margin:0 0 6px; font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-subtle); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.post-zahl-wert { margin:0; font-size:1.75rem; font-weight:700; line-height:1.1; font-variant-numeric:tabular-nums; color:var(--fg); white-space:nowrap; }
+.post-zahl-unter { margin:6px 0 0; font-size:.76rem; line-height:1.35; color:var(--fg-subtle); }
+.post-zahl.warnung .post-zahl-wert, .post-zahl.warnung .post-zahl-unter { color:#b45309; }
+.post-zahl.hervor .post-zahl-wert { color:#1d8a52; }
+.post-modus { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:.74rem; font-weight:700; color:#b45309; background:rgba(245,158,11,.12); }
+.post-modus i { width:7px; height:7px; border-radius:50%; background:currentColor; }
+.post-modus.live { color:#1d8a52; background:rgba(29,138,82,.1); }
+.post-modus.aus { color:#b91c1c; background:rgba(220,38,38,.08); }
+@media (max-width:560px) { .post-zahl-wert { font-size:1.35rem; } .post-zahl { padding:0 8px; } }
 

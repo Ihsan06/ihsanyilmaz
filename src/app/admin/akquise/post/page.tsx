@@ -75,7 +75,7 @@ const KATEGORIE_LABEL: Record<string, string> = {
 };
 // Farbig, beidseitig (Vorderseite Brief, Rueckseite Demo): 1,00 € netto
 // laut LetterXpress-Preisliste 02/2026, 1,19 € brutto.
-const PREIS_FALLBACK = "≈ 1,00 € netto";
+const PREIS_FALLBACK = "≈ 1,19 € inkl. MwSt.";
 // Solange kein echter Betrieb gewaehlt ist, zeigt die Vorschau diesen.
 const BEISPIEL = { name: "Autohaus Beispiel GmbH", strasse: "Hauptstraße 1", plz: "97070", ort: "Würzburg" };
 // Platzhalter fuer den Link, bevor ein Entwurf seinen Token hat.
@@ -521,12 +521,12 @@ async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf:
 
 // ------------------------------------------------------------------ Bausteine
 
-function Kachel({ titel, wert, unter }: { titel: string; wert: string; unter?: string }) {
+function Zahl({ titel, wert, unter, warnung, hervor }: { titel: string; wert: string; unter?: string; warnung?: boolean; hervor?: boolean }) {
   return (
-    <div className="mon-kachel">
-      <p className="mon-kachel-titel">{titel}</p>
-      <p className="mon-kachel-wert">{wert}</p>
-      {unter && <p className="mon-kachel-unter">{unter}</p>}
+    <div className={`post-zahl${warnung ? " warnung" : ""}${hervor ? " hervor" : ""}`}>
+      <p className="post-zahl-titel">{titel}</p>
+      <p className="post-zahl-wert">{wert}</p>
+      {unter && <p className="post-zahl-unter">{unter}</p>}
     </div>
   );
 }
@@ -1147,8 +1147,10 @@ export default function PostSeite() {
     ladeBriefe(); ladeStand();
   };
 
-  // LetterXpress nennt den Nettopreis; vom Guthaben gehen brutto (inkl. 19 % MwSt.) ab.
-  const preisText = stand?.preis_cent != null ? `${euro(stand.preis_cent)} netto · ${euro(Math.round(stand.preis_cent * 1.19))} brutto` : PREIS_FALLBACK;
+  // /v3/price liefert den Preis inkl. MwSt. – so geht er auch vom Guthaben ab
+  // (je Brief 1,00 € netto + 0,19 € MwSt., siehe kosten_cent der Auftraege).
+  const preisText = stand?.preis_cent != null ? `${euro(stand.preis_cent)} inkl. MwSt.` : PREIS_FALLBACK;
+  const reichtFuer = stand?.guthaben_cent != null && stand?.preis_cent ? Math.floor(stand.guthaben_cent / stand.preis_cent) : null;
   const monatName = new Date().toLocaleDateString("de-DE", { month: "long" });
 
   const senden = (b: Brief) => {
@@ -1266,31 +1268,45 @@ export default function PostSeite() {
         </a>
       )}
 
-      <div className="mon-kennzahlen">
-        <Kachel titel="Entwürfe" wert={zahl(zaehler?.entwurf)} unter={zaehler?.fehler ? `${zaehler.fehler} mit Fehler` : undefined} />
-        <Kachel titel="Freigegeben" wert={zahl(zaehler?.freigegeben)} />
-        <Kachel titel="Gesendet" wert={zahl(gesendetGesamt)} unter={zaehler?.zugestellt ? `${zaehler.zugestellt} zugestellt` : undefined} />
-        <Kachel titel="Guthaben" wert={stand?.guthaben_cent != null ? euro(stand.guthaben_cent) : "—"}
-                unter={stand?.guthaben_cent != null && stand?.preis_cent ? `reicht für ca. ${zahl(Math.floor(stand.guthaben_cent / Math.round(stand.preis_cent * 1.19)))} Briefe` : "bei LetterXpress"} />
-        <Kachel titel="Ausgegeben" wert={euro(zaehler?.kosten_cent ?? 0)}
-                unter={`${monatName}: ${euro(zaehler?.kosten_monat_cent ?? 0)} · je Brief ${stand?.preis_cent != null ? euro(Math.round(stand.preis_cent * 1.19)) : "≈ 1,19 €"}`} />
-        <Kachel titel="Aufrufe" wert={zahl(zaehler?.aufrufe)} unter="persönliche Seiten" />
-        <Kachel titel="Demo angesehen" wert={zahl(zaehler?.demo)} unter="geöffnet oder angefordert" />
-        <Kachel titel="Kontakt erlaubt" wert={zahl(zaehler?.kontakt)} unter="per Klick auf der persönlichen Seite" />
+      {/* Zwei Bloecke: was der Versand kostet und was zurueckkommt. */}
+      <div className="post-zahlen">
+        <section className="post-zahlen-block" aria-label="Versand und Kosten">
+          <header>
+            <h2>Versand &amp; Kosten</h2>
+            {stand?.eingerichtet
+              ? <span className={`post-modus${stand.modus === "live" ? " live" : ""}`}><i aria-hidden="true" />{stand.modus === "live" ? "Live" : "Testmodus"} · {stand.anbieter}</span>
+              : <span className="post-modus aus"><i aria-hidden="true" />nicht eingerichtet</span>}
+          </header>
+          <div className="post-zahlen-reihe">
+            <Zahl titel="Gesendet" wert={zahl(gesendetGesamt)} unter={zaehler?.zugestellt ? `${zahl(zaehler.zugestellt)} zugestellt` : "Briefe"} />
+            <Zahl titel="Guthaben" wert={stand?.guthaben_cent != null ? euro(stand.guthaben_cent) : "—"}
+                  unter={reichtFuer != null ? `reicht für ca. ${zahl(reichtFuer)} Briefe` : "bei LetterXpress"} warnung={reichtFuer != null && reichtFuer < 10} />
+            <Zahl titel="Ausgegeben" wert={euro(zaehler?.kosten_cent ?? 0)} unter={`${monatName}: ${euro(zaehler?.kosten_monat_cent ?? 0)}`} />
+          </div>
+          <footer>
+            {stand?.eingerichtet
+              ? <>{preisText} je Brief · farbig, beidseitig</>
+              : <>LETTERXPRESS_USER und LETTERXPRESS_KEY in Cloudflare hinterlegen.</>}
+            {!!(zaehler?.entwurf || zaehler?.freigegeben || zaehler?.fehler) && (
+              <span className="post-zahlen-offen">
+                {[zaehler?.entwurf ? `${zahl(zaehler.entwurf)} Entwürfe` : "", zaehler?.freigegeben ? `${zahl(zaehler.freigegeben)} freigegeben` : "", zaehler?.fehler ? `${zahl(zaehler.fehler)} mit Fehler` : ""].filter(Boolean).join(" · ")}
+              </span>
+            )}
+          </footer>
+        </section>
+        <section className="post-zahlen-block" aria-label="Resonanz">
+          <header>
+            <h2>Resonanz</h2>
+            <span className="post-zahlen-leise">auf {zahl(gesendetGesamt)} Briefe</span>
+          </header>
+          <div className="post-zahlen-reihe">
+            <Zahl titel="Seite geöffnet" wert={zahl(zaehler?.aufrufe)} unter="Aufrufe der persönlichen Seiten" />
+            <Zahl titel="Demo angesehen" wert={zahl(zaehler?.demo)} unter="geöffnet oder angefordert" />
+            <Zahl titel="Kontakt erlaubt" wert={zahl(zaehler?.kontakt)} unter="per Klick – jetzt melden" hervor={!!zaehler?.kontakt} />
+          </div>
+          <footer>Ohne deine eigenen Geräte und ohne die ersten zwei Tage nach dem Versand.</footer>
+        </section>
       </div>
-
-      <p className="post-versand">
-        <i className={stand?.eingerichtet ? "" : "aus"} aria-hidden="true" />
-        {stand?.eingerichtet ? (
-          <>
-            <span>Versand eingerichtet · {stand.anbieter} · {stand.modus === "live" ? "Live" : "Testmodus (Postbox, kein Druck)"}</span>
-            {stand.guthaben_cent != null && <span>Guthaben {euro(stand.guthaben_cent)}</span>}
-            <span>Brief farbig, beidseitig: {preisText}</span>
-          </>
-        ) : (
-          <span>Versand nicht eingerichtet – LETTERXPRESS_USER und LETTERXPRESS_KEY in Cloudflare hinterlegen.</span>
-        )}
-      </p>
 
       <div className="post-reiter" role="tablist">
         {([["briefe", "Briefe"], ["brief", editor ? "Brief" : "Neuer Brief"], ["sammel", "Mehrere senden"], ["vorlage", "Vorlage & Absender"], ["sperrliste", "Sperrliste"]] as [Reiter, string][]).map(([k, l]) => (
