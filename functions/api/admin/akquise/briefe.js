@@ -189,16 +189,20 @@ export async function onRequestGet({ request, env }) {
         `SELECT status, COUNT(*) AS n,
                 SUM(CASE WHEN art != 'test' THEN aufrufe ELSE 0 END) AS aufrufe,
                 SUM(art != 'test' AND (demo_angefordert IS NOT NULL OR demo_geoeffnet IS NOT NULL)) AS demo,
-                SUM(art != 'test' AND kontakt_erlaubt IS NOT NULL) AS kontakt
+                SUM(art != 'test' AND kontakt_erlaubt IS NOT NULL) AS kontakt,
+                SUM(CASE WHEN status IN ('gesendet', 'zugestellt') THEN COALESCE(kosten_cent, 0) ELSE 0 END) AS kosten,
+                SUM(CASE WHEN status IN ('gesendet', 'zugestellt') AND gesendet_am >= strftime('%Y-%m-01', 'now') THEN COALESCE(kosten_cent, 0) ELSE 0 END) AS kosten_monat
          FROM akquise_briefe GROUP BY status`,
       ),
     ]);
-    const z = { entwurf: 0, freigegeben: 0, gesendet: 0, zugestellt: 0, fehler: 0, storniert: 0, aufrufe: 0, demo: 0, kontakt: 0 };
+    const z = { entwurf: 0, freigegeben: 0, gesendet: 0, zugestellt: 0, fehler: 0, storniert: 0, aufrufe: 0, demo: 0, kontakt: 0, kosten_cent: 0, kosten_monat_cent: 0 };
     for (const r of zaehler.results ?? []) {
       z[r.status] = Number(r.n || 0);
       z.aufrufe += Number(r.aufrufe || 0);
       z.demo += Number(r.demo || 0);
       z.kontakt += Number(r.kontakt || 0);
+      z.kosten_cent += Number(r.kosten || 0);
+      z.kosten_monat_cent += Number(r.kosten_monat || 0);
     }
     return json({ ok: true, briefe: (liste.results ?? []).map(briefAufbereiten), zaehler: z });
   } catch (e) {

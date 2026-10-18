@@ -53,7 +53,7 @@ type Einstellungen = {
   platzhalter: { name: string; erklaerung: string }[];
   standard: { absender: Absender; vorlage: string; vorlage_nachfass: string; referenz: string; landing_basis: string };
 };
-type Zaehler = { entwurf: number; freigegeben: number; gesendet: number; zugestellt: number; fehler: number; storniert: number; aufrufe: number; demo: number; kontakt?: number };
+type Zaehler = { entwurf: number; freigegeben: number; gesendet: number; zugestellt: number; fehler: number; storniert: number; aufrufe: number; demo: number; kontakt?: number; kosten_cent?: number; kosten_monat_cent?: number };
 type Stand = { eingerichtet: boolean; modus: string; anbieter: string; guthaben_cent?: number; preis_cent?: number };
 type Sperre = { id: number; betrieb_id: number | null; name: string | null; ort: string | null; grund: string | null; angelegt: string };
 type Editor = { brief: Brief; betrieb: BetriebKurz | null; kandidaten: Kandidat[] };
@@ -1147,7 +1147,9 @@ export default function PostSeite() {
     ladeBriefe(); ladeStand();
   };
 
-  const preisText = stand?.preis_cent != null ? `${euro(stand.preis_cent)} netto` : PREIS_FALLBACK;
+  // LetterXpress nennt den Nettopreis; vom Guthaben gehen brutto (inkl. 19 % MwSt.) ab.
+  const preisText = stand?.preis_cent != null ? `${euro(stand.preis_cent)} netto · ${euro(Math.round(stand.preis_cent * 1.19))} brutto` : PREIS_FALLBACK;
+  const monatName = new Date().toLocaleDateString("de-DE", { month: "long" });
 
   const senden = (b: Brief) => {
     const name = b.betrieb_name || editor?.betrieb?.name || `Betrieb ${b.betrieb_id}`;
@@ -1268,6 +1270,10 @@ export default function PostSeite() {
         <Kachel titel="Entwürfe" wert={zahl(zaehler?.entwurf)} unter={zaehler?.fehler ? `${zaehler.fehler} mit Fehler` : undefined} />
         <Kachel titel="Freigegeben" wert={zahl(zaehler?.freigegeben)} />
         <Kachel titel="Gesendet" wert={zahl(gesendetGesamt)} unter={zaehler?.zugestellt ? `${zaehler.zugestellt} zugestellt` : undefined} />
+        <Kachel titel="Guthaben" wert={stand?.guthaben_cent != null ? euro(stand.guthaben_cent) : "—"}
+                unter={stand?.guthaben_cent != null && stand?.preis_cent ? `reicht für ca. ${zahl(Math.floor(stand.guthaben_cent / Math.round(stand.preis_cent * 1.19)))} Briefe` : "bei LetterXpress"} />
+        <Kachel titel="Ausgegeben" wert={euro(zaehler?.kosten_cent ?? 0)}
+                unter={`${monatName}: ${euro(zaehler?.kosten_monat_cent ?? 0)} · je Brief ${stand?.preis_cent != null ? euro(Math.round(stand.preis_cent * 1.19)) : "≈ 1,19 €"}`} />
         <Kachel titel="Aufrufe" wert={zahl(zaehler?.aufrufe)} unter="persönliche Seiten" />
         <Kachel titel="Demo angesehen" wert={zahl(zaehler?.demo)} unter="geöffnet oder angefordert" />
         <Kachel titel="Kontakt erlaubt" wert={zahl(zaehler?.kontakt)} unter="per Klick auf der persönlichen Seite" />
