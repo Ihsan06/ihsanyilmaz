@@ -4,11 +4,15 @@
 // Art, Marken, Oeffnungszeiten, Telefon – und eigene bzw. frei nutzbare
 // Bilder. Keine Fotos, Texte oder Logos von der Website des Betriebs, keine
 // Fahrzeuge von mobile.de (Kopieren = Vervielfaeltigung, § 16 UrhG; mobile.de
-// verbietet das Auslesen). Die Fahrzeuge sind die Beispiel-Anzeigen der
-// eigenen Autohaus-Demo, die Fotos stammen von Unsplash (frei nutzbar).
+// verbietet das Auslesen). Aussehen und Beispielfahrzeuge legt der Steckbrief
+// fest (steckbrief.js, fahrzeugpool.js); BEISPIEL_FAHRZEUGE bleiben fuer
+// Vorschauen ohne Steckbrief (vor 2026-10-22 gebaut).
 //
 // Die Texte schreibt Claude einmal beim Bauen (Admin → Zweiter Brief), sie
 // liegen in akquise_vorschauen und laufen nach 30 Tagen ab.
+
+import { fahrzeugAnzeige, NICHT_ALS_TITEL } from './fahrzeugpool.js';
+import { SYMBOLE } from './steckbrief.js';
 
 export const LAUFZEIT_TAGE = 30;
 export const MODELL = 'claude-opus-5';
@@ -57,7 +61,8 @@ Regeln:
 - Deutsch, Kunden werden mit „Sie“ angesprochen. Ton: bodenständig, regional, seriös. Keine Superlative („bester“, „Nr. 1“), keine Ausrufezeichen, kein Marketing-Geschwurbel.
 - Erfinde KEINE Fakten: kein Gründungsjahr, keine Inhaber- oder Mitarbeiternamen, keine Anzahl Fahrzeuge, keine Auszeichnungen, keine Zertifikate, keine Preise, keine Garantien, keine Leistungen, die nicht zur Art des Betriebs passen.
 - Nutze nur, was du bekommst: Name, Ort, Art, Marken, Öffnungszeiten. Marken nur nennen, wenn sie angegeben sind.
-- Leistungen allgemein und typisch halten (z. B. Gebrauchtwagen, Ankauf, Finanzierung, Werkstatt-Service), passend zur Art.`;
+- Leistungen allgemein und typisch halten (z. B. Gebrauchtwagen, Ankauf, Finanzierung, Werkstatt-Service), passend zur Art.
+- Marken nur als beschreibende Angabe („Gebrauchte Renault und Dacia“), nie „Vertragshändler“, „offizieller Partner“ oder „autorisiert“ – das wissen wir nicht.`;
 
 // Fakten zum Betrieb, so wie Claude sie bekommt (und wie die Seite sie zeigt).
 export function fakten(b) {
@@ -147,5 +152,44 @@ export async function vorschauLaden(env, betriebId) {
     "SELECT * FROM akquise_vorschauen WHERE betrieb_id = ? AND ablauf > datetime('now')",
   ).bind(betriebId).first();
   if (!z) return null;
-  try { return { ...z, texte: JSON.parse(z.texte) }; } catch { return null; }
+  let steckbrief = null;
+  try { steckbrief = z.steckbrief ? JSON.parse(z.steckbrief) : null; } catch { /* alte Vorschau */ }
+  try { return { ...z, texte: JSON.parse(z.texte), steckbrief }; } catch { return null; }
+}
+
+// Alles, was eine Vorschau zeigt, als ein Objekt – fuer die eigene Seite
+// (/fuer/<token>/website) und fuer die Demo (/api/vorschau/<token>), damit
+// beide aus derselben Quelle lesen.
+export function vorschauDaten(brief, vorschau, { token, meinTelefon = '' } = {}) {
+  const f = fakten(brief);
+  const sb = vorschau.steckbrief;
+  const marken = sb?.marken?.length ? sb.marken : f.marken;
+  const fahrzeuge = sb
+    ? sb.fahrzeuge.map(id => fahrzeugAnzeige(id, brief.betrieb_id)).filter(Boolean)
+    : BEISPIEL_FAHRZEUGE.map(a => ({ ...a, id: null, getriebe: null, foto: null }));
+  const google = brief.google_anzahl >= 10 && brief.google_bewertung >= 4
+    ? { bewertung: brief.google_bewertung, anzahl: brief.google_anzahl } : null;
+  return {
+    token,
+    ablauf: vorschau.ablauf,
+    betrieb: {
+      name: f.name || 'Ihr Betrieb', art: f.art, werkstatt: f.werkstatt, ort: f.ort,
+      strasse: brief.strasse || '', plz: brief.plz || '', telefon: brief.telefon || '',
+      oeffnungszeiten: f.zeiten, marken,
+      lage: Number.isFinite(brief.lat) && Number.isFinite(brief.lng) ? { lat: brief.lat, lng: brief.lng } : null,
+      google,
+    },
+    design: {
+      farben: sb?.farben || { knopf: '#1B6FA8', akzent: '#4DA3E0' },
+      logo: { art: sb?.logo || 'schrift', initialen: sb?.initialen || '', symbol: sb?.symbol || null,
+        symbol_svg: sb?.logo === 'symbol' && SYMBOLE[sb.symbol] ? SYMBOLE[sb.symbol] : null },
+    },
+    texte: vorschau.texte,
+    fahrzeuge: fahrzeuge.map(a => ({
+      id: a.id, marke: a.marke, modell: a.modell, preis: a.preis, km: a.km, ez: a.ez, ps: a.ps,
+      kraftstoff: a.kraftstoff, getriebe: a.getriebe, bild: a.bild, foto: a.foto,
+    })),
+    hero_bild: (sb && fahrzeuge.find(a => !NICHT_ALS_TITEL.has(a.id))?.bild) || HERO_BILD,
+    kontakt: { telefon_ihsan: meinTelefon, aktion_url: 'https://ihsan-yilmaz.de/api/fuer', persoenliche_seite: `https://ihsan-yilmaz.de/fuer/${token}?seite=1` },
+  };
 }

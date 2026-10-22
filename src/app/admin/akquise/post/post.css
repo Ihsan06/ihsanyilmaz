@@ -266,3 +266,28 @@ a.post-kontakt:hover { text-decoration:underline; }
 .post-link-knopf { all:unset; cursor:pointer; font-size:.76rem; color:var(--accent); }
 .post-link-knopf:hover { text-decoration:underline; }
 
+
+/* Steckbrief der Website-Vorschau (Steckbrief.tsx) */
+.sb-fenster { position:relative; width:min(720px, 100%); background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px 24px 20px; box-shadow:0 24px 60px rgba(0,0,0,.4); display:flex; flex-direction:column; gap:18px; }
+.sb-fenster h2 { margin:0; padding-right:40px; font-size:1.05rem; }
+.sb-kopf { display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:12px; background:#0A0F14; border:1px solid var(--border); }
+.sb-zeichen { flex:none; width:40px; height:40px; border-radius:10px; color:#fff; display:grid; place-items:center; font-weight:800; }
+.sb-zeichen svg { width:24px; height:24px; }
+.sb-name { font-family:Georgia, "Times New Roman", serif; font-size:1.2rem; font-weight:600; color:#F2F5F7; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sb-knopf-muster { margin-left:auto; padding:8px 14px; border-radius:9px; background:var(--sb-knopf); color:#fff; font-size:.82rem; font-weight:600; white-space:nowrap; }
+.sb-feld { display:flex; flex-direction:column; gap:8px; }
+.sb-label { font-size:.78rem; font-weight:700; color:var(--fg-muted); text-transform:uppercase; letter-spacing:.06em; }
+.sb-hinweis { margin:0; font-size:.76rem; color:var(--fg-subtle); }
+.sb-paletten, .sb-reihe, .sb-symbole { display:flex; flex-wrap:wrap; gap:8px; }
+.sb-palette { display:inline-flex; align-items:center; gap:7px; padding:6px 11px 6px 7px; border-radius:999px; border:1px solid var(--border); background:var(--surface-2); color:var(--fg-muted); font:inherit; font-size:.8rem; cursor:pointer; }
+.sb-palette i { width:18px; height:18px; border-radius:50%; display:block; }
+.sb-palette.an, .sb-symbol.an { border-color:var(--accent); color:var(--fg); box-shadow:0 0 0 1px var(--accent) inset; }
+.sb-symbol { width:42px; height:42px; display:grid; place-items:center; border-radius:10px; border:1px solid var(--border); background:var(--surface-2); color:var(--fg-muted); cursor:pointer; }
+.sb-symbol svg { width:22px; height:22px; }
+.sb-autos { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; }
+.sb-autos figure { margin:0; }
+.sb-autos img { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; background:#0A0F14; }
+.sb-autos figcaption { margin-top:4px; font-size:.74rem; color:var(--fg-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sb-knoepfe { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding-top:4px; border-top:1px solid var(--border); padding-top:14px; }
+.sb-knoepfe .btn-primary { display:inline-flex; align-items:center; gap:6px; }
+@media (max-width:560px) { .sb-autos { grid-template-columns:repeat(2, minmax(0, 1fr)); } .sb-knopf-muster { display:none; } }

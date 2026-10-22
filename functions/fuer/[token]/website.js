@@ -1,23 +1,29 @@
 // GET /fuer/<token>/website — Website-Vorschau fuer den Betrieb hinter dem Token.
 //
 // Eine fertige Startseite mit Namen, Ort, Marken, Oeffnungszeiten und Telefon
-// des Betriebs, Texten von Claude (gebaut im Admin unter Post → Zweiter Brief)
-// und den Beispielfahrzeugen der eigenen Demo. Nichts davon stammt von der
-// Website des Betriebs. Nicht in Suchmaschinen, nach 30 Tagen weg.
+// des Betriebs, Texten von Claude und dem Steckbrief aus dem Admin (Post →
+// Zweiter Brief): Farben, Schriftzug mit Monogramm/Symbol, Beispielfahrzeuge
+// seiner Marken mit Bildnachweis. Nichts davon ist von der Website des
+// Betriebs kopiert (nur seine Farbe gelesen). Nicht in Suchmaschinen, nach
+// 30 Tagen weg.
+//
+// Ist VORSCHAU_DEMO gesetzt (z. B. https://autohaus-demo.pages.dev), geht es
+// nach dem Zaehlen weiter zur echten Demo, die sich dieselben Daten unter
+// /api/vorschau/<token> holt.
 //
 // Gezaehlt wird wie auf der persoenlichen Seite (ohne eigene Geraete, hoechstens
 // einmal je Minute); beim ersten Aufruf kommt eine Mail.
 import { briefZuToken, nichtGefunden, esc } from '../[token].js';
 import { eigenerAufruf } from '../../_lib/auth.js';
 import { betriebMelden } from '../../_lib/mitteilung.js';
-import { fakten, vorschauLaden, BEISPIEL_FAHRZEUGE, HERO_BILD } from '../../_lib/vorschau.js';
+import { vorschauLaden, vorschauDaten } from '../../_lib/vorschau.js';
 import { postEinstellungenLaden } from '../../api/admin/akquise/post-einstellungen.js';
 
 const eur = n => n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 const tel = t => String(t || '').replace(/[^\d+]/g, '');
 
 const CSS = `
-  :root { color-scheme: dark; --bg:#0A0F14; --fl:#111820; --fl2:#182129; --rand:#243039; --text:#F2F5F7; --leise:#B4BFC9; --still:#7C8A97; --akzent:#4DA3E0; --knopf:#1B6FA8; }
+  :root { color-scheme: dark; --bg:#0A0F14; --fl:#111820; --fl2:#182129; --rand:#243039; --text:#F2F5F7; --leise:#B4BFC9; --still:#7C8A97; }
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
   body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.6; -webkit-font-smoothing:antialiased; padding-bottom:84px; }
@@ -27,14 +33,17 @@ const CSS = `
   .hinweis a { color:#fff; font-weight:600; }
   header.kopf { position:sticky; top:0; z-index:20; background:rgba(10,15,20,.88); backdrop-filter:blur(10px); border-bottom:1px solid var(--rand); }
   header.kopf .breite { display:flex; align-items:center; gap:24px; height:68px; }
-  .logo { text-decoration:none; line-height:1.1; }
+  .logo { text-decoration:none; line-height:1.1; display:flex; align-items:center; gap:11px; }
+  .logo .zeichen { flex:none; width:40px; height:40px; border-radius:10px; background:var(--knopf); color:#fff; display:grid; place-items:center; font-weight:800; font-size:1rem; letter-spacing:.02em; }
+  .logo .zeichen svg { width:24px; height:24px; }
+  .logo .wort { display:block; }
   .logo small { display:block; font-size:.62rem; letter-spacing:.18em; text-transform:uppercase; color:var(--still); }
   .logo b { font-family:Georgia,"Times New Roman",serif; font-size:1.25rem; font-weight:600; }
   nav.menue { display:flex; gap:22px; margin-left:auto; font-size:.92rem; }
   nav.menue a { text-decoration:none; color:var(--leise); }
   nav.menue a:hover { color:var(--text); }
   .knopf { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 22px; border-radius:10px; background:var(--knopf); color:#fff; text-decoration:none; font-weight:600; border:0; font:inherit; cursor:pointer; }
-  .knopf:hover { background:#2380c0; }
+  .knopf:hover { filter:brightness(1.12); }
   .knopf.rand { background:transparent; border:1px solid rgba(255,255,255,.55); }
   .knopf.rand:hover { background:rgba(255,255,255,.08); }
   .knopf.klein { padding:9px 16px; font-size:.9rem; }
@@ -68,6 +77,9 @@ const CSS = `
   .auto dd { margin:0; }
   .auto .preis { font-size:1.25rem; font-weight:700; color:var(--akzent); }
   .notiz { margin:18px 0 0; font-size:.86rem; color:var(--still); }
+  .auto .zeile2 { margin:-4px 0 12px; font-size:.8rem; color:var(--leise); }
+  .auto .foto { margin:10px 0 0; font-size:.68rem; color:var(--still); line-height:1.35; }
+  .auto .foto a { color:var(--still); }
   .karten { display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:16px; }
   .karte { background:var(--fl2); border:1px solid var(--rand); border-radius:14px; padding:22px; }
   .karte h3 { margin:0 0 6px; font-size:1.05rem; }
@@ -127,13 +139,25 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
     if (typeof waitUntil === 'function') waitUntil(z); else await z;
   }
 
+  // Echte Demo statt eigener Seite, sobald sie Vorschauen kann.
+  if (env.VORSCHAU_DEMO && /^https:\/\//.test(env.VORSCHAU_DEMO)) {
+    return Response.redirect(`${env.VORSCHAU_DEMO.replace(/\/$/, '')}/?vorschau=${token}`, 302);
+  }
+
   const e = await postEinstellungenLaden(env).catch(() => null);
   const meinTelefon = e?.absender?.telefon || '';
-  const f = fakten(brief);
+  const d = vorschauDaten(brief, vorschau, { token, meinTelefon });
+  const f = { ...d.betrieb, zeiten: d.betrieb.oeffnungszeiten };
   const t = vorschau.texte;
-  const firma = f.name || 'Ihr Betrieb';
+  const firma = f.name;
+  const { knopf, akzent } = d.design.farben;
+  const lg = d.design.logo;
+  const zeichen = lg.art === 'monogramm' && lg.initialen ? `<span class="zeichen" aria-hidden="true">${esc(lg.initialen)}</span>`
+    : lg.art === 'symbol' && lg.symbol_svg ? `<span class="zeichen" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${esc(lg.symbol_svg.pfad)}"/>${lg.symbol_svg.zusatz ? `<path d="${esc(lg.symbol_svg.zusatz)}"/>` : ''}</svg></span>`
+    : '';
+  const fotoNachweis = a => a.foto ? `<p class="foto">Foto: <a href="${esc(a.foto.quelle)}" target="_blank" rel="noopener">${esc(a.foto.autor)}</a>, <a href="${esc(a.foto.lizenz_url || a.foto.quelle)}" target="_blank" rel="noopener">${esc(a.foto.lizenz)}</a>, zugeschnitten · Wikimedia Commons</p>` : '';
   const adresse = [brief.strasse, [brief.plz, brief.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ');
-  const google = brief.google_anzahl >= 10 && brief.google_bewertung >= 4 ? `★ ${String(brief.google_bewertung).replace('.', ',')} bei ${brief.google_anzahl} Google-Bewertungen` : '';
+  const google = f.google ? `★ ${String(f.google.bewertung).replace('.', ',')} bei ${f.google.anzahl} Google-Bewertungen` : '';
   const karte = Number.isFinite(brief.lat) && Number.isFinite(brief.lng)
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${brief.lng - 0.01},${brief.lat - 0.006},${brief.lng + 0.01},${brief.lat + 0.006}&layer=mapnik&marker=${brief.lat},${brief.lng}`
     : '';
@@ -143,15 +167,15 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <title>${esc(firma)} – Vorschau</title>
-<style>${CSS}</style></head><body>
-<div class="hinweis">Vorschau für ${esc(firma)} von Ihsan Yilmaz – nicht öffentlich, gültig bis ${esc(ablauf)}. Fahrzeuge und Bilder sind Beispiele. <a href="/fuer/${esc(token)}?seite=1">Zur persönlichen Seite</a></div>
+<style>${CSS}:root{--knopf:${knopf};--akzent:${akzent};}</style></head><body>
+<div class="hinweis">Vorschau für ${esc(firma)} von Ihsan Yilmaz – nicht öffentlich, gültig bis ${esc(ablauf)}. Fahrzeuge, Preise und Fotos sind Beispiele. <a href="/fuer/${esc(token)}?seite=1">Zur persönlichen Seite</a></div>
 <header class="kopf"><div class="breite">
-  <a class="logo" href="#start">${new RegExp(f.werkstatt ? 'werkstatt' : 'autohaus', 'i').test(firma) ? '' : `<small>${esc(f.art)}</small>`}<b>${esc(firma)}</b></a>
+  <a class="logo" href="#start">${zeichen}<span class="wort">${new RegExp(f.werkstatt ? 'werkstatt' : 'autohaus', 'i').test(firma) ? '' : `<small>${esc(f.art)}</small>`}<b>${esc(firma)}</b></span></a>
   <nav class="menue"><a href="#fahrzeuge">Fahrzeuge</a><a href="#leistungen">Leistungen</a><a href="#ueber">Über uns</a><a href="#kontakt">Kontakt</a></nav>
   ${brief.telefon ? `<a class="knopf klein" href="tel:${esc(tel(brief.telefon))}">Jetzt anrufen</a>` : ''}
 </div></header>
 
-<section class="held" id="start" style="background-image:url('${HERO_BILD}')"><div class="breite">
+<section class="held" id="start" style="background-image:url('${esc(d.hero_bild)}')"><div class="breite">
   ${f.marken.length ? `<div class="marken">${f.marken.map(m => `<span>${esc(m)}</span>`).join('')}</div>` : ''}
   <p class="eyebrow">${esc(f.art)}${f.ort ? ` in ${esc(f.ort)}` : ''}</p>
   <h1>${esc(t.claim)}</h1>
@@ -172,11 +196,12 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
 ${f.werkstatt ? '' : `<section class="block" id="fahrzeuge"><div class="breite">
   <h2>Aktuelle Fahrzeuge</h2>
   <p class="lead">Ihr Bestand erscheint hier automatisch aus mobile.de – mit Bildern, Preisen und Ausstattung. In der Vorschau stehen Beispiele.</p>
-  <div class="autos">${BEISPIEL_FAHRZEUGE.map(a => `<article class="auto">
-    <div class="bild" style="background-image:url('${a.bild}')"><span>Beispiel</span></div>
+  <div class="autos">${d.fahrzeuge.map(a => `<article class="auto">
+    <div class="bild" style="background-image:url('${esc(a.bild)}')"><span>Beispiel</span></div>
     <div class="text"><h3>${esc(a.marke)} ${esc(a.modell)}</h3>
       <dl><div><dt>EZ</dt><dd>${esc(a.ez)}</dd></div><div><dt>km</dt><dd>${a.km.toLocaleString('de-DE')}</dd></div><div><dt>Leistung</dt><dd>${a.ps} PS</dd></div></dl>
-      <div class="preis">${eur(a.preis)}</div></div>
+      ${a.getriebe ? `<p class="zeile2">${esc(a.kraftstoff)} · ${esc(a.getriebe)}</p>` : ''}
+      <div class="preis">${eur(a.preis)}</div>${fotoNachweis(a)}</div>
   </article>`).join('')}</div>
 </div></section>`}
 

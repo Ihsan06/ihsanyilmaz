@@ -4,9 +4,11 @@ import { LineCapStyle, PDFDocument, PageSizes, rgb, type PDFFont, type PDFPage }
 import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
 import { ArrowLeft, ExternalLink, FileText, Maximize2, RefreshCw, Trash2, X } from "lucide-react";
+import { useSeiten } from "@/components/admin/Seiten";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
 import { BEFUNDE_BEISPIEL, befundZeile, briefAufbauen, briefFuellen, datumDeutsch, empfaengerBlock, landingLink, quellenZeile, rueckChecks } from "../../../../../functions/_lib/brief.js";
 import { LOGO_BREIT, LOGO_FARBE, LOGO_HOCH, LOGO_PFADE, LOGO_X0 } from "./briefLogo";
+import SteckbriefFenster from "./Steckbrief";
 import "./post.css";
 
 // Akquise → Post: Briefe an Betriebe. Der Server (functions/api/admin/akquise/
@@ -877,6 +879,10 @@ export default function PostSeite() {
   const infoZuGewaehlt = gewaehltInfo && gewaehltInfo.id === gewaehltId ? gewaehltInfo : null;
 
   const sichtbar = useMemo(() => briefe.filter(b => statusFilter === "alle" || b.status === statusFilter), [briefe, statusFilter]);
+  // 50 je Seite, Zahlen unten (src/components/admin/Seiten.tsx).
+  const { aufSeite: briefeAufSeite, leiste: briefeSeiten } = useSeiten(sichtbar, {
+    speicher: "post.seitengroesse", filterSchluessel: statusFilter, standard: 50, nachOben: ".post-briefe",
+  });
 
   // Was die Vorschau links zeigt – je nach Reiter: den offenen Entwurf (live),
   // den Entwurf, der fuer den gewaehlten Betrieb entstuende, die Vorlage mit
@@ -1021,20 +1027,12 @@ export default function PostSeite() {
   // Website-Vorschauen je Betrieb (gebaut unter „Zweiter Brief“).
   type VorschauKurz = { betrieb_id: number; modell: string | null; erstellt: string; ablauf: string; aufrufe: number; zuletzt_aufgerufen: string | null; gueltig: number };
   const [vorschauen, setVorschauen] = useState<Record<number, VorschauKurz>>({});
-  const [baut, setBaut] = useState<Set<number>>(new Set());
+  const [steckbrief, setSteckbrief] = useState<{ id: number; name: string; token: string } | null>(null);
+  const steckbriefZu = useCallback(() => setSteckbrief(null), []);
   const ladeVorschauen = useCallback(() => api("/api/admin/akquise/vorschau")
     .then(d => setVorschauen(Object.fromEntries(((d.vorschauen || []) as VorschauKurz[]).map(v => [v.betrieb_id, v]))))
     .catch(() => {}), []);
   useEffect(() => { if (reiter === "zweiter") ladeVorschauen(); }, [reiter, ladeVorschauen]);
-  const vorschauBauen = async (betriebId: number, name: string) => {
-    setBaut(s => new Set(s).add(betriebId)); setFehler(""); setMeldung("");
-    try {
-      const d = await api("/api/admin/akquise/vorschau", { method: "POST", body: JSON.stringify({ betrieb_id: betriebId }) });
-      setMeldung(d.hinweis ? `Vorschau für ${name} gebaut. ${d.hinweis}` : `Vorschau für ${name} gebaut – 30 Tage gültig.`);
-      await ladeVorschauen();
-    } catch (e) { zeigeFehler(e); }
-    finally { setBaut(s => { const n = new Set(s); n.delete(betriebId); return n; }); }
-  };
 
   const briefOeffnen = async (id: number) => {
     setFehler("");
@@ -1374,7 +1372,7 @@ export default function PostSeite() {
 
       {/* ---------------- Briefe */}
       {reiter === "briefe" && (
-        <section className="mon-block">
+        <section className="mon-block post-briefe">
           <div className="akq-steuerung mb-4">
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="field px-3 py-2 text-sm" style={{ width: "auto" }}>
               <option value="alle">Alle Status</option>
@@ -1394,7 +1392,7 @@ export default function PostSeite() {
                     <tr><th>Betrieb</th><th>Status</th><th className="num">Aufrufe</th><th className="num">Kosten</th><th></th></tr>
                   </thead>
                   <tbody>
-                    {sichtbar.map(b => {
+                    {briefeAufSeite.map(b => {
                       const an = schau?.briefId === b.id;
                       return (
                         <tr key={b.id} className={an ? "gewaehlt" : undefined} onClick={() => setVorschauId(b.id)}>
@@ -1428,6 +1426,7 @@ export default function PostSeite() {
                 </table>
               </div>
             )}
+          {!laedt && briefeSeiten}
         </section>
       )}
 
@@ -1636,6 +1635,10 @@ export default function PostSeite() {
 
       {gross && schau && <GrossAnsicht schau={schau} qr={qr} onZu={grossZu} />}
 
+      {steckbrief && (
+        <SteckbriefFenster betriebId={steckbrief.id} name={steckbrief.name} token={steckbrief.token} onZu={steckbriefZu}
+                           onGebaut={text => { setMeldung(text); ladeVorschauen(); }} />
+      )}
       {reiter === "zweiter" && (
         <section className="mon-block">
           <h2>Zweiter Brief</h2>
@@ -1662,16 +1665,15 @@ export default function PostSeite() {
                       <td>
                         {(() => {
                           const v = vorschauen[b.betrieb_id];
-                          const laeuft = baut.has(b.betrieb_id);
-                          if (laeuft) return <span className="post-leise">Wird gebaut … (bis ca. 30 s)</span>;
+                          const oeffnen = () => setSteckbrief({ id: b.betrieb_id, name: b.betrieb_name || "Betrieb", token: b.token });
                           if (v && v.gueltig) return (
                             <span className="post-vorschau">
                               <a className="akq-knopf" href={`/fuer/${b.token}/website`} target="_blank" rel="noopener noreferrer"><ExternalLink size={12} /> Ansehen</a>
                               <span className="post-unter">bis {datum(v.ablauf)} · {v.aufrufe ? `${v.aufrufe}× geöffnet` : "noch nicht geöffnet"}{v.modell === "vorlage" ? " · Standardtexte" : ""}</span>
-                              <button type="button" className="post-link-knopf" onClick={() => vorschauBauen(b.betrieb_id, b.betrieb_name || "Betrieb")}>neu bauen</button>
+                              <button type="button" className="post-link-knopf" onClick={oeffnen}>Aussehen &amp; Fahrzeuge</button>
                             </span>
                           );
-                          return <button className="akq-knopf" onClick={() => vorschauBauen(b.betrieb_id, b.betrieb_name || "Betrieb")}>{v ? "Abgelaufen – neu bauen" : "Vorschau bauen"}</button>;
+                          return <button className="akq-knopf" onClick={oeffnen}>{v ? "Abgelaufen – neu bauen" : "Vorschau bauen"}</button>;
                         })()}
                       </td>
                       <td>

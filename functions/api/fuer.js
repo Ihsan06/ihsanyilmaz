@@ -17,7 +17,7 @@ import { mirMitteilen, betriebMelden, adminLink, esc } from '../_lib/mitteilung.
 const KOPF = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
 const json = (b, status = 200) => new Response(JSON.stringify(b), { status, headers: KOPF });
 
-export async function onRequestPost({ request, env, waitUntil }) {
+async function verarbeiten({ request, env, waitUntil }) {
   let d;
   try { d = await request.json(); } catch { return json({ ok: false, fehler: 'ungueltig' }, 400); }
   const token = String(d?.token || '');
@@ -105,4 +105,28 @@ async function kontaktErlauben(token, request, env, waitUntil) {
   } catch {
     return json({ ok: false, fehler: 'nichtGespeichert' });
   }
+}
+
+// Die Autohaus-Demo zeigt im Vorschau-Modus denselben Knopf „Ja, bitte melden
+// Sie sich“ und schickt ihn hierher – dafuer CORS nur fuer die Demo-Adressen.
+const DEMO_HERKUNFT = /^https:\/\/([a-z0-9-]+\.)?autohaus-demo\.pages\.dev$|^http:\/\/localhost:\d+$/;
+
+export async function onRequestPost(ctx) {
+  const r = await verarbeiten(ctx);
+  const herkunft = ctx.request.headers.get('Origin') || '';
+  if (!DEMO_HERKUNFT.test(herkunft)) return r;
+  const kopf = new Headers(r.headers);
+  kopf.set('Access-Control-Allow-Origin', herkunft);
+  kopf.set('Vary', 'Origin');
+  return new Response(r.body, { status: r.status, headers: kopf });
+}
+
+export function onRequestOptions({ request }) {
+  const herkunft = request.headers.get('Origin') || '';
+  return new Response(null, {
+    status: 204,
+    headers: DEMO_HERKUNFT.test(herkunft)
+      ? { 'Access-Control-Allow-Origin': herkunft, 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400', Vary: 'Origin' }
+      : {},
+  });
 }

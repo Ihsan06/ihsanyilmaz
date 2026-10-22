@@ -7,12 +7,14 @@
 // Zwei Schluessel-Muster, weil hier zwei Welten zusammenlaufen:
 //   <24 Hex>.<endung>            – Uploads des Content-Studios (Bucket-Wurzel)
 //   galerie/<uuid>.<endung>      – die schon vorhandene Admin-Galerie
+//   vorschau/<slug>.jpg          – Beispielfahrzeuge der Website-Vorschauen
 // Deshalb ein Sammelpfad ([[name]]) statt eines einzelnen Segments – die
 // Galerie-Schluessel enthalten einen Schraegstrich.
 
 const MUSTER = [
   /^[a-f0-9]{24}\.(jpg|png|webp)$/,
   /^galerie\/[a-f0-9-]{36}\.[a-z0-9]{1,5}$/,
+  /^vorschau\/[a-z0-9-]{3,80}\.jpg$/,
 ];
 
 export async function onRequestGet({ params, env }) {

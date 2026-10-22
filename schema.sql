@@ -287,3 +287,7 @@ CREATE TABLE IF NOT EXISTS akquise_vorschauen (
 -- „Erledigt“ in der Übersicht (Wer reagiert hat): Zeitpunkt, ab dem der Brief
 -- dort ausgeblendet ist; NULL = sichtbar.
 ALTER TABLE akquise_briefe ADD COLUMN reagiert_erledigt TEXT;
+
+-- Steckbrief der Website-Vorschau (functions/_lib/steckbrief.js): Palette,
+-- Logo-Art, Marken, Beispielfahrzeuge. NULL = alte Vorschau ohne Steckbrief.
+ALTER TABLE akquise_vorschauen ADD COLUMN steckbrief TEXT;
