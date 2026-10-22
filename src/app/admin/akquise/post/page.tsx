@@ -804,7 +804,7 @@ export default function PostSeite() {
     });
   }, []);
 
-  // Vorlage & Absender
+  // Vorlage (Absender und Link-Basis kommen aus den Einstellungen, nicht mehr bearbeitbar)
   const [absenderForm, setAbsenderForm] = useState<Absender | null>(null);
   const [vorlageForm, setVorlageForm] = useState("");
   const [nachfassForm, setNachfassForm] = useState("");
@@ -1236,7 +1236,7 @@ export default function PostSeite() {
     e.preventDefault();
     setFehler(""); setMeldung("");
     try {
-      await api("/api/admin/akquise/post-einstellungen", { method: "PUT", body: JSON.stringify({ absender: absenderForm, vorlage: vorlageForm, vorlage_nachfass: nachfassForm, referenz: referenzForm, landing_basis: basisForm }) });
+      await api("/api/admin/akquise/post-einstellungen", { method: "PUT", body: JSON.stringify({ vorlage: vorlageForm, vorlage_nachfass: nachfassForm, referenz: referenzForm }) });
       await ladeEinstellungen();
       setMeldung("Gespeichert.");
     } catch (err) { zeigeFehler(err); }
@@ -1336,7 +1336,7 @@ export default function PostSeite() {
       </div>
 
       <div className="post-reiter" role="tablist">
-        {([["briefe", "Briefe"], ["brief", editor ? "Brief" : "Neuer Brief"], ["sammel", "Mehrere senden"], ["zweiter", "Zweiter Brief"], ["vorlage", "Vorlage & Absender"]] as [Reiter, string][]).map(([k, l]) => (
+        {([["briefe", "Briefe"], ["brief", editor ? "Brief" : "Neuer Brief"], ["sammel", "Mehrere senden"], ["zweiter", "Zweiter Brief"], ["vorlage", "Vorlage"]] as [Reiter, string][]).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={reiter === k} className={reiter === k ? "aktiv" : ""} onClick={() => setReiter(k)}>
             {l}{k === "briefe" && briefe.length > 0 && <b>{briefe.length}</b>}{k === "zweiter" && zweiteOffen > 0 && <b>{zweiteOffen}</b>}
           </button>
@@ -1607,25 +1607,10 @@ export default function PostSeite() {
         </section>
       )}
 
-      {/* ---------------- Vorlage & Absender */}
+      {/* ---------------- Vorlage */}
       {reiter === "vorlage" && einst && absenderForm && (
         <form onSubmit={einstellungenSpeichern} className="mon-block">
-          <h2>Absender</h2>
-          <div className="post-form">
-            {([["name", "Name"], ["zusatz", "Zusatz"], ["strasse", "Straße"], ["plz_ort", "PLZ Ort"], ["telefon", "Telefon"], ["email", "E-Mail"], ["web", "Web"]] as [keyof Absender, string][]).map(([k, l]) => (
-              <div key={k}>
-                <label htmlFor={`abs-${k}`}>{l}</label>
-                <input id={`abs-${k}`} className="field px-3 py-2 text-sm" value={absenderForm[k] || ""}
-                       onChange={e => setAbsenderForm({ ...absenderForm, [k]: e.target.value })} />
-              </div>
-            ))}
-            <div>
-              <label htmlFor="basis">Link-Basis der persönlichen Seiten</label>
-              <input id="basis" className="field px-3 py-2 text-sm" value={basisForm} onChange={e => setBasisForm(e.target.value)} />
-            </div>
-          </div>
-
-          <h2 className="mt-6">Vorlage</h2>
+          <h2>Vorlage</h2>
           <div className="post-schau-wahl mb-3" role="tablist" aria-label="Welche Vorlage">
             {([["brief", "Erster Brief"], ["nachfass", "Zweiter Brief"]] as ["brief" | "nachfass", string][]).map(([k, l]) => (
               <button key={k} type="button" role="tab" aria-selected={vorlageArt === k} className={vorlageArt === k ? "an" : ""} onClick={() => setVorlageArt(k)}>{l}</button>
@@ -1648,7 +1633,7 @@ export default function PostSeite() {
           </ul>
           <div className="akq-steuerung mt-5">
             <button type="submit" className="btn-primary px-4 py-2 text-sm">Speichern</button>
-            <button type="button" className="akq-knopf" onClick={() => { setAbsenderForm(einst.standard.absender); setVorlageForm(einst.standard.vorlage); setNachfassForm(einst.standard.vorlage_nachfass); setBasisForm(einst.standard.landing_basis); }}>
+            <button type="button" className="akq-knopf" onClick={() => { setVorlageForm(einst.standard.vorlage); setNachfassForm(einst.standard.vorlage_nachfass); }}>
               Standard einsetzen
             </button>
             <span className="akq-hinweis">Änderungen gelten für neue Entwürfe; bestehende Briefe behalten ihren Text.</span>
