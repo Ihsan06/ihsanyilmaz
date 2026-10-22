@@ -283,3 +283,7 @@ CREATE TABLE IF NOT EXISTS akquise_vorschauen (
   aufrufe INTEGER NOT NULL DEFAULT 0,
   zuletzt_aufgerufen TEXT
 );
+
+-- „Erledigt“ in der Übersicht (Wer reagiert hat): Zeitpunkt, ab dem der Brief
+-- dort ausgeblendet ist; NULL = sichtbar.
+ALTER TABLE akquise_briefe ADD COLUMN reagiert_erledigt TEXT;

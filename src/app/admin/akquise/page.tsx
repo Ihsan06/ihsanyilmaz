@@ -322,11 +322,11 @@ type SortSchluessel = "auswahl" | "prioritaet" | "name" | "website" | "kategorie
 type Sortierung = { schluessel: SortSchluessel; ab: boolean };
 type Filter = {
   q: string; kat: string[]; art: string; web: string; gep: string; sig: string[];
-  prio: string; region: string; auswahl: boolean; papierkorb: boolean; sort: Sortierung[];
+  prio: string; region: string; auswahl: boolean; papierkorb: boolean; ohneBrief: boolean; sort: Sortierung[];
 };
 const FILTER_LEER: Filter = {
   q: "", kat: [], art: "alle", web: "alle", gep: "alle", sig: [], prio: "", region: "alle",
-  auswahl: false, papierkorb: false, sort: [{ schluessel: "prioritaet", ab: true }],
+  auswahl: false, papierkorb: false, ohneBrief: false, sort: [{ schluessel: "prioritaet", ab: true }],
 };
 const SORT_LABEL: Record<SortSchluessel, string> = {
   auswahl: "Auswahl", prioritaet: "Priorität", name: "Name", website: "Website", kategorie: "Kategorie",
@@ -359,7 +359,7 @@ function filterAusUrl(search: string): Filter {
   return {
     q: p.get("q") || "", kat: liste("kat"), art: p.get("art") || "alle", web: p.get("web") || "alle",
     gep: p.get("gep") || "alle", sig: liste("sig"), prio: p.get("prio") || "", region: p.get("region") || "alle",
-    auswahl: p.get("auswahl") === "1", papierkorb: p.get("papierkorb") === "1",
+    auswahl: p.get("auswahl") === "1", papierkorb: p.get("papierkorb") === "1", ohneBrief: p.get("ohneBrief") === "1",
     sort: sort.length ? sort : FILTER_LEER.sort,
   };
 }
@@ -376,6 +376,7 @@ function filterInUrl(f: Filter) {
   if (f.region !== "alle") p.set("region", f.region);
   if (f.auswahl) p.set("auswahl", "1");
   if (f.papierkorb) p.set("papierkorb", "1");
+  if (f.ohneBrief) p.set("ohneBrief", "1");
   const sortStd = f.sort.length === 1 && f.sort[0].schluessel === "prioritaet" && f.sort[0].ab;
   if (!sortStd) p.set("sort", f.sort.map(s => `${s.schluessel}:${s.ab ? "ab" : "auf"}`).join(","));
   const s = p.toString();
@@ -383,7 +384,7 @@ function filterInUrl(f: Filter) {
 }
 
 const filterAktiv = (f: Filter) =>
-  !!f.q || f.kat.length > 0 || f.art !== "alle" || f.web !== "alle" || f.gep !== "alle" || f.sig.length > 0 || !!f.prio || f.region !== "alle" || f.auswahl;
+  !!f.q || f.kat.length > 0 || f.art !== "alle" || f.web !== "alle" || f.gep !== "alle" || f.sig.length > 0 || !!f.prio || f.region !== "alle" || f.auswahl || f.ohneBrief;
 
 function sortWert(b: Betrieb, k: SortSchluessel): number | string | null {
   switch (k) {
@@ -440,6 +441,7 @@ function filterAnwenden(betriebe: Betrieb[], f: Filter) {
     .filter(b => prio === null || isNaN(prio) || (b.prioritaet ?? -1) >= prio)
     .filter(b => f.region === "alle" || b.region === f.region)
     .filter(b => !f.auswahl || !!b.auswahl)
+    .filter(b => !f.ohneBrief || !b.brief_gesendet)
     .sort((x, y) => vergleichen(x, y, f.sort));
 }
 
@@ -1508,6 +1510,10 @@ function AkquiseCockpit() {
                 {regionOptionen.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             )}
+            <label className={`akq-haken${filter.ohneBrief ? " an" : ""}`} title="Betriebe ausblenden, die schon einen Brief bekommen haben">
+              <input type="checkbox" checked={filter.ohneBrief} onChange={e => setzeFilter({ ohneBrief: e.target.checked })} />
+              Ohne Brief
+            </label>
             <button type="button" onClick={() => papierkorbSchalten(!filter.papierkorb)} aria-pressed={filter.papierkorb}
                     className={`akq-knopf akq-korb-knopf${filter.papierkorb ? " an" : ""}`}>
               <Trash2 size={13} /> Papierkorb{stand?.papierkorb ? <b>{zahl(stand.papierkorb)}</b> : null}

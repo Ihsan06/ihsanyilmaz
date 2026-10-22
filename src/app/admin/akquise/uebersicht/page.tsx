@@ -3,7 +3,7 @@
 // einen Blick – Trichter, Kosten, Rückläufer, Verlauf, Aufgaben, Dienste.
 // Alles kommt in einem Aufruf von /api/admin/akquise/uebersicht.
 import React, { useCallback, useEffect, useState } from "react";
-import { ArrowRight, ExternalLink, Globe, Mail, Phone, RefreshCw } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, Globe, Mail, Phone, RefreshCw, Undo2 } from "lucide-react";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
 import { KAT_FARBE } from "../Karte";
 import "./uebersicht.css";
@@ -15,7 +15,7 @@ type Aktivitaet = { zeit: string; art: "aufruf" | "demo" | "kontakt" | "zurueck"
 // Ein Betrieb, der auf den Brief reagiert hat (Kontakt erlaubt oder Interesse gezeigt).
 type Lead = {
   id: number; token: string; gesendet_am: string | null; aufrufe: number; zuletzt_aufgerufen: string | null; demo_geoeffnet: string | null; befunde: string | null;
-  kontakt_erlaubt?: string | null; briefe_bisher?: number;
+  kontakt_erlaubt?: string | null; briefe_bisher?: number; reagiert_erledigt?: string | null;
   betrieb_id: number; name: string; ort: string | null; telefon: string | null; email: string | null; website: string | null;
   kategorie: string | null; google_bewertung: number | null; google_anzahl: number | null;
 };
@@ -82,20 +82,25 @@ const befundAnzahl = (roh: string | null) => { try { return (JSON.parse(roh || "
 const domain = (url: string) => url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/.*$/, "");
 
 // Karte je Betrieb unter „Wer reagiert hat“: was passiert ist, Eckdaten, Aktionen.
-function LeadKarte({ l, kontakt }: { l: Lead; kontakt: boolean }) {
+function LeadKarte({ l, kontakt, onErledigt }: { l: Lead; kontakt: boolean; onErledigt: (l: Lead, erledigt: boolean) => void }) {
   const zustand = kontakt && l.kontakt_erlaubt
     ? { klasse: "kontakt", text: `Kontakt erlaubt · ${vorWann(l.kontakt_erlaubt)}` }
     : l.demo_geoeffnet
       ? { klasse: "demo", text: `Demo angesehen · ${vorWann(l.demo_geoeffnet)}` }
       : { klasse: "seite", text: `QR-Code ${l.aufrufe}× geöffnet` };
   return (
-    <article className={`vu-lead ${zustand.klasse}`}>
+    <article className={`vu-lead ${zustand.klasse}${l.reagiert_erledigt ? " erledigt" : ""}`}>
       <header>
         <div>
           <p className="vu-lead-name">{l.name}</p>
           <p className="vu-leise">{[l.ort, KAT_LABEL[l.kategorie || ""] || null].filter(Boolean).join(" · ")}</p>
         </div>
-        <span className={`vu-lead-zustand ${zustand.klasse}`}>{zustand.text}</span>
+        <span className="vu-lead-rechts">
+          <span className={`vu-lead-zustand ${zustand.klasse}`}>{zustand.text}</span>
+          {l.reagiert_erledigt
+            ? <button type="button" className="vu-haken an" onClick={() => onErledigt(l, false)} title="Wieder einblenden" aria-label="Wieder einblenden"><Undo2 size={13} /></button>
+            : <button type="button" className="vu-haken" onClick={() => onErledigt(l, true)} title="Erledigt – ausblenden" aria-label="Erledigt – ausblenden"><Check size={13} /></button>}
+        </span>
       </header>
       <dl className="vu-lead-daten">
         <div><dt>Brief</dt><dd>{l.gesendet_am ? datum(l.gesendet_am) : "—"}{l.briefe_bisher && l.briefe_bisher > 1 ? ` · ${l.briefe_bisher}. Brief` : ""}</dd></div>
@@ -130,6 +135,15 @@ export default function VertriebUebersicht() {
   const [d, setD] = useState<Daten | null>(null);
   const [fehler, setFehler] = useState("");
   const [laedt, setLaedt] = useState(true);
+  const [erledigteZeigen, setErledigteZeigen] = useState(false);
+  // Haken: Brief in der Übersicht ausblenden (oder wieder einblenden), sofort
+  // sichtbar, dann am Server merken.
+  const erledigtSetzen = (l: Lead, erledigt: boolean) => {
+    const wert = erledigt ? new Date().toISOString() : null;
+    setD(x => x ? { ...x, kontakte: x.kontakte.map(k => (k.id === l.id ? { ...k, reagiert_erledigt: wert } : k)), warm: x.warm.map(k => (k.id === l.id ? { ...k, reagiert_erledigt: wert } : k)) } : x);
+    api("/api/admin/akquise/briefe", { method: "PATCH", body: JSON.stringify({ id: l.id, erledigt }) })
+      .catch(e => setFehler(e instanceof Error ? e.message : "Konnte nicht speichern."));
+  };
 
   const holen = useCallback(() => api("/api/admin/akquise/uebersicht")
     .then(x => { setD(x as Daten); setFehler(""); })
@@ -243,19 +257,34 @@ export default function VertriebUebersicht() {
             <h2>Wer reagiert hat</h2>
             {d && <span className="vu-leise">{zahl(d.kontakte.length)} mit Kontakt-Erlaubnis · {zahl(d.warm.length)} interessiert</span>}
           </div>
-          {d && !d.kontakte.length && !d.warm.length && <p className="mon-leer">Noch keine Reaktion auf die Briefe.</p>}
-          {!!d?.kontakte.length && (
-            <>
-              <p className="vu-gruppe gut">Kontakt erlaubt – jetzt melden</p>
-              <div className="vu-leads">{d.kontakte.map(k => <LeadKarte key={k.id} l={k} kontakt />)}</div>
-            </>
-          )}
-          {!!d?.warm.length && (
-            <>
-              <p className="vu-gruppe">Interessiert – Demo angesehen oder QR-Code mehrfach geöffnet, aber noch kein Kontakt</p>
-              <div className="vu-leads">{d.warm.map(w => <LeadKarte key={w.id} l={w} kontakt={false} />)}</div>
-            </>
-          )}
+          {(() => {
+            const sichtbar = (l: Lead) => erledigteZeigen || !l.reagiert_erledigt;
+            const kontakte = (d?.kontakte || []).filter(sichtbar);
+            const warm = (d?.warm || []).filter(sichtbar);
+            const versteckt = (d?.kontakte || []).filter(l => l.reagiert_erledigt).length + (d?.warm || []).filter(l => l.reagiert_erledigt).length;
+            return (
+              <>
+                {d && !kontakte.length && !warm.length && <p className="mon-leer">{versteckt ? "Alles erledigt." : "Noch keine Reaktion auf die Briefe."}</p>}
+                {!!kontakte.length && (
+                  <>
+                    <p className="vu-gruppe gut">Kontakt erlaubt – jetzt melden</p>
+                    <div className="vu-leads">{kontakte.map(k => <LeadKarte key={k.id} l={k} kontakt onErledigt={erledigtSetzen} />)}</div>
+                  </>
+                )}
+                {!!warm.length && (
+                  <>
+                    <p className="vu-gruppe">Interessiert – QR-Code oder Demo geöffnet, aber noch kein Kontakt</p>
+                    <div className="vu-leads">{warm.map(w => <LeadKarte key={w.id} l={w} kontakt={false} onErledigt={erledigtSetzen} />)}</div>
+                  </>
+                )}
+                {versteckt > 0 && (
+                  <button type="button" className="vu-erledigte" onClick={() => setErledigteZeigen(z => !z)}>
+                    {erledigteZeigen ? "Erledigte wieder ausblenden" : `${versteckt} erledigt · anzeigen`}
+                  </button>
+                )}
+              </>
+            );
+          })()}
         </section>
 
         {/* Letzte Aktivitaet */}

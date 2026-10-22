@@ -15,7 +15,7 @@
 // POST JSON { aktion:'stornieren', id }             → Storno (15 Minuten)
 // POST JSON { aktion:'sperren', betrieb_id, grund } / { aktion:'entsperren', id }
 // POST multipart (pdf, id)                          → PDF nach R2
-// PATCH { id, text?, befunde?, empfaenger?, status? }
+// PATCH { id, text?, befunde?, empfaenger?, status?, erledigt? }
 // DELETE { id }
 //
 // Der Ablauf: Entwurf (Text, Befunde) → PDF im Browser erzeugt und hochgeladen
@@ -469,6 +469,11 @@ export const onRequestPatch = nurAngemeldet(async ({ request, env }) => {
     const e = String(body.empfaenger ?? '').replace(/\r/g, '').split('\n').map(z => z.trim()).filter(Boolean).slice(0, 6).join('\n');
     if (!e) return json({ ok: false, error: 'Anschrift fehlt.' }, 400);
     if (e !== brief.empfaenger) { setze('empfaenger', e); pdfVerwerfen = true; }
+  }
+  // „Erledigt“-Haken in der Übersicht (Wer reagiert hat): blendet den Betrieb
+  // dort aus, bis er wieder eingeblendet wird. Unabhaengig vom Status.
+  if (body.erledigt !== undefined) {
+    setze('reagiert_erledigt', body.erledigt ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null);
   }
   if (body.status !== undefined) {
     const neu = body.status;
