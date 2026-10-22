@@ -147,7 +147,7 @@ const CTA = {
   // Zweiter Brief mit Website-Vorschau: der QR-Code fuehrt direkt dorthin.
   scanVorschau: "Ihre Website-Vorschau: mit der Handykamera scannen oder die Adresse eintippen. Dort können Sie mich mit einem Klick bitten, mich zu melden.",
 };
-const scanText = (text: string) => (text.includes("eine Vorschau gebaut") ? CTA.scanVorschau : CTA.scan);
+const scanText = (text: string) => (/eine Vorschau gebaut|Website schon einmal vorgebaut/.test(text) ? CTA.scanVorschau : CTA.scan);
 const A4_H = PageSizes.A4[1];
 
 // Rueckseite (farbig, beidseitig gedruckt): ein Bild je Falzfeld, nichts

@@ -69,15 +69,15 @@ Hinweis nach Art. 14 und 21 DSGVO: Ihre Firmenanschrift stammt aus OpenStreetMap
 // Zweiter Brief an Betriebe ohne Reaktion: kein neuer Befund-Kasten, sondern
 // der Ein-Klick-Kontakt als kleinster Schritt. Die Referenz steht bewusst nicht im
 // Brief, sondern auf der persoenlichen Seite (mit Link).
-export const VORLAGE_NACHFASS = `Noch einmal: eine Idee für {firma}
+export const VORLAGE_NACHFASS = `Gebaut für {firma}
 
 Sehr geehrte Damen und Herren,
 
-vor ein paar Wochen habe ich Ihnen geschrieben, was mir an Ihrem Auftritt im Internet aufgefallen ist. Vielleicht ist der Brief im Alltag untergegangen – deshalb ein kurzer zweiter Anlauf.
+Sie haben neulich auf meinen Brief reagiert – danke dafür.
 
 {vorschau_satz}
 
-Wenn es gerade nicht passt, ist das völlig in Ordnung – dann bleibt es bei diesem Brief.
+Was es kostet: einmalig 500 bis 750 € zzgl. MwSt., je nach Umfang. Den genauen Preis nenne ich Ihnen vorab, das Gespräch dazu dauert zehn Minuten.
 
 Mit freundlichen Grüßen
 
@@ -326,8 +326,8 @@ export function briefFuellen(vorlage, werte) {
     datum: w.datum || datumDeutsch(),
     referenz: sauber(w.referenz),
     vorschau_satz: w.vorschau
-      ? `Inzwischen habe ich eine Vorschau gebaut, wie die Website von ${sauber(w.firma)} aussehen könnte – mit Ihrem Namen, Ihren Öffnungszeiten und Marken. Sie öffnet sich über den QR-Code unten; dort können Sie mich mit einem Klick bitten, mich zu melden.`
-      : 'Ihre persönliche Seite ist weiterhin für Sie angelegt. Dort sehen Sie die Demo – und mit einem Klick können Sie mich bitten, mich bei Ihnen zu melden.',
+      ? 'Deshalb habe ich Ihre Website schon einmal vorgebaut – mit Ihrem Namen, Ihren Öffnungszeiten und Fahrzeugen Ihrer Marken. Schauen Sie sie sich in Ruhe an: Der QR-Code unten führt direkt hin, und dort genügt ein Klick, damit ich mich melde.'
+      : 'Ihre persönliche Seite ist weiterhin für Sie angelegt. Schauen Sie sich die Demo in Ruhe an: Der QR-Code unten führt direkt hin, und dort genügt ein Klick, damit ich mich melde.',
   };
   // Leere Platzhalter-Absaetze (z. B. ohne {referenz}) hinterlassen keine Luecke.
   return String(vorlage || '').replace(/\{([a-z_]+)\}/g, (voll, name) => (name in ersatz ? ersatz[name] : voll))
