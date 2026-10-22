@@ -1310,16 +1310,7 @@ export default function PostSeite() {
                   unter={reichtFuer != null ? `reicht für ca. ${zahl(reichtFuer)} Briefe` : "bei LetterXpress"} warnung={reichtFuer != null && reichtFuer < 10} />
             <Zahl titel="Ausgegeben" wert={euro(zaehler?.kosten_cent ?? 0)} unter={`${monatName}: ${euro(zaehler?.kosten_monat_cent ?? 0)}`} />
           </div>
-          <footer>
-            {stand?.eingerichtet
-              ? <>{preisText} je Brief · farbig, beidseitig</>
-              : <>LETTERXPRESS_USER und LETTERXPRESS_KEY in Cloudflare hinterlegen.</>}
-            {!!(zaehler?.entwurf || zaehler?.freigegeben || zaehler?.fehler) && (
-              <span className="post-zahlen-offen">
-                {[zaehler?.entwurf ? `${zahl(zaehler.entwurf)} Entwürfe` : "", zaehler?.freigegeben ? `${zahl(zaehler.freigegeben)} freigegeben` : "", zaehler?.fehler ? `${zahl(zaehler.fehler)} mit Fehler` : ""].filter(Boolean).join(" · ")}
-              </span>
-            )}
-          </footer>
+          {!stand?.eingerichtet && <footer>LETTERXPRESS_USER und LETTERXPRESS_KEY in Cloudflare hinterlegen.</footer>}
         </section>
         <section className="post-zahlen-block" aria-label="Resonanz">
           <header>
@@ -1331,7 +1322,6 @@ export default function PostSeite() {
             <Zahl titel="Demo angesehen" wert={zahl(zaehler?.demo)} unter="geöffnet oder angefordert" />
             <Zahl titel="Kontakt erlaubt" wert={zahl(zaehler?.kontakt)} unter="per Klick – jetzt melden" hervor={!!zaehler?.kontakt} />
           </div>
-          <footer>Ohne deine eigenen Geräte und ohne die ersten zwei Tage nach dem Versand.</footer>
         </section>
       </div>
 
