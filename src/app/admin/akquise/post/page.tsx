@@ -1313,12 +1313,6 @@ export default function PostSeite() {
     <AdminShell titel="Post" eyebrow="Vertrieb" lead="Briefe an Betriebe: Vorschau, PDF, Versand.">
       {fehler && <p className="mb-4 text-sm" style={{ color: "#dc2626" }}>{fehler}</p>}
       {meldung && <p className="mb-4 text-sm" style={{ color: "#1d8a52" }}>{meldung}</p>}
-      {rueckweg && (
-        <a className="akq-knopf post-rueckweg" href={`${rueckweg.url}#betrieb-${rueckweg.id}`}
-           onClick={() => { try { sessionStorage.setItem("akquise.sprung", JSON.stringify({ id: rueckweg.id, t: Date.now() })); } catch { /* dann nur per Hash */ } }}>
-          <ArrowLeft size={14} /> Zurück zu Betriebe · {rueckweg.name}
-        </a>
-      )}
 
       {/* Zwei Bloecke: was der Versand kostet und was zurueckkommt. */}
       <div className="post-zahlen">
