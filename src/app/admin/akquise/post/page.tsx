@@ -57,9 +57,8 @@ type Einstellungen = {
 };
 type Zaehler = { entwurf: number; freigegeben: number; gesendet: number; zugestellt: number; fehler: number; storniert: number; aufrufe: number; demo: number; kontakt?: number; kosten_cent?: number; kosten_monat_cent?: number };
 type Stand = { eingerichtet: boolean; modus: string; anbieter: string; guthaben_cent?: number; preis_cent?: number };
-type Sperre = { id: number; betrieb_id: number | null; name: string | null; ort: string | null; grund: string | null; angelegt: string };
 type Editor = { brief: Brief; betrieb: BetriebKurz | null; kandidaten: Kandidat[]; vorschau?: boolean };
-type Reiter = "briefe" | "brief" | "sammel" | "zweiter" | "vorlage" | "sperrliste";
+type Reiter = "briefe" | "brief" | "sammel" | "zweiter" | "vorlage";
 // Was links in der Vorschau steht: chip sagt, woher (Entwurf, Beispiel …).
 type Schau = {
   chip: string; titel: string; text: string; empfaenger: string; absender: Absender; link: string; datumText: string; briefId?: number;
@@ -813,9 +812,6 @@ export default function PostSeite() {
   const [vorlageArt, setVorlageArt] = useState<"brief" | "nachfass">("brief");
   const [basisForm, setBasisForm] = useState("");
 
-  // Sperrliste
-  const [sperrliste, setSperrliste] = useState<Sperre[]>([]);
-  const [sperrGrund, setSperrGrund] = useState("");
 
   const zeigeFehler = (e: unknown, sonst = "Ging nicht.") => setFehler(e instanceof Error ? e.message : sonst);
 
@@ -828,8 +824,6 @@ export default function PostSeite() {
       const e = d as Einstellungen;
       setEinst(e); setAbsenderForm(e.absender); setVorlageForm(e.vorlage); setNachfassForm(e.vorlage_nachfass); setReferenzForm(e.referenz || ""); setBasisForm(e.landing_basis);
     }).catch(zeigeFehler), []);
-  const ladeSperrliste = useCallback(() =>
-    api("/api/admin/akquise/briefe?sperrliste=1").then(d => setSperrliste(d.sperrliste || [])).catch(zeigeFehler), []);
 
   useEffect(() => {
     // Reiter und vorgewaehlter Betrieb aus der Adresse (?tab=, ?betrieb=) –
@@ -840,9 +834,9 @@ export default function PostSeite() {
     // Von „Betriebe → Briefe an Auswahl“: Gruppe setzen und alles anhaken.
     const kat = p.get("kat");
     if (kat && SAMMEL_KAT.some(([k]) => k === kat)) sammelVorwahl.current = { kat, alle: p.get("alle") === "1" };
-    Promise.all([ladeBriefe(), ladeStand(), ladeEinstellungen(), ladeSperrliste()]).then(() => {
+    Promise.all([ladeBriefe(), ladeStand(), ladeEinstellungen()]).then(() => {
       if (sammelVorwahl.current) setSammelKat(sammelVorwahl.current.kat);
-      if (tab && ["briefe", "brief", "sammel", "zweiter", "vorlage", "sperrliste"].includes(tab)) setReiter(tab);
+      if (tab && ["briefe", "brief", "sammel", "zweiter", "vorlage"].includes(tab)) setReiter(tab);
       if (betriebId) setReiter("brief");
     }).finally(() => setLaedt(false));
     if (betriebId) {
@@ -851,7 +845,7 @@ export default function PostSeite() {
         if (b) setGewaehlt(b);
       }).catch(() => {});
     }
-  }, [ladeBriefe, ladeStand, ladeEinstellungen, ladeSperrliste]);
+  }, [ladeBriefe, ladeStand, ladeEinstellungen]);
 
   // Betriebssuche, leicht verzoegert
   useEffect(() => {
@@ -1248,21 +1242,6 @@ export default function PostSeite() {
     } catch (err) { zeigeFehler(err); }
   };
 
-  const sperren = async (betrieb: BetriebKurz) => {
-    setFehler("");
-    try {
-      await api("/api/admin/akquise/briefe", { method: "POST", body: JSON.stringify({ aktion: "sperren", betrieb_id: betrieb.id, grund: sperrGrund.trim() || "manuell" }) });
-      setSperrGrund(""); setGewaehlt(null); setSuche("");
-      await ladeSperrliste();
-    } catch (e) { zeigeFehler(e); }
-  };
-  const entsperren = async (s: Sperre) => {
-    if (!confirm(`„${s.name || s.betrieb_id}“ von der Sperrliste nehmen?`)) return;
-    try {
-      await api("/api/admin/akquise/briefe", { method: "POST", body: JSON.stringify({ aktion: "entsperren", id: s.id }) });
-      await ladeSperrliste();
-    } catch (e) { zeigeFehler(e); }
-  };
 
   // ---- Anzeige
 
@@ -1357,16 +1336,16 @@ export default function PostSeite() {
       </div>
 
       <div className="post-reiter" role="tablist">
-        {([["briefe", "Briefe"], ["brief", editor ? "Brief" : "Neuer Brief"], ["sammel", "Mehrere senden"], ["zweiter", "Zweiter Brief"], ["vorlage", "Vorlage & Absender"], ["sperrliste", "Sperrliste"]] as [Reiter, string][]).map(([k, l]) => (
+        {([["briefe", "Briefe"], ["brief", editor ? "Brief" : "Neuer Brief"], ["sammel", "Mehrere senden"], ["zweiter", "Zweiter Brief"], ["vorlage", "Vorlage & Absender"]] as [Reiter, string][]).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={reiter === k} className={reiter === k ? "aktiv" : ""} onClick={() => setReiter(k)}>
-            {l}{k === "briefe" && briefe.length > 0 && <b>{briefe.length}</b>}{k === "sperrliste" && sperrliste.length > 0 && <b>{sperrliste.length}</b>}{k === "zweiter" && zweiteOffen > 0 && <b>{zweiteOffen}</b>}
+            {l}{k === "briefe" && briefe.length > 0 && <b>{briefe.length}</b>}{k === "zweiter" && zweiteOffen > 0 && <b>{zweiteOffen}</b>}
           </button>
         ))}
       </div>
 
       {/* Wie bei „Content erstellen“: links die Vorschau, sie bleibt beim
-          Scrollen stehen; rechts der Reiter. Nur die Sperrliste braucht keine. */}
-      {reiter !== "sperrliste" && reiter !== "sammel" && reiter !== "zweiter" && (
+          Scrollen stehen; rechts der Reiter. */}
+      {reiter !== "sammel" && reiter !== "zweiter" && (
       <div className={`post-arbeit${schau ? "" : " ohne-schau"}`}>
         {schau && (
           <aside className="post-schau" aria-label="Vorschau" ref={schauRef}>
@@ -1622,14 +1601,6 @@ export default function PostSeite() {
                   </div>
                 )}
                 {!stand?.eingerichtet && <p className="post-hinweis">Briefversand nicht eingerichtet. PDF und Freigabe gehen trotzdem.</p>}
-                {editor.brief.art !== "test" && editor.betrieb && imEntwurf && (
-                  <p className="post-hinweis">
-                    <button type="button" className="akq-link" style={{ background: "none", border: 0, padding: 0, cursor: "pointer", font: "inherit" }}
-                            onClick={() => { if (confirm(`„${editor.betrieb?.name}“ auf die Sperrliste – keine Post mehr?`)) sperren(editor.betrieb as BetriebKurz).then(() => editorSetzen(null)); }}>
-                      Betrieb sperren
-                    </button>
-                  </p>
-                )}
               </div>
             </div>
           </div>
@@ -1690,15 +1661,9 @@ export default function PostSeite() {
 
       {gross && schau && <GrossAnsicht schau={schau} qr={qr} onZu={grossZu} />}
 
-      {/* ---------------- Sperrliste */}
       {reiter === "zweiter" && (
         <section className="mon-block">
           <h2>Zweiter Brief</h2>
-          <p className="post-hinweis mb-4">
-            Alle, die auf den ersten Brief reagiert haben – QR-Code geöffnet, Demo angesehen oder Kontakt erlaubt. Wärmste zuerst.
-            Erst die Website-Vorschau bauen, dann den zweiten Brief anlegen – dann verweist der Brief auf die Vorschau und sein QR-Code führt direkt dorthin.
-            Wer Kontakt erlaubt hat, rufst du besser an.
-          </p>
           {zweite.length === 0 ? <p className="mon-leer">Noch hat niemand reagiert.</p> : (
             <div className="post-huelle">
               <table className="mon-tabelle post-tabelle post-zweiter">
@@ -1809,45 +1774,6 @@ export default function PostSeite() {
                       </tr>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      )}
-
-      {reiter === "sperrliste" && (
-        <section className="mon-block">
-          <h2>Sperrliste</h2>
-          <p className="post-hinweis mb-4">Wer hier steht, bekommt keinen Brief – der Abgleich läuft vor jedem Entwurf und vor jedem Versand. Einträge kommen von der persönlichen Seite („Keine weitere Post“) oder von Hand.</p>
-          <div className="post-suche mb-4">
-            <div className="akq-steuerung">
-              <input value={suche} onChange={e => sucheTippen(e.target.value)} placeholder="Betrieb suchen" className="field px-3 py-2 text-sm" style={{ width: 240 }} />
-              <input value={sperrGrund} onChange={e => setSperrGrund(e.target.value)} placeholder="Grund (optional)" className="field px-3 py-2 text-sm" style={{ width: 220 }} />
-              {gewaehlt && <button className="btn-primary px-4 py-2 text-sm" onClick={() => sperren(gewaehlt)}>„{gewaehlt.name}“ sperren</button>}
-            </div>
-            {treffer.length > 0 && (
-              <ul className="post-treffer">
-                {treffer.map(b => (
-                  <li key={b.id}><button type="button" onClick={() => { setGewaehlt(b); setTreffer([]); setSuche(""); }}>{b.name}<span>{b.ort || ""}</span></button></li>
-                ))}
-              </ul>
-            )}
-          </div>
-          {sperrliste.length === 0 ? <p className="mon-leer">Niemand gesperrt.</p> : (
-            <div className="post-huelle">
-              <table className="mon-tabelle post-tabelle">
-                <thead><tr><th>Betrieb</th><th>Ort</th><th>Grund</th><th>Seit</th><th></th></tr></thead>
-                <tbody>
-                  {sperrliste.map(s => (
-                    <tr key={s.id}>
-                      <td className="stark">{s.name || `Betrieb ${s.betrieb_id}`}</td>
-                      <td>{s.ort || "—"}</td>
-                      <td>{s.grund || "—"}</td>
-                      <td>{datum(s.angelegt)}</td>
-                      <td><button className="akq-knopf" onClick={() => entsperren(s)}>Entsperren</button></td>
-                    </tr>
-                  ))}
                 </tbody>
               </table>
             </div>
