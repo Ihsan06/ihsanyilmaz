@@ -50,10 +50,13 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
            UNION ALL SELECT b.zurueck_am, 'zurueck', b.id, b.aufrufe, t.name, t.ort FROM akquise_briefe b LEFT JOIN akquise_betriebe t ON t.id = b.betrieb_id
              WHERE b.status = 'zurueck' AND b.zurueck_am IS NOT NULL
          ) ORDER BY zeit DESC LIMIT 15`),
-      q(`SELECT b.id, b.kontakt_erlaubt, t.id AS betrieb_id, t.name, t.ort, t.telefon, t.email, t.website, t.status
+      q(`SELECT b.id, b.token, b.kontakt_erlaubt, b.gesendet_am, b.aufrufe, b.zuletzt_aufgerufen, b.demo_geoeffnet, b.befunde,
+                t.id AS betrieb_id, t.name, t.ort, t.telefon, t.email, t.website, t.status, t.kategorie, t.google_bewertung, t.google_anzahl
          FROM akquise_briefe b JOIN akquise_betriebe t ON t.id = b.betrieb_id
          WHERE ${VERSCHICKT} AND b.kontakt_erlaubt IS NOT NULL AND t.status NOT IN ('kunde', 'aus') ORDER BY b.kontakt_erlaubt DESC LIMIT 20`),
-      q(`SELECT b.id, b.aufrufe, b.zuletzt_aufgerufen, b.demo_geoeffnet, t.id AS betrieb_id, t.name, t.ort, t.telefon
+      q(`SELECT b.id, b.token, b.art, b.gesendet_am, b.aufrufe, b.zuletzt_aufgerufen, b.demo_geoeffnet, b.befunde,
+                t.id AS betrieb_id, t.name, t.ort, t.telefon, t.email, t.website, t.kategorie, t.google_bewertung, t.google_anzahl,
+                (SELECT COUNT(*) FROM akquise_briefe x WHERE x.betrieb_id = t.id AND x.art != 'test' AND x.status IN ('gesendet', 'zugestellt')) AS briefe_bisher
          FROM akquise_briefe b JOIN akquise_betriebe t ON t.id = b.betrieb_id
          WHERE ${VERSCHICKT} AND b.kontakt_erlaubt IS NULL AND (b.demo_geoeffnet IS NOT NULL OR b.aufrufe >= 2)
          ORDER BY COALESCE(b.demo_geoeffnet, b.zuletzt_aufgerufen) DESC LIMIT 20`),

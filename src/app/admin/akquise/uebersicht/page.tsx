@@ -3,7 +3,7 @@
 // einen Blick – Trichter, Kosten, Rückläufer, Verlauf, Aufgaben, Dienste.
 // Alles kommt in einem Aufruf von /api/admin/akquise/uebersicht.
 import React, { useCallback, useEffect, useState } from "react";
-import { ArrowRight, Phone, RefreshCw } from "lucide-react";
+import { ArrowRight, ExternalLink, Globe, Mail, Phone, RefreshCw } from "lucide-react";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
 import "./uebersicht.css";
 
@@ -11,15 +11,20 @@ type Kennzahlen = { briefe: number; zurueck: number; geoeffnet: number; demo: nu
 type Gruppe = Kennzahlen & { gruppe: string };
 type Woche = Kennzahlen & { woche: string };
 type Aktivitaet = { zeit: string; art: "aufruf" | "demo" | "kontakt" | "zurueck"; id: number; aufrufe: number; name: string | null; ort: string | null };
-type Kontakt = { id: number; kontakt_erlaubt: string; betrieb_id: number; name: string; ort: string | null; telefon: string | null; email: string | null; website: string | null };
-type Warm = { id: number; aufrufe: number; zuletzt_aufgerufen: string | null; demo_geoeffnet: string | null; betrieb_id: number; name: string; ort: string | null; telefon: string | null };
+// Ein Betrieb, der auf den Brief reagiert hat (Kontakt erlaubt oder Interesse gezeigt).
+type Lead = {
+  id: number; token: string; gesendet_am: string | null; aufrufe: number; zuletzt_aufgerufen: string | null; demo_geoeffnet: string | null; befunde: string | null;
+  kontakt_erlaubt?: string | null; briefe_bisher?: number;
+  betrieb_id: number; name: string; ort: string | null; telefon: string | null; email: string | null; website: string | null;
+  kategorie: string | null; google_bewertung: number | null; google_anzahl: number | null;
+};
 type Rueck = { id: number; zurueck_am: string | null; gesendet_am: string | null; empfaenger: string | null; betrieb_id: number | null; name: string | null; strasse: string | null; plz: string | null; ort: string | null; google: number; im_korb: number };
 type Bestand = { kategorie: string; alle: number; versandfertig: number; stark: number };
 type Daten = {
   gesamt: Kennzahlen & { betriebe: number; erster: string | null; letzter: string | null };
   monat: Kennzahlen;
   nach_kategorie: Gruppe[]; nach_region: Gruppe[]; wochen: Woche[];
-  aktivitaet: Aktivitaet[]; kontakte: Kontakt[]; warm: Warm[]; ruecklaeufer: Rueck[]; bestand: Bestand[];
+  aktivitaet: Aktivitaet[]; kontakte: Lead[]; warm: Lead[]; ruecklaeufer: Rueck[]; bestand: Bestand[];
   betriebe: { aktiv: number; auswahl: number; kunden: number; papierkorb: number };
   offen: { entwurf: number; freigegeben: number; fehler: number };
   dienste: {
@@ -40,6 +45,43 @@ const AKT_LABEL: Record<Aktivitaet["art"], string> = {
 const zahl = (n?: number | null) => (n == null ? "—" : n.toLocaleString("de-DE"));
 const quote = (teil?: number, ganz?: number) => (ganz ? `${(Math.round(((teil || 0) / ganz) * 1000) / 10).toLocaleString("de-DE")} %` : "—");
 const telLink = (t: string) => `tel:${t.replace(/[^\d+]/g, "")}`;
+const befundAnzahl = (roh: string | null) => { try { return (JSON.parse(roh || "[]") as unknown[]).length; } catch { return 0; } };
+const domain = (url: string) => url.replace(/^https?:\/\/(www\.)?/, "").replace(/\/.*$/, "");
+
+// Karte je Betrieb unter „Wer reagiert hat“: was passiert ist, Eckdaten, Aktionen.
+function LeadKarte({ l, kontakt }: { l: Lead; kontakt: boolean }) {
+  const zustand = kontakt && l.kontakt_erlaubt
+    ? { klasse: "kontakt", text: `Kontakt erlaubt · ${vorWann(l.kontakt_erlaubt)}` }
+    : l.demo_geoeffnet
+      ? { klasse: "demo", text: `Demo angesehen · ${vorWann(l.demo_geoeffnet)}` }
+      : { klasse: "seite", text: `Seite ${l.aufrufe}× geöffnet` };
+  return (
+    <article className={`vu-lead ${zustand.klasse}`}>
+      <header>
+        <div>
+          <p className="vu-lead-name">{l.name}</p>
+          <p className="vu-leise">{[l.ort, KAT_LABEL[l.kategorie || ""] || null].filter(Boolean).join(" · ")}</p>
+        </div>
+        <span className={`vu-lead-zustand ${zustand.klasse}`}>{zustand.text}</span>
+      </header>
+      <dl className="vu-lead-daten">
+        <div><dt>Brief</dt><dd>{l.gesendet_am ? datum(l.gesendet_am) : "—"}{l.briefe_bisher && l.briefe_bisher > 1 ? ` · ${l.briefe_bisher}. Brief` : ""}</dd></div>
+        <div><dt>Seite geöffnet</dt><dd>{l.aufrufe ? `${l.aufrufe}×${l.zuletzt_aufgerufen ? `, zuletzt ${vorWann(l.zuletzt_aufgerufen)}` : ""}` : "—"}</dd></div>
+        <div><dt>Demo</dt><dd>{l.demo_geoeffnet ? datum(l.demo_geoeffnet) : "nicht geöffnet"}</dd></div>
+        <div><dt>Google</dt><dd>{l.google_anzahl != null ? `★ ${String(l.google_bewertung ?? "").replace(".", ",")} · ${l.google_anzahl} Bewertungen` : "—"}</dd></div>
+        <div><dt>Im Brief</dt><dd>{befundAnzahl(l.befunde)} Befunde</dd></div>
+        <div><dt>Telefon</dt><dd>{l.telefon || "nicht hinterlegt"}</dd></div>
+      </dl>
+      <footer>
+        {l.telefon && <a className={kontakt ? "btn-primary vu-lead-haupt" : "akq-knopf"} href={telLink(l.telefon)}><Phone size={13} /> Anrufen</a>}
+        {kontakt && l.email && <a className="akq-knopf" href={`mailto:${l.email}`}><Mail size={13} /> E-Mail</a>}
+        {l.website && <a className="akq-knopf" href={l.website} target="_blank" rel="noopener noreferrer"><Globe size={13} /> {domain(l.website)}</a>}
+        <a className="akq-knopf" href={`/fuer/${l.token}`} target="_blank" rel="noopener noreferrer" title="Was der Betrieb gesehen hat"><ExternalLink size={13} /> Seite</a>
+        {!kontakt && <a className="akq-knopf" href={`/admin/akquise/post?betrieb=${l.betrieb_id}`}>Zweiten Brief <ArrowRight size={12} /></a>}
+      </footer>
+    </article>
+  );
+}
 // „vor 3 Std.“ für die Aktivitaet; aelter als eine Woche: Datum.
 function vorWann(iso: string) {
   const t = new Date(iso.replace(" ", "T") + (iso.includes("Z") ? "" : "Z")).getTime();
@@ -84,6 +126,12 @@ export default function VertriebUebersicht() {
 
       <div className="vu-kopf">
         <span className="vu-leise">{g?.erster ? `Briefe seit ${datum(g.erster)} · zuletzt ${datum(g.letzter)}` : laedt ? "Wird geladen …" : "Noch keine Briefe verschickt."}</span>
+        {!!(d?.offen.fehler || d?.offen.freigegeben || d?.offen.entwurf) && (
+          <a className="vu-offen" href="/admin/akquise/post">
+            {[d?.offen.entwurf ? `${d.offen.entwurf} Entwürfe` : "", d?.offen.freigegeben ? `${d.offen.freigegeben} freigegeben, nicht gesendet` : "", d?.offen.fehler ? `${d.offen.fehler} mit Fehler` : ""].filter(Boolean).join(" · ")}
+            <ArrowRight size={13} />
+          </a>
+        )}
         <button type="button" className="akq-knopf" onClick={laden} disabled={laedt}><RefreshCw size={13} className={laedt ? "akq-dreht" : undefined} /> Aktualisieren</button>
       </div>
 
@@ -114,11 +162,6 @@ export default function VertriebUebersicht() {
           <p className="vu-wert">{lxp?.guthaben_cent != null ? euro(lxp.guthaben_cent) : "—"}</p>
           <p className="vu-unter">{reichtFuer != null ? `reicht für ca. ${zahl(reichtFuer)} Briefe` : "LetterXpress"}</p>
         </div>
-        <div className={`vu-kachel${g?.zurueck ? " warn" : ""}`}>
-          <p className="vu-titel">Rückläufer</p>
-          <p className="vu-wert">{quote(g?.zurueck, g?.briefe)}</p>
-          <p className="vu-unter">{zahl(g?.zurueck)} {g?.zurueck === 1 ? "Brief kam" : "Briefe kamen"} zurück</p>
-        </div>
       </div>
 
       <div className="vu-raster">
@@ -135,80 +178,48 @@ export default function VertriebUebersicht() {
               </li>
             ))}
           </ol>
-          <p className="vu-fuss">Gezählt ohne deine eigenen Geräte und ohne die ersten zwei Tage nach dem Versand.</p>
         </section>
 
-        {/* Zu tun */}
+        {/* Verlauf: Briefe je Woche, darunter die Kosten der Woche */}
         <section className="mon-block vu-block">
-          <h2>Zu tun</h2>
-          {d && !d.kontakte.length && !d.warm.length && !d.ruecklaeufer.length && !d.offen.fehler && !d.offen.freigegeben && (
-            <p className="mon-leer">Nichts offen.</p>
-          )}
-          {!!d?.kontakte.length && (
-            <div className="vu-aufgabe gut">
-              <p className="vu-aufgabe-titel">Melden – Kontakt erlaubt ({d.kontakte.length})</p>
-              <ul>
-                {d.kontakte.map(k => (
-                  <li key={k.id}>
-                    <span><b>{k.name}</b>{k.ort ? ` · ${k.ort}` : ""} <span className="vu-leise">{vorWann(k.kontakt_erlaubt)}</span></span>
-                    {k.telefon ? <a className="akq-knopf" href={telLink(k.telefon)}><Phone size={12} /> {k.telefon}</a>
-                      : <span className="vu-leise">Nummer im Internet suchen</span>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {!!d?.warm.length && (
-            <div className="vu-aufgabe">
-              <p className="vu-aufgabe-titel">Interessiert, aber noch kein Kontakt ({d.warm.length})</p>
-              <ul>
-                {d.warm.map(w => (
-                  <li key={w.id}>
-                    <span><b>{w.name}</b>{w.ort ? ` · ${w.ort}` : ""}</span>
-                    <span className="vu-leise">{w.demo_geoeffnet ? `Demo ${vorWann(w.demo_geoeffnet)}` : `${w.aufrufe}× geöffnet`}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="vu-fuss">Kandidaten für den zweiten Brief.</p>
-            </div>
-          )}
-          {!!d?.ruecklaeufer.length && (
-            <div className="vu-aufgabe warn">
-              <p className="vu-aufgabe-titel">Rückläufer – Anschrift prüfen ({d.ruecklaeufer.length})</p>
-              <ul>
-                {d.ruecklaeufer.map(r => (
-                  <li key={r.id}>
-                    <span><b>{r.name || "Betrieb"}</b> <span className="vu-leise">{[r.strasse, [r.plz, r.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</span></span>
-                    <span className="vu-leise">{r.im_korb ? "im Papierkorb" : r.google ? "Google-Eintrag vorhanden" : "nur OpenStreetMap"}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {!!(d?.offen.fehler || d?.offen.freigegeben || d?.offen.entwurf) && (
-            <a className="vu-aufgabe vu-link" href="/admin/akquise/post">
-              <span>{[d?.offen.entwurf ? `${d.offen.entwurf} Entwürfe` : "", d?.offen.freigegeben ? `${d.offen.freigegeben} freigegeben, nicht gesendet` : "", d?.offen.fehler ? `${d.offen.fehler} mit Fehler` : ""].filter(Boolean).join(" · ")}</span>
-              <ArrowRight size={14} />
-            </a>
-          )}
-        </section>
-
-        {/* Verlauf */}
-        <section className="mon-block vu-block">
-          <h2>Briefe je Woche</h2>
+          <div className="vu-block-kopf">
+            <h2>Briefe je Woche</h2>
+            {g && <span className="vu-leise">{zahl(g.briefe)} Briefe · {euro(g.kosten_cent || 0)}</span>}
+          </div>
           {!d?.wochen.length ? <p className="mon-leer">Noch keine Briefe.</p> : (
             <div className="vu-wochen" role="list">
               {d.wochen.map(w => (
                 <div key={w.woche} className="vu-woche" role="listitem"
-                     title={`Woche ab ${datum(w.woche)}: ${w.briefe} Briefe · ${w.geoeffnet} Seite geöffnet · ${w.demo} Demo · ${w.kontakt} Kontakt · ${w.zurueck} Rückläufer · ${euro(w.kosten_cent)}`}>
+                     title={`Woche ab ${datum(w.woche)}: ${w.briefe} Briefe · ${euro(w.kosten_cent)} · ${w.geoeffnet} Seite geöffnet · ${w.demo} Demo · ${w.kontakt} Kontakt`}>
                   <b>{w.briefe}</b>
                   <span className="vu-woche-spur"><i style={{ height: `${(w.briefe / maxWoche) * 100}%` }} /></span>
-                  <span className="vu-leise">{new Date(w.woche).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}</span>
+                  <span className="vu-woche-datum">{new Date(w.woche).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}</span>
+                  <span className="vu-woche-kosten">{euro(w.kosten_cent)}</span>
                 </div>
               ))}
             </div>
           )}
-          <p className="vu-fuss">Balken = verschickte Briefe, Woche ab Montag. Mit der Maus auf einen Balken: Reaktionen und Kosten.</p>
+        </section>
+
+        {/* Wer reagiert hat – breit, mit Karten je Betrieb */}
+        <section className="mon-block vu-block vu-breit">
+          <div className="vu-block-kopf">
+            <h2>Wer reagiert hat</h2>
+            {d && <span className="vu-leise">{zahl(d.kontakte.length)} mit Kontakt-Erlaubnis · {zahl(d.warm.length)} interessiert</span>}
+          </div>
+          {d && !d.kontakte.length && !d.warm.length && <p className="mon-leer">Noch keine Reaktion auf die Briefe.</p>}
+          {!!d?.kontakte.length && (
+            <>
+              <p className="vu-gruppe gut">Kontakt erlaubt – jetzt melden</p>
+              <div className="vu-leads">{d.kontakte.map(k => <LeadKarte key={k.id} l={k} kontakt />)}</div>
+            </>
+          )}
+          {!!d?.warm.length && (
+            <>
+              <p className="vu-gruppe">Interessiert – Demo angesehen oder Seite mehrfach geöffnet, aber noch kein Kontakt</p>
+              <div className="vu-leads">{d.warm.map(w => <LeadKarte key={w.id} l={w} kontakt={false} />)}</div>
+            </>
+          )}
         </section>
 
         {/* Letzte Aktivitaet */}
