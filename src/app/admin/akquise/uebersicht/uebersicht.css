@@ -13,7 +13,41 @@
 .vu-kachel.gut .vu-wert { color:#1d8a52; }
 .vu-kachel.warn .vu-wert, .vu-kachel.warn .vu-unter { color:#b45309; }
 
-.vu-raster { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; align-items:start; }
+.vu-raster { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; align-items:stretch; }
+/* Sehr breite Bildschirme: drei Spalten, feste Anordnung statt Luecken. */
+@media (min-width:1700px) {
+  .vu-raster { grid-template-columns:repeat(3, minmax(0, 1fr)); grid-template-areas:
+    "trichter wochen aktivitaet"
+    "reagiert reagiert reagiert"
+    "kategorie region bestand"
+    "dienste dienste dienste"; }
+  .vu-s-trichter { grid-area:trichter; } .vu-s-wochen { grid-area:wochen; } .vu-s-aktivitaet { grid-area:aktivitaet; }
+  .vu-s-reagiert { grid-area:reagiert; } .vu-s-kategorie { grid-area:kategorie; } .vu-s-region { grid-area:region; }
+  .vu-s-bestand { grid-area:bestand; } .vu-s-dienste { grid-area:dienste; }
+  .vu-s-dienste .vu-dienste { grid-template-columns:repeat(4, minmax(0, 1fr)); gap:0 24px; }
+  .vu-s-dienste .vu-dienste li { border-bottom:0; }
+  .vu-s-aktivitaet .vu-feed { max-height:330px; overflow-y:auto; }
+  .vu-s-trichter .vu-trichter li { grid-template-columns:104px minmax(0, 1fr) 34px 64px; gap:10px; }
+}
+/* Einlaufen: Kacheln und Bloecke nacheinander, Balken wachsen. */
+@keyframes vu-rein { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+@keyframes vu-breiter { from { transform:scaleX(0); } }
+@keyframes vu-hoeher { from { transform:scaleY(0); } }
+@keyframes vu-schimmer { 0% { background-position:-200px 0; } 100% { background-position:200px 0; } }
+.vu-kachel { animation:vu-rein .45s ease both; }
+.vu-kachel:nth-child(2) { animation-delay:.05s; } .vu-kachel:nth-child(3) { animation-delay:.1s; }
+.vu-kachel:nth-child(4) { animation-delay:.15s; } .vu-kachel:nth-child(5) { animation-delay:.2s; }
+.vu-raster.da > .vu-block { animation:vu-rein .5s ease both; }
+.vu-raster.da > .vu-block:nth-child(2) { animation-delay:.08s; } .vu-raster.da > .vu-block:nth-child(3) { animation-delay:.16s; }
+.vu-raster.da > .vu-block:nth-child(4) { animation-delay:.22s; } .vu-raster.da > .vu-block:nth-child(n+5) { animation-delay:.28s; }
+.vu-raster:not(.da) > .vu-block { opacity:.4; }
+.vu-kacheln.laedt .vu-wert { color:transparent; border-radius:6px; background:linear-gradient(90deg, var(--mon-off, rgba(100,116,139,.12)) 0%, rgba(148,163,184,.22) 50%, var(--mon-off, rgba(100,116,139,.12)) 100%) 0 0 / 400px 100%; animation:vu-schimmer 1.2s linear infinite; width:70%; }
+.vu-kachel { transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+.vu-kachel:hover { transform:translateY(-2px); box-shadow:0 10px 24px rgba(15,23,42,.08); border-color:color-mix(in srgb, var(--accent) 35%, var(--border)); }
+@media (prefers-reduced-motion:reduce) {
+  .vu-kachel, .vu-raster.da > .vu-block, .vu-trichter-spur i, .vu-woche-spur i { animation:none !important; }
+  .vu-kachel:hover { transform:none; }
+}
 @media (max-width:1100px) { .vu-raster { grid-template-columns:1fr; } }
 .vu-block { margin-bottom:0; }
 .vu-block h2 { margin-bottom:14px; }
@@ -29,7 +63,7 @@
 .vu-trichter li { display:grid; grid-template-columns:130px minmax(0, 1fr) 48px 96px; align-items:center; gap:12px; }
 .vu-trichter-titel { font-size:.84rem; color:var(--fg); }
 .vu-trichter-spur { height:12px; border-radius:6px; background:var(--mon-off, rgba(100,116,139,.12)); overflow:hidden; }
-.vu-trichter-spur i { display:block; height:100%; border-radius:6px; background:var(--accent); }
+.vu-trichter-spur i { display:block; height:100%; border-radius:6px; background:var(--accent); transform-origin:left; animation:vu-breiter .9s cubic-bezier(.2,.7,.2,1) .2s both; }
 .vu-trichter li:last-child .vu-trichter-spur i { background:#1d8a52; }
 .vu-trichter b { text-align:right; font-variant-numeric:tabular-nums; }
 @media (max-width:560px) { .vu-trichter li { grid-template-columns:100px minmax(0, 1fr) 40px; } .vu-trichter li > .vu-leise { display:none; } }
@@ -37,10 +71,10 @@
 
 /* Briefe je Woche: senkrechte Balken, eine Farbe */
 .vu-wochen { display:flex; align-items:flex-end; gap:10px; height:210px; padding-top:6px; overflow-x:auto; }
-.vu-woche { flex:1 0 34px; max-width:64px; height:100%; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:default; }
+.vu-woche { flex:1 0 34px; max-width:96px; height:100%; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:default; }
 .vu-woche b { font-size:.78rem; font-variant-numeric:tabular-nums; }
 .vu-woche-spur { flex:1; width:100%; display:flex; align-items:flex-end; }
-.vu-woche-spur i { display:block; width:100%; min-height:2px; border-radius:4px 4px 0 0; background:var(--accent); }
+.vu-woche-spur i { display:block; width:100%; min-height:2px; border-radius:4px 4px 0 0; background:var(--accent); transform-origin:bottom; animation:vu-hoeher .8s cubic-bezier(.2,.7,.2,1) .25s both; }
 .vu-woche:hover .vu-woche-spur i { filter:brightness(1.15); }
 .vu-woche-datum { font-size:.74rem; color:var(--fg-subtle); }
 .vu-woche-kosten { font-size:.74rem; font-weight:600; color:var(--fg-muted); font-variant-numeric:tabular-nums; white-space:nowrap; }

@@ -43,6 +43,26 @@ const AKT_LABEL: Record<Aktivitaet["art"], string> = {
 };
 
 const zahl = (n?: number | null) => (n == null ? "—" : n.toLocaleString("de-DE"));
+
+// Zahl, die beim Laden in ~0,7 s von 0 hochzaehlt (ohne Bewegung, wenn der
+// Nutzer reduzierte Bewegung eingestellt hat).
+function Hochzaehlen({ wert, format }: { wert: number | null | undefined; format: (n: number) => string }) {
+  const [jetzt, setJetzt] = useState<number | null>(null);
+  useEffect(() => {
+    if (wert == null) return;
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const start = performance.now(), dauer = still ? 0 : 700;
+    let rahmen = 0;
+    const schritt = (t: number) => {
+      const p = dauer ? Math.min(1, (t - start) / dauer) : 1;
+      setJetzt(wert * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) rahmen = requestAnimationFrame(schritt);
+    };
+    rahmen = requestAnimationFrame(schritt);
+    return () => cancelAnimationFrame(rahmen);
+  }, [wert]);
+  return <>{wert == null ? "—" : format(jetzt ?? 0)}</>;
+}
 const quote = (teil?: number, ganz?: number) => (ganz ? `${(Math.round(((teil || 0) / ganz) * 1000) / 10).toLocaleString("de-DE")} %` : "—");
 const telLink = (t: string) => `tel:${t.replace(/[^\d+]/g, "")}`;
 const befundAnzahl = (roh: string | null) => { try { return (JSON.parse(roh || "[]") as unknown[]).length; } catch { return 0; } };
@@ -136,37 +156,37 @@ export default function VertriebUebersicht() {
       </div>
 
       {/* Kopfzahlen */}
-      <div className="vu-kacheln">
+      <div className={`vu-kacheln${d ? "" : " laedt"}`}>
         <div className="vu-kachel">
           <p className="vu-titel">Briefe verschickt</p>
-          <p className="vu-wert">{zahl(g?.briefe)}</p>
+          <p className="vu-wert"><Hochzaehlen wert={g?.briefe} format={n => zahl(Math.round(n))} /></p>
           <p className="vu-unter">{d?.monat ? `${new Date().toLocaleDateString("de-DE", { month: "long" })}: ${zahl(d.monat.briefe)}` : ""}</p>
         </div>
         <div className="vu-kachel">
           <p className="vu-titel">Seite geöffnet</p>
-          <p className="vu-wert">{quote(g?.geoeffnet, g?.briefe)}</p>
+          <p className="vu-wert">{g?.briefe ? <Hochzaehlen wert={(g.geoeffnet / g.briefe) * 100} format={n => `${(Math.round(n * 10) / 10).toLocaleString("de-DE")} %`} /> : "—"}</p>
           <p className="vu-unter">{zahl(g?.geoeffnet)} von {zahl(g?.briefe)} Betrieben</p>
         </div>
         <div className={`vu-kachel${g?.kontakt ? " gut" : ""}`}>
           <p className="vu-titel">Kontakt erlaubt</p>
-          <p className="vu-wert">{zahl(g?.kontakt)}</p>
+          <p className="vu-wert"><Hochzaehlen wert={g?.kontakt} format={n => zahl(Math.round(n))} /></p>
           <p className="vu-unter">{zahl(g?.demo)} {g?.demo === 1 ? "hat" : "haben"} die Demo angesehen</p>
         </div>
         <div className="vu-kachel">
           <p className="vu-titel">Ausgegeben</p>
-          <p className="vu-wert">{euro(g?.kosten_cent || 0)}</p>
+          <p className="vu-wert"><Hochzaehlen wert={g ? g.kosten_cent || 0 : null} format={n => euro(Math.round(n))} /></p>
           <p className="vu-unter">{reaktionen ? `${euro(Math.round((g?.kosten_cent || 0) / reaktionen))} je Reaktion` : "noch keine Reaktion"}</p>
         </div>
         <div className={`vu-kachel${reichtFuer != null && reichtFuer < 10 ? " warn" : ""}`}>
           <p className="vu-titel">Guthaben</p>
-          <p className="vu-wert">{lxp?.guthaben_cent != null ? euro(lxp.guthaben_cent) : "—"}</p>
+          <p className="vu-wert"><Hochzaehlen wert={lxp?.guthaben_cent} format={n => euro(Math.round(n))} /></p>
           <p className="vu-unter">{reichtFuer != null ? `reicht für ca. ${zahl(reichtFuer)} Briefe` : "LetterXpress"}</p>
         </div>
       </div>
 
-      <div className="vu-raster">
+      <div className={`vu-raster${d ? " da" : ""}`}>
         {/* Trichter */}
-        <section className="mon-block vu-block">
+        <section className="mon-block vu-block vu-s-trichter">
           <h2>Vom Brief zum Gespräch</h2>
           <ol className="vu-trichter">
             {stufen.map(s => (
@@ -181,7 +201,7 @@ export default function VertriebUebersicht() {
         </section>
 
         {/* Verlauf: Briefe je Woche, darunter die Kosten der Woche */}
-        <section className="mon-block vu-block">
+        <section className="mon-block vu-block vu-s-wochen">
           <div className="vu-block-kopf">
             <h2>Briefe je Woche</h2>
             {g && <span className="vu-leise">{zahl(g.briefe)} Briefe · {euro(g.kosten_cent || 0)}</span>}
@@ -202,7 +222,7 @@ export default function VertriebUebersicht() {
         </section>
 
         {/* Wer reagiert hat – breit, mit Karten je Betrieb */}
-        <section className="mon-block vu-block vu-breit">
+        <section className="mon-block vu-block vu-s-reagiert vu-breit">
           <div className="vu-block-kopf">
             <h2>Wer reagiert hat</h2>
             {d && <span className="vu-leise">{zahl(d.kontakte.length)} mit Kontakt-Erlaubnis · {zahl(d.warm.length)} interessiert</span>}
@@ -223,7 +243,7 @@ export default function VertriebUebersicht() {
         </section>
 
         {/* Letzte Aktivitaet */}
-        <section className="mon-block vu-block">
+        <section className="mon-block vu-block vu-s-aktivitaet">
           <h2>Letzte Aktivität</h2>
           {!d?.aktivitaet.length ? <p className="mon-leer">Noch nichts passiert.</p> : (
             <ul className="vu-feed">
@@ -240,7 +260,7 @@ export default function VertriebUebersicht() {
 
         {/* Aufschluesselung */}
         {(["nach_kategorie", "nach_region"] as const).map(k => (
-          <section key={k} className="mon-block vu-block">
+          <section key={k} className={`mon-block vu-block vu-s-${k === "nach_kategorie" ? "kategorie" : "region"}`}>
             <h2>{k === "nach_kategorie" ? "Nach Kategorie" : "Nach Region"}</h2>
             {!d?.[k].length ? <p className="mon-leer">Noch keine Briefe.</p> : (
               <div className="post-huelle">
@@ -265,7 +285,7 @@ export default function VertriebUebersicht() {
         ))}
 
         {/* Bestand */}
-        <section className="mon-block vu-block">
+        <section className="mon-block vu-block vu-s-bestand">
           <h2>Noch nicht angeschrieben</h2>
           {!d?.bestand.length ? <p className="mon-leer">Keine passenden Betriebe mehr – neuen Suchlauf starten.</p> : (
             <ul className="vu-bestand">
@@ -281,7 +301,7 @@ export default function VertriebUebersicht() {
         </section>
 
         {/* Dienste */}
-        <section className="mon-block vu-block">
+        <section className="mon-block vu-block vu-s-dienste">
           <h2>Dienste</h2>
           <ul className="vu-dienste">
             <li>
