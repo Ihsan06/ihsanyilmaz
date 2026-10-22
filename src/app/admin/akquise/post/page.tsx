@@ -58,7 +58,7 @@ type Einstellungen = {
 type Zaehler = { entwurf: number; freigegeben: number; gesendet: number; zugestellt: number; fehler: number; storniert: number; aufrufe: number; demo: number; kontakt?: number; kosten_cent?: number; kosten_monat_cent?: number };
 type Stand = { eingerichtet: boolean; modus: string; anbieter: string; guthaben_cent?: number; preis_cent?: number };
 type Sperre = { id: number; betrieb_id: number | null; name: string | null; ort: string | null; grund: string | null; angelegt: string };
-type Editor = { brief: Brief; betrieb: BetriebKurz | null; kandidaten: Kandidat[] };
+type Editor = { brief: Brief; betrieb: BetriebKurz | null; kandidaten: Kandidat[]; vorschau?: boolean };
 type Reiter = "briefe" | "brief" | "sammel" | "zweiter" | "vorlage" | "sperrliste";
 // Was links in der Vorschau steht: chip sagt, woher (Entwurf, Beispiel …).
 type Schau = {
@@ -143,7 +143,10 @@ const CTA = {
   scan: "Ihre persönliche Seite: mit der Handykamera scannen oder die Adresse eintippen. Dort finden Sie die Demo und können mit einem Klick um Kontakt bitten.",
   anrufen: "Oder anrufen:",
   teaser: "Rückseite: So kann Ihre Website aussehen »",
+  // Zweiter Brief mit Website-Vorschau: der QR-Code fuehrt direkt dorthin.
+  scanVorschau: "Ihre Website-Vorschau: mit der Handykamera scannen oder die Adresse eintippen. Dort können Sie mich mit einem Klick bitten, mich zu melden.",
 };
+const scanText = (text: string) => (text.includes("eine Vorschau gebaut") ? CTA.scanVorschau : CTA.scan);
 const A4_H = PageSizes.A4[1];
 
 // Rueckseite (farbig, beidseitig gedruckt): ein Bild je Falzfeld, nichts
@@ -447,7 +450,7 @@ async function pdfErzeugen(d: PdfDaten): Promise<{ bytes: Uint8Array; ueberlauf:
     seite.drawImage(qr, { x: mm(C.qrX), y: A4_H - mm(cy + C.qrVersatz + C.qr), width: mm(C.qr), height: mm(C.qr) });
     text(kurz, C.textX, cy + C.linkVersatz, 12.5, fett, FARBE.dunkel);
     let yy = cy + C.scanVersatz;
-    for (const l of umbrechen(CTA.scan, 9, mm(C.textBreite)).slice(0, 2)) { text(l, C.textX, yy, 9, font, FARBE.sekundaer); yy += C.scanZeile; }
+    for (const l of umbrechen(scanText(d.text), 9, mm(C.textBreite)).slice(0, 2)) { text(l, C.textX, yy, 9, font, FARBE.sekundaer); yy += C.scanZeile; }
     text(`${CTA.anrufen} ${a.telefon}`, C.textX, cy + C.anrufVersatz, 10, fett, FARBE.dunkel);
   }
   // Hinweis fest unten, hoechstens vier Zeilen – mehr zaehlt als Ueberlauf.
@@ -663,7 +666,7 @@ function Blatt({ text, empfaenger, absender, link, datumText, qr, befunde, gepru
               {qr && <img className="qr" src={qr} alt="QR-Code zum Link" />}
               <div className="text">
                 <b className="link">{linkKurz(link)}</b>
-                <p className="scan">{CTA.scan}</p>
+                <p className="scan">{scanText(text)}</p>
                 <b className="anruf">{CTA.anrufen} {absender.telefon}</b>
               </div>
             </div>
@@ -992,7 +995,7 @@ export default function PostSeite() {
     setFehler("");
     try {
       const d = await api("/api/admin/akquise/briefe", { method: "POST", body: JSON.stringify({ betrieb_id: betrieb.id, art }) });
-      editorSetzen({ brief: d.brief, betrieb: d.betrieb, kandidaten: d.kandidaten || [] });
+      editorSetzen({ brief: d.brief, betrieb: d.betrieb, kandidaten: d.kandidaten || [], vorschau: !!d.vorschau });
       setReiter("brief");
       ladeBriefe();
       setInfoRunde(n => n + 1);
@@ -1021,11 +1024,29 @@ export default function PostSeite() {
   }, [briefe]);
   const zweiteOffen = zweite.filter(z => !z.folge && !z.erster.kontakt_erlaubt).length;
 
+  // Website-Vorschauen je Betrieb (gebaut unter „Zweiter Brief“).
+  type VorschauKurz = { betrieb_id: number; modell: string | null; erstellt: string; ablauf: string; aufrufe: number; zuletzt_aufgerufen: string | null; gueltig: number };
+  const [vorschauen, setVorschauen] = useState<Record<number, VorschauKurz>>({});
+  const [baut, setBaut] = useState<Set<number>>(new Set());
+  const ladeVorschauen = useCallback(() => api("/api/admin/akquise/vorschau")
+    .then(d => setVorschauen(Object.fromEntries(((d.vorschauen || []) as VorschauKurz[]).map(v => [v.betrieb_id, v]))))
+    .catch(() => {}), []);
+  useEffect(() => { if (reiter === "zweiter") ladeVorschauen(); }, [reiter, ladeVorschauen]);
+  const vorschauBauen = async (betriebId: number, name: string) => {
+    setBaut(s => new Set(s).add(betriebId)); setFehler(""); setMeldung("");
+    try {
+      const d = await api("/api/admin/akquise/vorschau", { method: "POST", body: JSON.stringify({ betrieb_id: betriebId }) });
+      setMeldung(d.hinweis ? `Vorschau für ${name} gebaut. ${d.hinweis}` : `Vorschau für ${name} gebaut – 30 Tage gültig.`);
+      await ladeVorschauen();
+    } catch (e) { zeigeFehler(e); }
+    finally { setBaut(s => { const n = new Set(s); n.delete(betriebId); return n; }); }
+  };
+
   const briefOeffnen = async (id: number) => {
     setFehler("");
     try {
       const d = await api(`/api/admin/akquise/briefe?id=${id}`);
-      editorSetzen({ brief: d.brief, betrieb: d.betrieb, kandidaten: d.kandidaten || [] });
+      editorSetzen({ brief: d.brief, betrieb: d.betrieb, kandidaten: d.kandidaten || [], vorschau: !!d.vorschau });
       setReiter("brief");
     } catch (e) { zeigeFehler(e); }
   };
@@ -1040,7 +1061,7 @@ export default function PostSeite() {
     if (!editor || !einst) return "";
     return briefFuellen(editor.brief.art === "nachfass" ? einst.vorlage_nachfass : einst.vorlage, {
       firma: editor.betrieb?.name || editor.brief.betrieb_name || "", ort: editor.betrieb?.ort || "",
-      befunde, link, absender: einst.absender, datum: datumDeutsch(new Date()), referenz: einst.referenz,
+      befunde, link, absender: einst.absender, datum: datumDeutsch(new Date()), referenz: einst.referenz, vorschau: !!editor.vorschau,
     }) as string;
   };
 
@@ -1679,12 +1700,13 @@ export default function PostSeite() {
           <h2>Zweiter Brief</h2>
           <p className="post-hinweis mb-4">
             Alle, die auf den ersten Brief reagiert haben – Seite geöffnet, Demo angesehen oder Kontakt erlaubt. Wärmste zuerst.
+            Erst die Website-Vorschau bauen, dann den zweiten Brief anlegen – dann verweist der Brief auf die Vorschau und sein QR-Code führt direkt dorthin.
             Wer Kontakt erlaubt hat, rufst du besser an.
           </p>
           {zweite.length === 0 ? <p className="mon-leer">Noch hat niemand reagiert.</p> : (
             <div className="post-huelle">
               <table className="mon-tabelle post-tabelle post-zweiter">
-                <thead><tr><th>Betrieb</th><th>Erster Brief</th><th>Reaktion</th><th>Zweiter Brief</th><th></th></tr></thead>
+                <thead><tr><th>Betrieb</th><th>Erster Brief</th><th>Reaktion</th><th>Website-Vorschau</th><th>Zweiter Brief</th><th></th></tr></thead>
                 <tbody>
                   {zweite.map(({ erster: b, folge }) => (
                     <tr key={b.id}>
@@ -1700,6 +1722,21 @@ export default function PostSeite() {
                         {b.kontakt_erlaubt && <span className="post-chip kontakt">Kontakt erlaubt {datum(b.kontakt_erlaubt)}</span>}
                         {(b.demo_geoeffnet || b.demo_angefordert) && <span className="post-chip demo">Demo {datum(b.demo_geoeffnet || b.demo_angefordert)}</span>}
                         {b.aufrufe > 0 && <span className="post-chip seite">Seite {b.aufrufe}×{b.zuletzt_aufgerufen ? ` · zuletzt ${datum(b.zuletzt_aufgerufen)}` : ""}</span>}
+                      </td>
+                      <td>
+                        {(() => {
+                          const v = vorschauen[b.betrieb_id];
+                          const laeuft = baut.has(b.betrieb_id);
+                          if (laeuft) return <span className="post-leise">Wird gebaut … (bis ca. 30 s)</span>;
+                          if (v && v.gueltig) return (
+                            <span className="post-vorschau">
+                              <a className="akq-knopf" href={`/fuer/${b.token}/website`} target="_blank" rel="noopener noreferrer"><ExternalLink size={12} /> Ansehen</a>
+                              <span className="post-unter">bis {datum(v.ablauf)} · {v.aufrufe ? `${v.aufrufe}× geöffnet` : "noch nicht geöffnet"}{v.modell === "vorlage" ? " · Standardtexte" : ""}</span>
+                              <button type="button" className="post-link-knopf" onClick={() => vorschauBauen(b.betrieb_id, b.betrieb_name || "Betrieb")}>neu bauen</button>
+                            </span>
+                          );
+                          return <button className="akq-knopf" onClick={() => vorschauBauen(b.betrieb_id, b.betrieb_name || "Betrieb")}>{v ? "Abgelaufen – neu bauen" : "Vorschau bauen"}</button>;
+                        })()}
                       </td>
                       <td>
                         {folge ? <><StatusBadge status={folge.status} /><span className="post-unter">{folge.gesendet_am ? `gesendet ${datum(folge.gesendet_am)}` : `angelegt ${datum(folge.angelegt)}`}</span></>

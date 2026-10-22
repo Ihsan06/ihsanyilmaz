@@ -263,4 +263,7 @@ a.post-kontakt:hover { text-decoration:underline; }
 .post-chip.demo { color:#6d28d9; background:rgba(124,58,237,.1); }
 .post-chip.seite { color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, transparent); }
 .post-zweiter .post-aktionen .btn-primary { text-decoration:none; }
+.post-vorschau { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+.post-link-knopf { all:unset; cursor:pointer; font-size:.76rem; color:var(--accent); }
+.post-link-knopf:hover { text-decoration:underline; }
 

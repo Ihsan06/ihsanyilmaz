@@ -29,6 +29,7 @@ import {
 } from '../../../_lib/brief.js';
 import { boersenName } from '../../../_lib/akquise.js';
 import * as lxp from '../../../_lib/letterxpress.js';
+import { vorschauLaden } from '../../../_lib/vorschau.js';
 import { postEinstellungenLaden } from './post-einstellungen.js';
 
 // zurueck = Rueckläufer: die Post kam zurueck (Anschrift falsch/Betrieb weg).
@@ -171,7 +172,8 @@ export async function onRequestGet({ request, env }) {
       if (!brief) return json({ ok: false, error: 'Brief nicht gefunden.' }, 404);
       const betrieb = await betriebLaden(env, brief.betrieb_id);
       const kandidaten = betrieb ? await kandidatenErmitteln(env, betrieb) : [];
-      return json({ ok: true, brief, betrieb: betriebKurz(betrieb), kandidaten });
+      const vorschau = brief.art === 'nachfass' && betrieb ? !!(await vorschauLaden(env, betrieb.id).catch(() => null)) : false;
+      return json({ ok: true, brief, betrieb: betriebKurz(betrieb), kandidaten, vorschau });
     }
 
     const wo = [];
@@ -264,8 +266,9 @@ async function entwurfAnlegen(body, env) {
   }
 
   const link = landingLink(e.landing_basis, token);
+  const vorschau = art === 'nachfass' ? !!(await vorschauLaden(env, betriebId).catch(() => null)) : false;
   const text = briefFuellen(art === 'nachfass' ? e.vorlage_nachfass : e.vorlage, {
-    firma: betrieb.name, ort: betrieb.ort, befunde, link, absender: e.absender, referenz: e.referenz,
+    firma: betrieb.name, ort: betrieb.ort, befunde, link, absender: e.absender, referenz: e.referenz, vorschau,
   });
   const empfaenger = art === 'test' ? absenderBlock(e.absender) : empfaengerBlock(betrieb);
 
@@ -275,7 +278,7 @@ async function entwurfAnlegen(body, env) {
   ).bind(betriebId, token, art, empfaenger, JSON.stringify(befunde), text).run();
 
   const brief = await briefLaden(env, meta?.last_row_id);
-  return json({ ok: true, brief, betrieb: betriebKurz(betrieb), kandidaten, link });
+  return json({ ok: true, brief, betrieb: betriebKurz(betrieb), kandidaten, link, vorschau });
 }
 
 // PDF aus dem Browser (pdf-lib) nach R2 unter akquise/<token>.pdf.

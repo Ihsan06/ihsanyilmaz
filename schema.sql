@@ -270,3 +270,16 @@ ALTER TABLE akquise_briefe ADD COLUMN kontakt_erlaubt TEXT;
 
 -- Rueckläufer: Datum, an dem die Post zurueckkam (Status 'zurueck').
 ALTER TABLE akquise_briefe ADD COLUMN zurueck_am TEXT;
+
+-- Website-Vorschau je Betrieb (/fuer/<token>/website): von Claude geschriebene
+-- Texte aus reinen Firmendaten (Name, Ort, Marken, Oeffnungszeiten) – nichts
+-- von der Website des Betriebs. Laeuft nach 30 Tagen ab.
+CREATE TABLE IF NOT EXISTS akquise_vorschauen (
+  betrieb_id INTEGER PRIMARY KEY,
+  texte TEXT NOT NULL,                            -- JSON { claim, unterzeile, ueber_uns, leistungen:[{titel,text}], vorteile:[] }
+  modell TEXT,
+  erstellt TEXT NOT NULL DEFAULT (datetime('now')),
+  ablauf TEXT NOT NULL,
+  aufrufe INTEGER NOT NULL DEFAULT 0,
+  zuletzt_aufgerufen TEXT
+);

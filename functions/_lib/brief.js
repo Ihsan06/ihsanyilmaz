@@ -37,6 +37,7 @@ export const PLATZHALTER = [
   { name: '{absender_email}', erklaerung: 'E-Mail aus den Absenderdaten' },
   { name: '{absender_telefon}', erklaerung: 'Telefon aus den Absenderdaten' },
   { name: '{datum}', erklaerung: 'heutiges Datum, z. B. 24. September 2026' },
+  { name: '{vorschau_satz}', erklaerung: 'zweiter Brief: Satz zur Website-Vorschau, wenn eine gebaut ist – sonst zur persönlichen Seite' },
 ];
 
 // Aufbau der Vorlage: erste Zeile = Betreff. Zeilen, die mit "– " beginnen,
@@ -74,7 +75,7 @@ Sehr geehrte Damen und Herren,
 
 vor ein paar Wochen habe ich Ihnen geschrieben, was mir an Ihrem Auftritt im Internet aufgefallen ist. Vielleicht ist der Brief im Alltag untergegangen – deshalb ein kurzer zweiter Anlauf.
 
-Ihre persönliche Seite ist weiterhin für Sie angelegt. Dort sehen Sie die Demo – und mit einem Klick können Sie mich bitten, mich bei Ihnen zu melden.
+{vorschau_satz}
 
 Wenn es gerade nicht passt, ist das völlig in Ordnung – dann bleibt es bei diesem Brief.
 
@@ -324,6 +325,9 @@ export function briefFuellen(vorlage, werte) {
     absender_telefon: sauber(absender.telefon),
     datum: w.datum || datumDeutsch(),
     referenz: sauber(w.referenz),
+    vorschau_satz: w.vorschau
+      ? `Inzwischen habe ich eine Vorschau gebaut, wie die Website von ${sauber(w.firma)} aussehen könnte – mit Ihrem Namen, Ihren Öffnungszeiten und Marken. Sie öffnet sich über den QR-Code unten; dort können Sie mich mit einem Klick bitten, mich zu melden.`
+      : 'Ihre persönliche Seite ist weiterhin für Sie angelegt. Dort sehen Sie die Demo – und mit einem Klick können Sie mich bitten, mich bei Ihnen zu melden.',
   };
   // Leere Platzhalter-Absaetze (z. B. ohne {referenz}) hinterlassen keine Luecke.
   return String(vorlage || '').replace(/\{([a-z_]+)\}/g, (voll, name) => (name in ersatz ? ersatz[name] : voll))

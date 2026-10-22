@@ -11,6 +11,7 @@
 import { TOKEN_RE, CHECK_LABELS, rueckChecks, quellenZeile } from '../_lib/brief.js';
 import { eigenerAufruf } from '../_lib/auth.js';
 import { postEinstellungenLaden } from '../api/admin/akquise/post-einstellungen.js';
+import { vorschauLaden } from '../_lib/vorschau.js';
 import { betriebMelden } from '../_lib/mitteilung.js';
 
 const STARTSEITE = 'https://ihsan-yilmaz.de';
@@ -130,6 +131,10 @@ const CSS = `
   label { font-size:.85rem; color:#B4BFC9; display:block; }
   .referenz p { margin:0 0 14px; color:#E6EBEF; }
   .referenz .knopf { white-space:normal; text-align:center; }
+  .vorschau-hinweis { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:28px; text-decoration:none; color:inherit; border-color:#2F9E5F; background:linear-gradient(180deg, #13261d, #111820); }
+  .vorschau-hinweis b { display:block; font-size:1.1rem; margin-bottom:4px; }
+  .vorschau-hinweis span:first-child { flex:1; min-width:220px; color:#B4BFC9; }
+  .vorschau-hinweis .knopf { background:#2F9E5F; }
   .kontakt-karte { border-color:#1B6FA8; background:linear-gradient(180deg, #13202b, #111820); }
   .kontakt-karte h2 { margin-bottom:4px; }
   .kontakt-karte p { margin:0 0 14px; color:#B4BFC9; }
@@ -188,7 +193,8 @@ export async function briefZuToken(env, token) {
   const z = await env.DB.prepare(
     `SELECT br.id, br.token, br.status, br.befunde, br.angelegt, br.gesendet_am,
             b.id AS betrieb_id, b.name, b.ort, b.art, b.marken, b.telefon, b.oeffnungszeiten,
-            b.status AS betrieb_status, b.geprueft_am, b.google_stand
+            b.status AS betrieb_status, b.geprueft_am, b.google_stand,
+            b.strasse, b.plz, b.lat, b.lng, b.google_bewertung, b.google_anzahl, br.art AS brief_art
      FROM akquise_briefe br LEFT JOIN akquise_betriebe b ON b.id = br.betrieb_id
      WHERE br.token = ?`,
   ).bind(token).first();
@@ -242,6 +248,14 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
   const token = String(params.token || '');
   const brief = await briefZuToken(env, token).catch(() => null);
   if (!brief) return nichtGefunden();
+  const vorschau = brief.betrieb_id ? await vorschauLaden(env, brief.betrieb_id).catch(() => null) : null;
+  // Der QR-Code des zweiten Briefs fuehrt direkt zur Website-Vorschau, wenn es
+  // eine gibt; die persoenliche Seite bleibt ueber den Hinweis oben erreichbar
+  // (?seite=1). Der Aufruf wird dort gezaehlt.
+  const url = new URL(request.url);
+  if (vorschau && brief.brief_art === 'nachfass' && !url.searchParams.has('seite')) {
+    return Response.redirect(new URL(`/fuer/${token}/website`, request.url).toString(), 302);
+  }
 
   // Zaehlen – hoechstens einmal je Minute je Token (also max. 60 je Stunde).
   // Nicht gezaehlt: eigene Geraete (Admin-Login, siehe eigenerAufruf),
@@ -293,6 +307,11 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
     <p class="eyebrow">Persönliche Seite</p>
     <h1>Für ${esc(firma)}</h1>
     <p class="unter">${esc([brief.ort, 'zu meinem Brief an Sie'].filter(Boolean).join(' · '))}</p>
+
+    ${vorschau ? `<a class="karte vorschau-hinweis" href="/fuer/${esc(token)}/website">
+      <span><b>Ihre Website-Vorschau ist fertig</b>So könnte die Website von ${esc(firma)} aussehen – mit Ihrem Namen, Ihren Öffnungszeiten und Marken.</span>
+      <span class="knopf">Vorschau ansehen</span>
+    </a>` : ''}
 
     <div class="vorschau">
       <div class="mock" aria-hidden="true">
