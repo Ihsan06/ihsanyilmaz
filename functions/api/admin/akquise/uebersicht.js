@@ -47,8 +47,6 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
              WHERE ${VERSCHICKT} AND b.demo_geoeffnet IS NOT NULL
            UNION ALL SELECT b.kontakt_erlaubt, 'kontakt', b.id, b.aufrufe, t.name, t.ort FROM akquise_briefe b LEFT JOIN akquise_betriebe t ON t.id = b.betrieb_id
              WHERE ${VERSCHICKT} AND b.kontakt_erlaubt IS NOT NULL
-           UNION ALL SELECT b.zurueck_am, 'zurueck', b.id, b.aufrufe, t.name, t.ort FROM akquise_briefe b LEFT JOIN akquise_betriebe t ON t.id = b.betrieb_id
-             WHERE b.status = 'zurueck' AND b.zurueck_am IS NOT NULL
          ) ORDER BY zeit DESC LIMIT 15`),
       q(`SELECT b.id, b.token, b.kontakt_erlaubt, b.gesendet_am, b.aufrufe, b.zuletzt_aufgerufen, b.demo_geoeffnet, b.befunde,
                 t.id AS betrieb_id, t.name, t.ort, t.telefon, t.email, t.website, t.status, t.kategorie, t.google_bewertung, t.google_anzahl
