@@ -420,6 +420,73 @@
     knopf.title = wort;
     const zeile = knopf.parentElement && knopf.parentElement.querySelector('.sm-meldung');
     if (zeile) zeile.textContent = wort;
+    laufMelden(wort);
+  }
+
+  // ─── Fortschrittsfenster beim direkten Posten ─────────────────────
+  //
+  // Frueher stand der Fortschritt nur in der kleinen Zeile unter dem Knopf,
+  // und erst am Ende sprang das Fenster "veroeffentlicht" auf. Jetzt bleibt
+  // das Fenster der Rueckfrage offen und zeigt die drei Schritte, bis
+  // Instagram fertig ist – man sieht, wo es steht, und wartet an einer
+  // Stelle. Die Schritte leiten sich aus den Meldungen ab, die ohnehin
+  // unterwegs sind (zugeschnitten → abgelegt → veroeffentlicht); so muss
+  // keine der beteiligten Funktionen das Fenster kennen.
+  const LAUF_SCHRITTE = [['schnitt', 'Bilder zuschneiden'], ['ablage', 'Hochladen'], ['post', 'Auf Instagram veröffentlichen']];
+
+  function laufZeigen(schleier, was, derDie) {
+    schleier.innerHTML = `<div class="vp-kasten vp-lauf" role="dialog" aria-modal="true"
+           aria-labelledby="vp-lauf-titel" aria-live="polite">
+      <span class="vp-ring" aria-hidden="true"><i></i>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+          <rect x="2.8" y="2.8" width="18.4" height="18.4" rx="5.2"/>
+          <circle cx="12" cy="12" r="4.1"/>
+          <circle cx="17.4" cy="6.6" r="1.2" fill="currentColor" stroke="none"/>
+        </svg>
+      </span>
+      <b id="vp-lauf-titel">${derDie} ${schuetzen(was)} geht raus …</b>
+      <ol class="vp-schritte">
+        ${LAUF_SCHRITTE.map(([k, t]) => `<li data-schritt="${k}"><i></i><span>${t}</span></li>`).join('')}
+      </ol>
+      <p class="vp-lauf-text">Einen Moment …</p>
+      <p class="vp-lauf-leise">Das Fenster darf zu – der Beitrag geht trotzdem raus.</p>
+    </div>`;
+  }
+
+  function laufMelden(wort) {
+    const lauf = document.querySelector('.vp-lauf');
+    if (!lauf) return;
+    const text = lauf.querySelector('.vp-lauf-text');
+    if (text) text.textContent = wort;
+    const stufe = /zugeschnitten/i.test(wort) ? 0
+      : /abgelegt/i.test(wort) ? 1
+      : /veröffentlicht|Story \d+ von/i.test(wort) ? 2 : -1;
+    if (stufe < 0) return;
+    lauf.querySelectorAll('.vp-schritte li').forEach((li, i) => {
+      li.classList.toggle('fertig', i < stufe);
+      li.classList.toggle('aktiv', i === stufe);
+    });
+  }
+
+  // Schiefgegangen: dasselbe Fenster, andere Farbe, ein Knopf zum Schliessen.
+  function laufFehler(grund) {
+    const schleier = document.querySelector('.vp-schleier');
+    const lauf = schleier && schleier.querySelector('.vp-lauf');
+    if (!lauf) return;
+    lauf.classList.add('vp-lauf-schief');
+    lauf.querySelector('.vp-ring').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+        <path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg>`;
+    lauf.querySelector('#vp-lauf-titel').textContent = 'Das hat nicht geklappt';
+    lauf.querySelector('.vp-lauf-text').textContent = grund || 'Unbekannter Fehler.';
+    lauf.querySelector('.vp-lauf-leise').remove();
+    lauf.querySelectorAll('.vp-schritte li.aktiv').forEach(li => li.classList.replace('aktiv', 'schief'));
+    const knoepfe = document.createElement('div');
+    knoepfe.className = 'vp-knoepfe';
+    knoepfe.innerHTML = '<button type="button" class="vp-nein">Schließen</button>';
+    lauf.append(knoepfe);
+    const zu = () => { schleier.remove(); document.documentElement.classList.remove('vp-offen'); };
+    knoepfe.querySelector('.vp-nein').addEventListener('click', zu);
+    knoepfe.querySelector('.vp-nein').focus();
   }
 
   async function teilen(feld, ziel, knopf, mitgegeben) {
@@ -895,6 +962,7 @@
     } catch (err) {
       console.error('Veroeffentlichen:', err);
       knopfText(knopf, 'Ging nicht: ' + err.message);
+      laufFehler(err.message);
     } finally {
       // Die Zwischenkopien haben ihren Zweck erfuellt – Instagram hat sie
       // beim Anlegen des Beitrags heruntergeladen. Liegen bleiben sollen sie
@@ -1069,7 +1137,12 @@
       schleier.addEventListener('click', e => { if (e.target === schleier) zu(); });
       schleier.querySelector('.vp-nein').addEventListener('click', zu);
       schleier.querySelector('.vp-ja').addEventListener('click', () => {
-        zu();
+        // Nicht schliessen, sondern umbauen: dasselbe Fenster zeigt jetzt
+        // den Fortschritt, bis erfolgZeigen() es in die Bestaetigung
+        // verwandelt. Escape oder ein Klick daneben schliessen nur das
+        // Fenster – der Beitrag laeuft weiter, die Bestaetigung kommt dann
+        // als eigenes Fenster.
+        laufZeigen(schleier, was, derDie);
         veroeffentlichen(feld, ziel, knopf, mitgegeben && mitgegeben());
       });
       schleier.querySelector('.vp-ja').focus();
@@ -1100,16 +1173,19 @@
   // leise fuer etwas, das gerade oeffentlich geworden ist – und der Weg zum
   // Beitrag ist der eine Schritt, den man jetzt gehen will.
   function erfolgZeigen(was, weg) {
+    // Laeuft das Fortschrittsfenster noch, wird es umgebaut statt ersetzt –
+    // der Haken springt dann in denselben Kasten, in dem man gewartet hat.
     const vorhandener = document.querySelector('.vp-schleier');
-    if (vorhandener) vorhandener.remove();
+    const umgebaut = !!(vorhandener && vorhandener.querySelector('.vp-lauf'));
+    if (vorhandener && !umgebaut) vorhandener.remove();
 
-    const schleier = document.createElement('div');
+    const schleier = umgebaut ? vorhandener : document.createElement('div');
     schleier.className = 'vp-schleier';
-    schleier.innerHTML = `<div class="vp-kasten" role="dialog" aria-modal="true"
+    schleier.innerHTML = `<div class="vp-kasten${umgebaut ? ' vp-geschafft' : ''}" role="dialog" aria-modal="true"
            aria-labelledby="vp-fertig-titel">
       <span class="vp-achtung vp-fertig" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
-          <path d="M4.5 12.5l5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="vp-haken-strich" d="M4.5 12.5l5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </span>
       <b id="vp-fertig-titel">${schuetzen(was)} veröffentlicht</b>
@@ -1128,7 +1204,7 @@
         <button type="button" class="vp-nein">Schließen</button>
       </div>
     </div>`;
-    document.body.append(schleier);
+    if (!umgebaut) document.body.append(schleier);
     document.documentElement.classList.add('vp-offen');
 
     const zu = () => {
