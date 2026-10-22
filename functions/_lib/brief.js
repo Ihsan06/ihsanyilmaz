@@ -77,7 +77,7 @@ Sie haben neulich auf meinen Brief reagiert – danke dafür.
 
 {vorschau_satz}
 
-Was es kostet: einmalig 500 bis 750 € zzgl. MwSt., je nach Umfang. Den genauen Preis nenne ich Ihnen vorab, das Gespräch dazu dauert zehn Minuten.
+Was es kostet: einmalig 500 bis 750 € (Endpreis), je nach Umfang. Den genauen Preis nenne ich Ihnen vorab, das Gespräch dazu dauert zehn Minuten.
 
 Mit freundlichen Grüßen
 
