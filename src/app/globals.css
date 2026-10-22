@@ -1108,3 +1108,8 @@ button.akq-brief-marke { border:0; font-family:inherit; line-height:inherit; cur
 .akq-auswahl-leiste > span svg { color:#f59e0b; fill:#f59e0b; }
 .akq-auswahl-leiste .btn-primary { display:inline-flex; align-items:center; gap:6px; border-radius:999px; text-decoration:none; }
 @media (max-width:700px) { .akq-auswahl-leiste { bottom:78px; gap:10px; border-radius:16px; } }
+/* Adminbereich: volle Breite, aber auf grossen Bildschirmen je Seite etwa 6 %
+   Luft (zusammen ~12 %), damit Zeilen nicht endlos lang werden. */
+@media (min-width:1280px) { .admin-haupt { padding-left:4vw !important; padding-right:4vw !important; } }
+@media (min-width:1600px) { .admin-haupt { padding-left:6vw !important; padding-right:6vw !important; } }
+

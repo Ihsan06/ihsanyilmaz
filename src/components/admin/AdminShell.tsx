@@ -293,7 +293,7 @@ export default function AdminShell({
       </aside>
 
       <div className="admin-inhalt flex-1 flex flex-col">
-        <main className="flex-1 px-6 lg:px-8 2xl:px-10 pt-7 lg:pt-10 pb-12 w-full min-w-0">
+        <main className="admin-haupt flex-1 px-6 lg:px-8 pt-7 lg:pt-10 pb-12 w-full min-w-0">
           <div className="mb-8">
             {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
             <h1 className="display-h text-3xl font-semibold text-[var(--fg)]">{titel}</h1>
@@ -302,7 +302,7 @@ export default function AdminShell({
           {children}
         </main>
 
-        <footer className="border-t border-[var(--border)] px-6 lg:px-8 py-4">
+        <footer className="admin-haupt border-t border-[var(--border)] px-6 lg:px-8 py-4">
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-xs text-[var(--fg-subtle)]">
             <span>© {jahr} AIY · Ihsan Yilmaz — Verwaltung</span>
             <nav className="flex flex-wrap gap-5">

@@ -4010,3 +4010,7 @@ html.leiste-zu .admin-unter { display: none; }
   font-size: .8rem; font-weight: 600; color: var(--text); text-decoration: none; background: var(--white, #fff);
 }
 .sm-entwurf-link:hover { border-color: var(--gold, #12557F); color: var(--gold, #12557F); }
+/* Wie AdminShell (globals.css .admin-haupt): je Seite etwa 6 % Luft auf grossen Bildschirmen. */
+@media (min-width: 1280px) { .admin-inhalt .container, .admin-fuss .container { padding-left: 4vw; padding-right: 4vw; } }
+@media (min-width: 1600px) { .admin-inhalt .container, .admin-fuss .container { padding-left: 6vw; padding-right: 6vw; } }
+
