@@ -39,11 +39,23 @@ const KAT_LABEL: Record<string, string> = {
   ohne_website: "Ohne Website", nur_boerse: "Nur Börse", baukasten: "Baukasten", veraltet: "Veraltet",
   mittel: "Mittel", gepflegt: "Gepflegt", offen: "Offen",
 };
-const AKT_LABEL: Record<Aktivitaet["art"], string> = {
-  aufruf: "QR-Code geöffnet", demo: "Demo angesehen", kontakt: "Kontakt erlaubt", zurueck: "Rückläufer",
-};
 
 const zahl = (n?: number | null) => (n == null ? "—" : n.toLocaleString("de-DE"));
+const AKT_KURZ: Record<Aktivitaet["art"], string> = { aufruf: "QR-Code", demo: "Demo", kontakt: "Kontakt erlaubt", zurueck: "Rückläufer" };
+const AKT_RANG: Record<Aktivitaet["art"], number> = { kontakt: 3, demo: 2, aufruf: 1, zurueck: 0 };
+// Mehrere Ereignisse zum selben Brief (QR-Code + Demo …) als eine Zeile, neuestes zuerst.
+function aktivitaetJeBetrieb(liste: Aktivitaet[]) {
+  const nach = new Map<number, { id: number; name: string | null; ort: string | null; zeit: string; arten: Aktivitaet[]; staerkste: Aktivitaet["art"] }>();
+  for (const a of liste) {
+    const e = nach.get(a.id);
+    if (!e) { nach.set(a.id, { id: a.id, name: a.name, ort: a.ort, zeit: a.zeit, arten: [a], staerkste: a.art }); continue; }
+    if (a.zeit > e.zeit) e.zeit = a.zeit;
+    if (!e.arten.some(x => x.art === a.art)) e.arten.push(a);
+    if (AKT_RANG[a.art] > AKT_RANG[e.staerkste]) e.staerkste = a.art;
+  }
+  return [...nach.values()].map(e => ({ ...e, arten: [...e.arten].sort((x, y) => AKT_RANG[y.art] - AKT_RANG[x.art]) }))
+    .sort((x, y) => (y.zeit > x.zeit ? 1 : -1));
+}
 
 // Zahl, die beim Laden in ~0,7 s von 0 hochzaehlt (ohne Bewegung, wenn der
 // Nutzer reduzierte Bewegung eingestellt hat).
@@ -134,8 +146,8 @@ export default function VertriebUebersicht() {
 
   // Trichter: jede Stufe als Anteil der verschickten Briefe.
   const stufen = g ? [
-    { titel: "Verschickt", wert: g.briefe, hinweis: `an ${zahl(g.betriebe)} Betriebe` },
-    { titel: "Angekommen", wert: g.briefe - (g.zurueck || 0), hinweis: `${zahl(g.zurueck)} Rückläufer` },
+    { titel: "Verschickt", wert: g.briefe, hinweis: "" },
+    { titel: "Angekommen", wert: g.briefe - (g.zurueck || 0), hinweis: g.zurueck ? `−${zahl(g.zurueck)} Rückläufer` : "" },
     { titel: "QR-Code geöffnet", wert: g.geoeffnet, hinweis: quote(g.geoeffnet, g.briefe) },
     { titel: "Demo angesehen", wert: g.demo, hinweis: quote(g.demo, g.briefe) },
     { titel: "Kontakt erlaubt", wert: g.kontakt, hinweis: quote(g.kontakt, g.briefe) },
@@ -192,10 +204,11 @@ export default function VertriebUebersicht() {
           <ol className="vu-trichter">
             {stufen.map(s => (
               <li key={s.titel} title={`${s.titel}: ${zahl(s.wert)} (${quote(s.wert, g?.briefe)} der Briefe)`}>
-                <span className="vu-trichter-titel">{s.titel}</span>
+                <span className="vu-trichter-zeile">
+                  <span className="vu-trichter-titel">{s.titel}</span>
+                  <span className="vu-trichter-wert">{s.hinweis && <span className="vu-leise">{s.hinweis}</span>}<b>{zahl(s.wert)}</b></span>
+                </span>
                 <span className="vu-trichter-spur"><i style={{ width: `${g?.briefe ? Math.max(1.5, (s.wert / g.briefe) * 100) : 0}%` }} /></span>
-                <b>{zahl(s.wert)}</b>
-                <span className="vu-leise">{s.hinweis}</span>
               </li>
             ))}
           </ol>
@@ -212,8 +225,10 @@ export default function VertriebUebersicht() {
               {d.wochen.map(w => (
                 <div key={w.woche} className="vu-woche" role="listitem"
                      title={`Woche ab ${datum(w.woche)}: ${w.briefe} Briefe · ${euro(w.kosten_cent)} · ${w.geoeffnet} QR-Code geöffnet · ${w.demo} Demo · ${w.kontakt} Kontakt`}>
-                  <b>{w.briefe}</b>
-                  <span className="vu-woche-spur"><i style={{ height: `${(w.briefe / maxWoche) * 100}%` }} /></span>
+                  <span className="vu-woche-spur">
+                    <b>{w.briefe}</b>
+                    <i style={{ height: `${(w.briefe / maxWoche) * 100}%` }} />
+                  </span>
                   <span className="vu-woche-datum">{new Date(w.woche).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}</span>
                   <span className="vu-woche-kosten">{euro(w.kosten_cent)}</span>
                 </div>
@@ -248,11 +263,17 @@ export default function VertriebUebersicht() {
           <h2>Letzte Aktivität</h2>
           {!d?.aktivitaet.length ? <p className="mon-leer">Noch nichts passiert.</p> : (
             <ul className="vu-feed">
-              {d.aktivitaet.map((a, i) => (
-                <li key={`${a.art}-${a.id}-${i}`} className={a.art}>
+              {aktivitaetJeBetrieb(d.aktivitaet).slice(0, 6).map(e => (
+                <li key={e.id} className={e.staerkste}>
                   <i aria-hidden="true" />
-                  <span><b>{a.name || "Betrieb"}</b>{a.ort ? ` · ${a.ort}` : ""}<br /><span className="vu-leise">{AKT_LABEL[a.art]}{a.art === "aufruf" && a.aufrufe > 1 ? ` (${a.aufrufe}×)` : ""}</span></span>
-                  <span className="vu-leise vu-zeit">{vorWann(a.zeit)}</span>
+                  <span className="vu-feed-text">
+                    <b>{e.name || "Betrieb"}</b>
+                    <span className="vu-feed-arten">
+                      {e.arten.map(a => <span key={a.art} className={`vu-feed-art ${a.art}`}>{AKT_KURZ[a.art]}{a.art === "aufruf" && a.aufrufe > 1 ? ` ${a.aufrufe}×` : ""}</span>)}
+                      {e.ort && <span className="vu-leise">{e.ort}</span>}
+                    </span>
+                  </span>
+                  <span className="vu-leise vu-zeit">{vorWann(e.zeit)}</span>
                 </li>
               ))}
             </ul>
