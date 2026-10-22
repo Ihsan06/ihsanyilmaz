@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpToLine, Check, ChevronDown, ChevronUp, CircleAlert, Download, Loader2, Mail, Plus, RefreshCw, RotateCcw, Search, Star, Trash2, Undo2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpToLine, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleAlert, Download, Loader2, Mail, Plus, RefreshCw, RotateCcw, Search, Star, Trash2, Undo2 } from "lucide-react";
 import AdminShell, { api, datum, InfoTipp } from "@/components/admin/AdminShell";
 import Karte from "./Karte";
 
@@ -1179,6 +1179,45 @@ function AkquiseCockpit() {
   const liste = useMemo(() => betriebe || [], [betriebe]);
   const sichtbar = useMemo(() => filterAnwenden(liste, filter), [liste, filter]);
 
+  // Seitenweise anzeigen: Groesse merkt sich der Browser, die Seite springt
+  // bei jeder Filteraenderung auf 1 zurueck.
+  const SEITEN_GROESSEN = [50, 100, 200, 0] as const; // 0 = alle
+  const [seitenGroesse, setSeitenGroesse] = useState<number>(() => {
+    try {
+      const roh = localStorage.getItem("akquise.seitengroesse");
+      const g = roh === null ? 100 : Number(roh);
+      return SEITEN_GROESSEN.includes(g as 0 | 50 | 100 | 200) ? g : 100;
+    } catch { return 100; }
+  });
+  // Die Seite gilt nur fuer den Filterstand, unter dem sie gewaehlt wurde –
+  // aendert sich ein Filter, zeigt die Liste wieder Seite 1 (ohne Effekt).
+  const filterSchluessel = JSON.stringify(filter);
+  const [seite, setSeite] = useState<{ n: number; stand: string }>({ n: 1, stand: "" });
+  const seitenAnzahl = seitenGroesse ? Math.max(1, Math.ceil(sichtbar.length / seitenGroesse)) : 1;
+  const seiteJetzt = Math.min(seite.stand === filterSchluessel ? seite.n : 1, seitenAnzahl);
+  const seitenStart = seitenGroesse ? (seiteJetzt - 1) * seitenGroesse : 0;
+  const aufSeite = useMemo(() => (seitenGroesse ? sichtbar.slice(seitenStart, seitenStart + seitenGroesse) : sichtbar), [sichtbar, seitenGroesse, seitenStart]);
+  const seiteWechseln = (n: number) => {
+    setSeite({ n: Math.max(1, Math.min(seitenAnzahl, n)), stand: filterSchluessel });
+    document.querySelector(".akq-leiste")?.scrollIntoView({ block: "start" });
+  };
+  const seitenGroesseSetzen = (g: number) => {
+    setSeitenGroesse(g); setSeite({ n: 1, stand: filterSchluessel });
+    try { localStorage.setItem("akquise.seitengroesse", String(g)); } catch { /* egal */ }
+  };
+  // Seitenzahlen: 1 … n mit Luecken, immer die aktuelle und ihre Nachbarn.
+  const seitenZahlen = useMemo(() => {
+    const alle = Array.from({ length: seitenAnzahl }, (_, i) => i + 1);
+    if (seitenAnzahl <= 9) return alle;
+    const nah = new Set([1, 2, seitenAnzahl - 1, seitenAnzahl, seiteJetzt - 1, seiteJetzt, seiteJetzt + 1]);
+    const out: (number | null)[] = [];
+    for (const n of alle) {
+      if (nah.has(n)) out.push(n);
+      else if (out[out.length - 1] !== null) out.push(null);
+    }
+    return out;
+  }, [seitenAnzahl, seiteJetzt]);
+
   const signalOptionen = useMemo(() => {
     const codes = new Set<string>();
     for (const b of liste) for (const s of b.signale || []) codes.add(s.code);
@@ -1587,7 +1626,8 @@ function AkquiseCockpit() {
           <p className="mon-leer py-6 text-center">Kein Betrieb passt zu den Filtern.</p>
         ) : (
           <div className="akq-liste" role="table" aria-label="Betriebe">
-            {sichtbar.map((b, nr) => {
+            {aufSeite.map((b, i) => {
+              const nr = seitenStart + i;
               const istOffen = offen.has(b.id);
               const arbeitet = inArbeit.has(b.id);
               const hinweis = hinweise[b.id];
@@ -1829,6 +1869,28 @@ function AkquiseCockpit() {
               );
             })}
           </div>
+        )}
+        {!laedt && sichtbar.length > 0 && (
+          <nav className="akq-seiten" aria-label="Seiten">
+            <span className="akq-seiten-stand">
+              {seitenGroesse ? `${zahl(seitenStart + 1)}–${zahl(Math.min(sichtbar.length, seitenStart + seitenGroesse))}` : zahl(sichtbar.length)} von {zahl(sichtbar.length)}
+            </span>
+            {seitenAnzahl > 1 && (
+              <span className="akq-seiten-zahlen">
+                <button type="button" className="akq-knopf akq-symbol" onClick={() => seiteWechseln(seiteJetzt - 1)} disabled={seiteJetzt === 1} aria-label="Vorherige Seite"><ChevronLeft size={14} /></button>
+                {seitenZahlen.map((n, i) => n === null
+                  ? <span key={`l${i}`} className="akq-seiten-luecke">…</span>
+                  : <button key={n} type="button" className={`akq-seite${n === seiteJetzt ? " an" : ""}`} onClick={() => seiteWechseln(n)} aria-current={n === seiteJetzt ? "page" : undefined}>{n}</button>)}
+                <button type="button" className="akq-knopf akq-symbol" onClick={() => seiteWechseln(seiteJetzt + 1)} disabled={seiteJetzt === seitenAnzahl} aria-label="Nächste Seite"><ChevronRight size={14} /></button>
+              </span>
+            )}
+            <label className="akq-seiten-groesse">
+              je Seite
+              <select value={seitenGroesse} onChange={e => seitenGroesseSetzen(Number(e.target.value))} className="field px-2 py-1 text-sm">
+                {SEITEN_GROESSEN.map(g => <option key={g} value={g}>{g === 0 ? "alle" : g}</option>)}
+              </select>
+            </label>
+          </nav>
         )}
       </section>
 
