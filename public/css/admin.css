@@ -272,7 +272,7 @@ html.leiste-zu .admin-inhalt { margin-left: 68px; }
 }
 html.leiste-zu .admin-fuss { margin-left: 68px; }
 .admin-fuss .container {
-  max-width: 1340px;
+  max-width: none;
   padding-left: 20px;
   padding-right: 20px;
   display: flex; align-items: center; justify-content: space-between;
@@ -293,10 +293,10 @@ body.admin .admin-inhalt { flex: 1; }
   .admin-inhalt .container { padding-left: 16px; padding-right: 16px; }
   .admin-fuss { margin-left: 0; }
 }
-/* Mit der Leiste daneben darf der Inhalt breiter laufen als die 1160 der
-   Website – sonst bliebe rechts ein toter Streifen. */
+/* Mit der Leiste daneben nutzt der Inhalt die volle Breite – sonst bliebe
+   auf grossen Bildschirmen rechts ein toter Streifen. */
 .admin-inhalt .container {
-  max-width: 1340px;
+  max-width: none;
   padding-left: 20px;
   padding-right: 20px;
 }
