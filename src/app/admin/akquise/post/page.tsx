@@ -1266,7 +1266,9 @@ export default function PostSeite() {
 
   // ---- Anzeige
 
-  const gesendetGesamt = (zaehler?.gesendet || 0) + (zaehler?.zugestellt || 0);
+  // Wie in der Übersicht: auch Rückläufer zählen als verschickt (sie kosten ja).
+  const zurueck = (zaehler as (Zaehler & { zurueck?: number }) | null)?.zurueck || 0;
+  const gesendetGesamt = (zaehler?.gesendet || 0) + (zaehler?.zugestellt || 0) + zurueck;
   const gewaehlteCodes = new Set(editor?.brief.befunde.map(b => b.code) || []);
   const imEntwurf = editor?.brief.status === "entwurf";
   const bearbeitbar = imEntwurf && !!einst;
@@ -1324,7 +1326,7 @@ export default function PostSeite() {
               : <span className="post-modus aus"><i aria-hidden="true" />nicht eingerichtet</span>}
           </header>
           <div className="post-zahlen-reihe">
-            <Zahl titel="Gesendet" wert={zahl(gesendetGesamt)} unter={zaehler?.zugestellt ? `${zahl(zaehler.zugestellt)} zugestellt` : "Briefe"} />
+            <Zahl titel="Gesendet" wert={zahl(gesendetGesamt)} unter={[zaehler?.zugestellt ? `${zahl(zaehler.zugestellt)} zugestellt` : "", zurueck ? `${zahl(zurueck)} Rückläufer` : ""].filter(Boolean).join(" · ") || "Briefe"} />
             <Zahl titel="Guthaben" wert={stand?.guthaben_cent != null ? euro(stand.guthaben_cent) : "—"}
                   unter={reichtFuer != null ? `reicht für ca. ${zahl(reichtFuer)} Briefe` : "bei LetterXpress"} warnung={reichtFuer != null && reichtFuer < 10} />
             <Zahl titel="Ausgegeben" wert={euro(zaehler?.kosten_cent ?? 0)} unter={`${monatName}: ${euro(zaehler?.kosten_monat_cent ?? 0)}`} />
