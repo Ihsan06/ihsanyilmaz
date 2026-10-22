@@ -1352,7 +1352,7 @@ export default function PostSeite() {
             <span className="post-zahlen-leise">auf {zahl(gesendetGesamt)} Briefe</span>
           </header>
           <div className="post-zahlen-reihe">
-            <Zahl titel="Seite geöffnet" wert={zahl(zaehler?.aufrufe)} unter="Aufrufe der persönlichen Seiten" />
+            <Zahl titel="QR-Code geöffnet" wert={zahl(zaehler?.aufrufe)} unter="Aufrufe der persönlichen Seiten" />
             <Zahl titel="Demo angesehen" wert={zahl(zaehler?.demo)} unter="geöffnet oder angefordert" />
             <Zahl titel="Kontakt erlaubt" wert={zahl(zaehler?.kontakt)} unter="per Klick – jetzt melden" hervor={!!zaehler?.kontakt} />
           </div>
@@ -1699,7 +1699,7 @@ export default function PostSeite() {
         <section className="mon-block">
           <h2>Zweiter Brief</h2>
           <p className="post-hinweis mb-4">
-            Alle, die auf den ersten Brief reagiert haben – Seite geöffnet, Demo angesehen oder Kontakt erlaubt. Wärmste zuerst.
+            Alle, die auf den ersten Brief reagiert haben – QR-Code geöffnet, Demo angesehen oder Kontakt erlaubt. Wärmste zuerst.
             Erst die Website-Vorschau bauen, dann den zweiten Brief anlegen – dann verweist der Brief auf die Vorschau und sein QR-Code führt direkt dorthin.
             Wer Kontakt erlaubt hat, rufst du besser an.
           </p>
@@ -1721,7 +1721,7 @@ export default function PostSeite() {
                       <td className="post-reaktion">
                         {b.kontakt_erlaubt && <span className="post-chip kontakt">Kontakt erlaubt {datum(b.kontakt_erlaubt)}</span>}
                         {(b.demo_geoeffnet || b.demo_angefordert) && <span className="post-chip demo">Demo {datum(b.demo_geoeffnet || b.demo_angefordert)}</span>}
-                        {b.aufrufe > 0 && <span className="post-chip seite">Seite {b.aufrufe}×{b.zuletzt_aufgerufen ? ` · zuletzt ${datum(b.zuletzt_aufgerufen)}` : ""}</span>}
+                        {b.aufrufe > 0 && <span className="post-chip seite">QR-Code {b.aufrufe}×{b.zuletzt_aufgerufen ? ` · zuletzt ${datum(b.zuletzt_aufgerufen)}` : ""}</span>}
                       </td>
                       <td>
                         {(() => {

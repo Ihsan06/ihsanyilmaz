@@ -5,6 +5,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ArrowRight, ExternalLink, Globe, Mail, Phone, RefreshCw } from "lucide-react";
 import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
+import { KAT_FARBE } from "../Karte";
 import "./uebersicht.css";
 
 type Kennzahlen = { briefe: number; zurueck: number; geoeffnet: number; demo: number; kontakt: number; kosten_cent: number };
@@ -39,7 +40,7 @@ const KAT_LABEL: Record<string, string> = {
   mittel: "Mittel", gepflegt: "Gepflegt", offen: "Offen",
 };
 const AKT_LABEL: Record<Aktivitaet["art"], string> = {
-  aufruf: "Seite geöffnet", demo: "Demo angesehen", kontakt: "Kontakt erlaubt", zurueck: "Rückläufer",
+  aufruf: "QR-Code geöffnet", demo: "Demo angesehen", kontakt: "Kontakt erlaubt", zurueck: "Rückläufer",
 };
 
 const zahl = (n?: number | null) => (n == null ? "—" : n.toLocaleString("de-DE"));
@@ -74,7 +75,7 @@ function LeadKarte({ l, kontakt }: { l: Lead; kontakt: boolean }) {
     ? { klasse: "kontakt", text: `Kontakt erlaubt · ${vorWann(l.kontakt_erlaubt)}` }
     : l.demo_geoeffnet
       ? { klasse: "demo", text: `Demo angesehen · ${vorWann(l.demo_geoeffnet)}` }
-      : { klasse: "seite", text: `Seite ${l.aufrufe}× geöffnet` };
+      : { klasse: "seite", text: `QR-Code ${l.aufrufe}× geöffnet` };
   return (
     <article className={`vu-lead ${zustand.klasse}`}>
       <header>
@@ -86,7 +87,7 @@ function LeadKarte({ l, kontakt }: { l: Lead; kontakt: boolean }) {
       </header>
       <dl className="vu-lead-daten">
         <div><dt>Brief</dt><dd>{l.gesendet_am ? datum(l.gesendet_am) : "—"}{l.briefe_bisher && l.briefe_bisher > 1 ? ` · ${l.briefe_bisher}. Brief` : ""}</dd></div>
-        <div><dt>Seite geöffnet</dt><dd>{l.aufrufe ? `${l.aufrufe}×${l.zuletzt_aufgerufen ? `, zuletzt ${vorWann(l.zuletzt_aufgerufen)}` : ""}` : "—"}</dd></div>
+        <div><dt>QR-Code geöffnet</dt><dd>{l.aufrufe ? `${l.aufrufe}×${l.zuletzt_aufgerufen ? `, zuletzt ${vorWann(l.zuletzt_aufgerufen)}` : ""}` : "—"}</dd></div>
         <div><dt>Demo</dt><dd>{l.demo_geoeffnet ? datum(l.demo_geoeffnet) : "nicht geöffnet"}</dd></div>
         <div><dt>Google</dt><dd>{l.google_anzahl != null ? `★ ${String(l.google_bewertung ?? "").replace(".", ",")} · ${l.google_anzahl} Bewertungen` : "—"}</dd></div>
         <div><dt>Im Brief</dt><dd>{befundAnzahl(l.befunde)} Befunde</dd></div>
@@ -135,7 +136,7 @@ export default function VertriebUebersicht() {
   const stufen = g ? [
     { titel: "Verschickt", wert: g.briefe, hinweis: `an ${zahl(g.betriebe)} Betriebe` },
     { titel: "Angekommen", wert: g.briefe - (g.zurueck || 0), hinweis: `${zahl(g.zurueck)} Rückläufer` },
-    { titel: "Seite geöffnet", wert: g.geoeffnet, hinweis: quote(g.geoeffnet, g.briefe) },
+    { titel: "QR-Code geöffnet", wert: g.geoeffnet, hinweis: quote(g.geoeffnet, g.briefe) },
     { titel: "Demo angesehen", wert: g.demo, hinweis: quote(g.demo, g.briefe) },
     { titel: "Kontakt erlaubt", wert: g.kontakt, hinweis: quote(g.kontakt, g.briefe) },
   ] : [];
@@ -163,7 +164,7 @@ export default function VertriebUebersicht() {
           <p className="vu-unter">{d?.monat ? `${new Date().toLocaleDateString("de-DE", { month: "long" })}: ${zahl(d.monat.briefe)}` : ""}</p>
         </div>
         <div className="vu-kachel">
-          <p className="vu-titel">Seite geöffnet</p>
+          <p className="vu-titel">QR-Code geöffnet</p>
           <p className="vu-wert">{g?.briefe ? <Hochzaehlen wert={(g.geoeffnet / g.briefe) * 100} format={n => `${(Math.round(n * 10) / 10).toLocaleString("de-DE")} %`} /> : "—"}</p>
           <p className="vu-unter">{zahl(g?.geoeffnet)} von {zahl(g?.briefe)} Betrieben</p>
         </div>
@@ -210,7 +211,7 @@ export default function VertriebUebersicht() {
             <div className="vu-wochen" role="list">
               {d.wochen.map(w => (
                 <div key={w.woche} className="vu-woche" role="listitem"
-                     title={`Woche ab ${datum(w.woche)}: ${w.briefe} Briefe · ${euro(w.kosten_cent)} · ${w.geoeffnet} Seite geöffnet · ${w.demo} Demo · ${w.kontakt} Kontakt`}>
+                     title={`Woche ab ${datum(w.woche)}: ${w.briefe} Briefe · ${euro(w.kosten_cent)} · ${w.geoeffnet} QR-Code geöffnet · ${w.demo} Demo · ${w.kontakt} Kontakt`}>
                   <b>{w.briefe}</b>
                   <span className="vu-woche-spur"><i style={{ height: `${(w.briefe / maxWoche) * 100}%` }} /></span>
                   <span className="vu-woche-datum">{new Date(w.woche).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })}</span>
@@ -236,7 +237,7 @@ export default function VertriebUebersicht() {
           )}
           {!!d?.warm.length && (
             <>
-              <p className="vu-gruppe">Interessiert – Demo angesehen oder Seite mehrfach geöffnet, aber noch kein Kontakt</p>
+              <p className="vu-gruppe">Interessiert – Demo angesehen oder QR-Code mehrfach geöffnet, aber noch kein Kontakt</p>
               <div className="vu-leads">{d.warm.map(w => <LeadKarte key={w.id} l={w} kontakt={false} />)}</div>
             </>
           )}
@@ -265,16 +266,19 @@ export default function VertriebUebersicht() {
             {!d?.[k].length ? <p className="mon-leer">Noch keine Briefe.</p> : (
               <div className="post-huelle">
                 <table className="mon-tabelle vu-tabelle">
-                  <thead><tr><th>{k === "nach_kategorie" ? "Kategorie" : "Region"}</th><th className="num">Briefe</th><th className="num">Geöffnet</th><th className="num">Demo</th><th className="num">Kontakt</th><th className="num">Rückl.</th></tr></thead>
+                  <thead><tr><th>{k === "nach_kategorie" ? "Kategorie" : "Region"}</th><th className="num">Briefe</th><th className="num">QR-Code</th><th className="num">Demo</th><th className="num">Kontakt</th></tr></thead>
                   <tbody>
                     {d[k].map(r => (
                       <tr key={r.gruppe}>
-                        <td className="stark">{k === "nach_kategorie" ? KAT_LABEL[r.gruppe] || r.gruppe : r.gruppe}</td>
+                        <td className="stark">
+                          {k === "nach_kategorie"
+                            ? <span className="vu-kat" style={{ "--kat": KAT_FARBE[r.gruppe] || KAT_FARBE.offen } as React.CSSProperties}><i aria-hidden="true" />{KAT_LABEL[r.gruppe] || r.gruppe}</span>
+                            : r.gruppe}
+                        </td>
                         <td className="num">{zahl(r.briefe)}</td>
-                        <td className="num">{zahl(r.geoeffnet)} <span className="vu-leise">{quote(r.geoeffnet, r.briefe)}</span></td>
+                        <td className="num">{zahl(r.geoeffnet)}<span className="vu-quote">{quote(r.geoeffnet, r.briefe)}</span></td>
                         <td className="num">{zahl(r.demo)}</td>
                         <td className="num">{zahl(r.kontakt)}</td>
-                        <td className="num">{zahl(r.zurueck)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -291,36 +295,13 @@ export default function VertriebUebersicht() {
             <ul className="vu-bestand">
               {d.bestand.map(b => (
                 <li key={b.kategorie}>
-                  <span><b>{KAT_LABEL[b.kategorie] || b.kategorie}</b><br /><span className="vu-leise">{zahl(b.versandfertig)} versandfertig · {zahl(b.stark)} mit über 10 Google-Bewertungen</span></span>
+                  <span><b className="vu-kat" style={{ "--kat": KAT_FARBE[b.kategorie] || KAT_FARBE.offen } as React.CSSProperties}><i aria-hidden="true" />{KAT_LABEL[b.kategorie] || b.kategorie}</b><br /><span className="vu-leise">{zahl(b.versandfertig)} versandfertig · {zahl(b.stark)} mit über 10 Google-Bewertungen</span></span>
                   <a className="akq-knopf" href={`/admin/akquise/post?tab=sammel&kat=${b.kategorie}`}>{zahl(b.alle)} <ArrowRight size={12} /></a>
                 </li>
               ))}
             </ul>
           )}
           <p className="vu-fuss">Ohne Website, nur Börse, Baukasten und veraltet – ohne verschickten Brief und ohne offenen Entwurf.</p>
-        </section>
-
-        {/* Dienste */}
-        <section className="mon-block vu-block vu-s-dienste">
-          <h2>Dienste</h2>
-          <ul className="vu-dienste">
-            <li>
-              <span><b>LetterXpress</b><br /><span className="vu-leise">{lxp?.eingerichtet ? `${lxp.modus === "live" ? "Live" : "Testmodus"} · ${lxp.preis_cent != null ? `${euro(lxp.preis_cent)} je Brief` : ""}` : "nicht eingerichtet"}</span></span>
-              <span className={`vu-ampel ${!lxp?.eingerichtet ? "rot" : reichtFuer != null && reichtFuer < 10 ? "gelb" : "gruen"}`}>{lxp?.guthaben_cent != null ? euro(lxp.guthaben_cent) : "—"}</span>
-            </li>
-            <li>
-              <span><b>Google Maps</b><br /><span className="vu-leise">Abfragen im {d ? new Date(`${d.dienste.google.monat}-01`).toLocaleDateString("de-DE", { month: "long" }) : ""} (Stopp bei {zahl(d?.dienste.google.grenze)})</span></span>
-              <span className={`vu-ampel ${(d?.dienste.google.genutzt || 0) > 850 ? "gelb" : "gruen"}`}>{zahl(d?.dienste.google.genutzt)}</span>
-            </li>
-            <li>
-              <span><b>Letzter Suchlauf</b><br /><span className="vu-leise">{d?.dienste.suchlauf.zeitpunkt ? `${d.dienste.suchlauf.region} · ${zahl(d.dienste.suchlauf.gefunden)} gefunden · ${vorWann(d.dienste.suchlauf.zeitpunkt)}` : "noch keiner"}</span></span>
-              <span className={`vu-ampel ${d?.dienste.suchlauf.fehler ? "rot" : "gruen"}`}>{d?.dienste.suchlauf.fehler ? "Fehler" : "ok"}</span>
-            </li>
-            <li>
-              <span><b>Betriebe</b><br /><span className="vu-leise">{zahl(d?.betriebe.auswahl)} mit Stern · {zahl(d?.betriebe.papierkorb)} im Papierkorb</span></span>
-              <span className="vu-ampel neutral">{zahl(d?.betriebe.aktiv)}</span>
-            </li>
-          </ul>
         </section>
       </div>
     </AdminShell>

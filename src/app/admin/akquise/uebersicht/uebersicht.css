@@ -19,13 +19,10 @@
   .vu-raster { grid-template-columns:repeat(3, minmax(0, 1fr)); grid-template-areas:
     "trichter wochen aktivitaet"
     "reagiert reagiert reagiert"
-    "kategorie region bestand"
-    "dienste dienste dienste"; }
+    "kategorie region bestand"; }
   .vu-s-trichter { grid-area:trichter; } .vu-s-wochen { grid-area:wochen; } .vu-s-aktivitaet { grid-area:aktivitaet; }
   .vu-s-reagiert { grid-area:reagiert; } .vu-s-kategorie { grid-area:kategorie; } .vu-s-region { grid-area:region; }
-  .vu-s-bestand { grid-area:bestand; } .vu-s-dienste { grid-area:dienste; }
-  .vu-s-dienste .vu-dienste { grid-template-columns:repeat(4, minmax(0, 1fr)); gap:0 24px; }
-  .vu-s-dienste .vu-dienste li { border-bottom:0; }
+  .vu-s-bestand { grid-area:bestand; }
   .vu-s-aktivitaet .vu-feed { max-height:330px; overflow-y:auto; }
   .vu-s-trichter .vu-trichter li { grid-template-columns:104px minmax(0, 1fr) 34px 64px; gap:10px; }
 }
@@ -112,15 +109,17 @@
 .vu-feed li.zurueck > i { background:#dc2626; }
 .vu-zeit { white-space:nowrap; }
 
-.vu-tabelle td .vu-leise { margin-left:4px; }
+.vu-tabelle { font-size:.84rem; }
+.vu-tabelle th, .vu-tabelle td { padding:9px 6px; }
+.vu-tabelle th:first-child, .vu-tabelle td:first-child { padding-left:0; white-space:normal; }
+.vu-tabelle th:last-child, .vu-tabelle td:last-child { padding-right:0; }
+.vu-tabelle th { font-size:.66rem; }
+.vu-quote { display:block; font-size:.7rem; color:var(--fg-subtle); font-weight:400; }
+.vu-kat { display:inline-flex; align-items:center; gap:7px; }
+.vu-kat i { flex:none; width:9px; height:9px; border-radius:50%; background:var(--kat); }
 
-/* Bestand und Dienste: Zeilen mit Wert rechts */
-.vu-bestand, .vu-dienste { list-style:none; margin:0; padding:0; display:grid; gap:2px; }
-.vu-bestand li, .vu-dienste li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); font-size:.86rem; }
-.vu-bestand li:last-child, .vu-dienste li:last-child { border-bottom:0; }
+/* Bestand: Zeilen mit Wert rechts */
+.vu-bestand { list-style:none; margin:0; padding:0; display:grid; gap:2px; }
+.vu-bestand li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); font-size:.86rem; }
+.vu-bestand li:last-child { border-bottom:0; }
 .vu-bestand .akq-knopf { display:inline-flex; align-items:center; gap:4px; font-variant-numeric:tabular-nums; }
-.vu-ampel { flex:none; padding:3px 10px; border-radius:999px; font-size:.78rem; font-weight:700; font-variant-numeric:tabular-nums; }
-.vu-ampel.gruen { color:#1d8a52; background:rgba(29,138,82,.1); }
-.vu-ampel.gelb { color:#b45309; background:rgba(245,158,11,.14); }
-.vu-ampel.rot { color:#b91c1c; background:rgba(220,38,38,.1); }
-.vu-ampel.neutral { color:var(--fg); background:var(--mon-off, rgba(100,116,139,.12)); }
