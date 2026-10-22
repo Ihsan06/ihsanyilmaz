@@ -39,6 +39,7 @@ type Brief = {
   anbieter: string | null; anbieter_id: string | null; kosten_cent: number | null; fehler: string | null;
   aufrufe: number; zuletzt_aufgerufen: string | null; demo_angefordert: string | null; demo_geoeffnet?: string | null;
   kontakt_erlaubt?: string | null; betrieb_telefon?: string | null;
+  betrieb_kategorie?: string | null; betrieb_google_bewertung?: number | null; betrieb_google_anzahl?: number | null;
   angelegt: string; gesendet_am: string | null; zugestellt_am: string | null;
   betrieb_name?: string | null; betrieb_ort?: string | null; betrieb_status?: string | null;
   betrieb_geprueft_am?: string | null; betrieb_google_stand?: string | null;
@@ -58,7 +59,7 @@ type Zaehler = { entwurf: number; freigegeben: number; gesendet: number; zugeste
 type Stand = { eingerichtet: boolean; modus: string; anbieter: string; guthaben_cent?: number; preis_cent?: number };
 type Sperre = { id: number; betrieb_id: number | null; name: string | null; ort: string | null; grund: string | null; angelegt: string };
 type Editor = { brief: Brief; betrieb: BetriebKurz | null; kandidaten: Kandidat[] };
-type Reiter = "briefe" | "brief" | "sammel" | "vorlage" | "sperrliste";
+type Reiter = "briefe" | "brief" | "sammel" | "zweiter" | "vorlage" | "sperrliste";
 // Was links in der Vorschau steht: chip sagt, woher (Entwurf, Beispiel …).
 type Schau = {
   chip: string; titel: string; text: string; empfaenger: string; absender: Absender; link: string; datumText: string; briefId?: number;
@@ -838,7 +839,7 @@ export default function PostSeite() {
     if (kat && SAMMEL_KAT.some(([k]) => k === kat)) sammelVorwahl.current = { kat, alle: p.get("alle") === "1" };
     Promise.all([ladeBriefe(), ladeStand(), ladeEinstellungen(), ladeSperrliste()]).then(() => {
       if (sammelVorwahl.current) setSammelKat(sammelVorwahl.current.kat);
-      if (tab && ["briefe", "brief", "sammel", "vorlage", "sperrliste"].includes(tab)) setReiter(tab);
+      if (tab && ["briefe", "brief", "sammel", "zweiter", "vorlage", "sperrliste"].includes(tab)) setReiter(tab);
       if (betriebId) setReiter("brief");
     }).finally(() => setLaedt(false));
     if (betriebId) {
@@ -997,6 +998,28 @@ export default function PostSeite() {
       setInfoRunde(n => n + 1);
     } catch (e) { zeigeFehler(e); }
   };
+
+  // ---- Zweiter Brief: wer auf den ersten Brief reagiert hat (Seite geoeffnet,
+  // Demo angesehen oder Kontakt erlaubt) – je Betrieb der erste Brief mit
+  // Reaktion und, falls schon vorhanden, der zweite Brief danach.
+  const zweite = useMemo(() => {
+    const eigene = briefe.filter(b => b.art !== "test");
+    const reagiert = eigene.filter(b => ["gesendet", "zugestellt"].includes(b.status)
+      && (b.aufrufe > 0 || b.demo_geoeffnet || b.demo_angefordert || b.kontakt_erlaubt));
+    const jeBetrieb = new Map<number, Brief>();
+    for (const b of reagiert) {
+      const alt = jeBetrieb.get(b.betrieb_id);
+      if (!alt || (alt.gesendet_am || "") > (b.gesendet_am || "")) jeBetrieb.set(b.betrieb_id, b);
+    }
+    return [...jeBetrieb.values()].map(erster => {
+      const folge = eigene
+        .filter(x => x.betrieb_id === erster.betrieb_id && x.id !== erster.id && x.angelegt > (erster.gesendet_am || erster.angelegt) && x.status !== "storniert")
+        .sort((a, b) => (b.angelegt > a.angelegt ? 1 : -1))[0] || null;
+      const waerme = (erster.kontakt_erlaubt ? 1000 : 0) + (erster.demo_geoeffnet || erster.demo_angefordert ? 100 : 0) + Math.min(erster.aufrufe, 50);
+      return { erster, folge, waerme };
+    }).sort((a, b) => b.waerme - a.waerme || ((b.erster.zuletzt_aufgerufen || "") > (a.erster.zuletzt_aufgerufen || "") ? 1 : -1));
+  }, [briefe]);
+  const zweiteOffen = zweite.filter(z => !z.folge && !z.erster.kontakt_erlaubt).length;
 
   const briefOeffnen = async (id: number) => {
     setFehler("");
@@ -1317,16 +1340,16 @@ export default function PostSeite() {
       </div>
 
       <div className="post-reiter" role="tablist">
-        {([["briefe", "Briefe"], ["brief", editor ? "Brief" : "Neuer Brief"], ["sammel", "Mehrere senden"], ["vorlage", "Vorlage & Absender"], ["sperrliste", "Sperrliste"]] as [Reiter, string][]).map(([k, l]) => (
+        {([["briefe", "Briefe"], ["brief", editor ? "Brief" : "Neuer Brief"], ["sammel", "Mehrere senden"], ["zweiter", "Zweiter Brief"], ["vorlage", "Vorlage & Absender"], ["sperrliste", "Sperrliste"]] as [Reiter, string][]).map(([k, l]) => (
           <button key={k} role="tab" aria-selected={reiter === k} className={reiter === k ? "aktiv" : ""} onClick={() => setReiter(k)}>
-            {l}{k === "briefe" && briefe.length > 0 && <b>{briefe.length}</b>}{k === "sperrliste" && sperrliste.length > 0 && <b>{sperrliste.length}</b>}
+            {l}{k === "briefe" && briefe.length > 0 && <b>{briefe.length}</b>}{k === "sperrliste" && sperrliste.length > 0 && <b>{sperrliste.length}</b>}{k === "zweiter" && zweiteOffen > 0 && <b>{zweiteOffen}</b>}
           </button>
         ))}
       </div>
 
       {/* Wie bei „Content erstellen“: links die Vorschau, sie bleibt beim
           Scrollen stehen; rechts der Reiter. Nur die Sperrliste braucht keine. */}
-      {reiter !== "sperrliste" && reiter !== "sammel" && (
+      {reiter !== "sperrliste" && reiter !== "sammel" && reiter !== "zweiter" && (
       <div className={`post-arbeit${schau ? "" : " ohne-schau"}`}>
         {schau && (
           <aside className="post-schau" aria-label="Vorschau" ref={schauRef}>
@@ -1651,6 +1674,58 @@ export default function PostSeite() {
       {gross && schau && <GrossAnsicht schau={schau} qr={qr} onZu={grossZu} />}
 
       {/* ---------------- Sperrliste */}
+      {reiter === "zweiter" && (
+        <section className="mon-block">
+          <h2>Zweiter Brief</h2>
+          <p className="post-hinweis mb-4">
+            Alle, die auf den ersten Brief reagiert haben – Seite geöffnet, Demo angesehen oder Kontakt erlaubt. Wärmste zuerst.
+            Wer Kontakt erlaubt hat, rufst du besser an.
+          </p>
+          {zweite.length === 0 ? <p className="mon-leer">Noch hat niemand reagiert.</p> : (
+            <div className="post-huelle">
+              <table className="mon-tabelle post-tabelle post-zweiter">
+                <thead><tr><th>Betrieb</th><th>Erster Brief</th><th>Reaktion</th><th>Zweiter Brief</th><th></th></tr></thead>
+                <tbody>
+                  {zweite.map(({ erster: b, folge }) => (
+                    <tr key={b.id}>
+                      <td className="post-betrieb">
+                        <span className="post-name stark">{b.betrieb_name || `Betrieb ${b.betrieb_id}`}</span>
+                        <span className="post-unter">
+                          {[b.betrieb_ort, KATEGORIE_LABEL[b.betrieb_kategorie || ""] || null,
+                            b.betrieb_google_anzahl != null ? `★ ${String(b.betrieb_google_bewertung ?? "").replace(".", ",")} · ${b.betrieb_google_anzahl}` : null].filter(Boolean).join(" · ")}
+                        </span>
+                      </td>
+                      <td>{datum(b.gesendet_am)}</td>
+                      <td className="post-reaktion">
+                        {b.kontakt_erlaubt && <span className="post-chip kontakt">Kontakt erlaubt {datum(b.kontakt_erlaubt)}</span>}
+                        {(b.demo_geoeffnet || b.demo_angefordert) && <span className="post-chip demo">Demo {datum(b.demo_geoeffnet || b.demo_angefordert)}</span>}
+                        {b.aufrufe > 0 && <span className="post-chip seite">Seite {b.aufrufe}×{b.zuletzt_aufgerufen ? ` · zuletzt ${datum(b.zuletzt_aufgerufen)}` : ""}</span>}
+                      </td>
+                      <td>
+                        {folge ? <><StatusBadge status={folge.status} /><span className="post-unter">{folge.gesendet_am ? `gesendet ${datum(folge.gesendet_am)}` : `angelegt ${datum(folge.angelegt)}`}</span></>
+                          : <span className="post-leise">—</span>}
+                      </td>
+                      <td>
+                        <span className="post-aktionen">
+                          {b.kontakt_erlaubt && b.betrieb_telefon && (
+                            <a className="btn-primary px-3 py-1.5 text-xs" href={`tel:${b.betrieb_telefon.replace(/[^\d+]/g, "")}`}>Anrufen</a>
+                          )}
+                          {folge
+                            ? <button className="akq-knopf" onClick={() => briefOeffnen(folge.id)}>{["entwurf", "freigegeben", "fehler"].includes(folge.status) ? "Entwurf öffnen" : "Ansehen"}</button>
+                            : !b.kontakt_erlaubt && <button className="akq-knopf" onClick={() => entwurfAnlegen({ id: b.betrieb_id } as BetriebKurz, "nachfass")}>Zweiten Brief anlegen</button>}
+                          <a className="akq-knopf" href={einst ? landingLink(einst.landing_basis, b.token) : `/fuer/${b.token}`} target="_blank" rel="noopener noreferrer"
+                             title="Persönliche Seite – so hat der Betrieb sie gesehen"><ExternalLink size={13} /></a>
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
       {reiter === "sammel" && (
         <section className="mon-block">
           <h2>Mehrere Briefe auf einmal</h2>

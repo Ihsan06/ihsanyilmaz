@@ -257,4 +257,10 @@ a.post-kontakt:hover { text-decoration:underline; }
 .post-modus.live { color:#1d8a52; background:rgba(29,138,82,.1); }
 .post-modus.aus { color:#b91c1c; background:rgba(220,38,38,.08); }
 @media (max-width:560px) { .post-zahl-wert { font-size:1.35rem; } .post-zahl { padding:0 8px; } }
+.post-reaktion { display:flex; flex-wrap:wrap; gap:4px; }
+.post-chip { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.74rem; font-weight:600; white-space:nowrap; }
+.post-chip.kontakt { color:#1d8a52; background:rgba(29,138,82,.12); }
+.post-chip.demo { color:#6d28d9; background:rgba(124,58,237,.1); }
+.post-chip.seite { color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, transparent); }
+.post-zweiter .post-aktionen .btn-primary { text-decoration:none; }
 

@@ -181,7 +181,8 @@ export async function onRequestGet({ request, env }) {
     const [liste, zaehler] = await env.DB.batch([
       env.DB.prepare(
         `SELECT br.*, b.name AS betrieb_name, b.ort AS betrieb_ort, b.status AS betrieb_status,
-                b.geprueft_am AS betrieb_geprueft_am, b.google_stand AS betrieb_google_stand, b.telefon AS betrieb_telefon
+                b.geprueft_am AS betrieb_geprueft_am, b.google_stand AS betrieb_google_stand, b.telefon AS betrieb_telefon,
+                b.kategorie AS betrieb_kategorie, b.google_bewertung AS betrieb_google_bewertung, b.google_anzahl AS betrieb_google_anzahl
          FROM akquise_briefe br LEFT JOIN akquise_betriebe b ON b.id = br.betrieb_id
          ${wo.length ? 'WHERE ' + wo.join(' AND ') : ''}
          ORDER BY br.angelegt DESC, br.id DESC LIMIT 500`,
