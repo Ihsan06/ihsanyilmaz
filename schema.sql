@@ -267,3 +267,6 @@ ALTER TABLE akquise_pruefungen ADD COLUMN psi_fehler TEXT;
 -- Erlaubnis, per Telefon oder E-Mail Kontakt aufzunehmen (ersetzt die
 -- Rueckrufbitte mit Telefonnummer).
 ALTER TABLE akquise_briefe ADD COLUMN kontakt_erlaubt TEXT;
+
+-- Rueckläufer: Datum, an dem die Post zurueckkam (Status 'zurueck').
+ALTER TABLE akquise_briefe ADD COLUMN zurueck_am TEXT;

@@ -1,0 +1,70 @@
+/* Vertrieb → Übersicht. Farben wie im übrigen Admin: Akzent fuer Mengen,
+   Gruen = gut (Kontakt), Orange = Achtung (Guthaben, Rückläufer). */
+.vu-kopf { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+.vu-leise { color:var(--fg-subtle); font-size:.78rem; font-weight:400; }
+
+.vu-kacheln { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:14px; margin-bottom:18px; }
+.vu-kachel { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; min-width:0; }
+.vu-titel { margin:0 0 6px; font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--fg-subtle); }
+.vu-wert { margin:0; font-size:1.7rem; font-weight:700; line-height:1.1; font-variant-numeric:tabular-nums; color:var(--fg); white-space:nowrap; }
+.vu-unter { margin:6px 0 0; font-size:.76rem; line-height:1.35; color:var(--fg-subtle); }
+.vu-kachel.gut .vu-wert { color:#1d8a52; }
+.vu-kachel.warn .vu-wert, .vu-kachel.warn .vu-unter { color:#b45309; }
+
+.vu-raster { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; align-items:start; }
+@media (max-width:1100px) { .vu-raster { grid-template-columns:1fr; } }
+.vu-block { margin-bottom:0; }
+.vu-block h2 { margin-bottom:14px; }
+.vu-fuss { margin:12px 0 0; font-size:.76rem; color:var(--fg-subtle); }
+
+/* Trichter: eine Spur je Stufe, Anteil an den verschickten Briefen */
+.vu-trichter { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.vu-trichter li { display:grid; grid-template-columns:130px minmax(0, 1fr) 48px 96px; align-items:center; gap:12px; }
+.vu-trichter-titel { font-size:.84rem; color:var(--fg); }
+.vu-trichter-spur { height:12px; border-radius:6px; background:var(--mon-off, rgba(100,116,139,.12)); overflow:hidden; }
+.vu-trichter-spur i { display:block; height:100%; border-radius:6px; background:var(--accent); }
+.vu-trichter li:last-child .vu-trichter-spur i { background:#1d8a52; }
+.vu-trichter b { text-align:right; font-variant-numeric:tabular-nums; }
+@media (max-width:560px) { .vu-trichter li { grid-template-columns:100px minmax(0, 1fr) 40px; } .vu-trichter li > .vu-leise { display:none; } }
+
+/* Zu tun */
+.vu-aufgabe { border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:10px; }
+.vu-aufgabe.gut { border-color:rgba(29,138,82,.4); background:rgba(29,138,82,.05); }
+.vu-aufgabe.warn { border-color:rgba(220,38,38,.3); background:rgba(220,38,38,.04); }
+.vu-aufgabe-titel { margin:0 0 8px; font-size:.8rem; font-weight:700; color:var(--fg); }
+.vu-aufgabe ul { list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.vu-aufgabe li { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:.84rem; flex-wrap:wrap; }
+.vu-aufgabe .vu-fuss { margin-top:8px; }
+.vu-link { display:flex; align-items:center; justify-content:space-between; gap:10px; text-decoration:none; color:#b45309; font-size:.84rem; font-weight:600; }
+.vu-link:hover { border-color:#b45309; }
+
+/* Briefe je Woche: senkrechte Balken, eine Farbe */
+.vu-wochen { display:flex; align-items:flex-end; gap:8px; height:170px; padding-top:6px; overflow-x:auto; }
+.vu-woche { flex:1 0 34px; max-width:64px; height:100%; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:default; }
+.vu-woche b { font-size:.78rem; font-variant-numeric:tabular-nums; }
+.vu-woche-spur { flex:1; width:100%; display:flex; align-items:flex-end; }
+.vu-woche-spur i { display:block; width:100%; min-height:2px; border-radius:4px 4px 0 0; background:var(--accent); }
+.vu-woche:hover .vu-woche-spur i { filter:brightness(1.15); }
+
+/* Aktivitaet */
+.vu-feed { list-style:none; margin:0; padding:0; display:grid; gap:2px; }
+.vu-feed li { display:grid; grid-template-columns:10px minmax(0, 1fr) auto; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); font-size:.84rem; }
+.vu-feed li:last-child { border-bottom:0; }
+.vu-feed li > i { width:8px; height:8px; border-radius:50%; background:var(--accent); }
+.vu-feed li.demo > i { background:#7c3aed; }
+.vu-feed li.kontakt > i { background:#1d8a52; }
+.vu-feed li.zurueck > i { background:#dc2626; }
+.vu-zeit { white-space:nowrap; }
+
+.vu-tabelle td .vu-leise { margin-left:4px; }
+
+/* Bestand und Dienste: Zeilen mit Wert rechts */
+.vu-bestand, .vu-dienste { list-style:none; margin:0; padding:0; display:grid; gap:2px; }
+.vu-bestand li, .vu-dienste li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); font-size:.86rem; }
+.vu-bestand li:last-child, .vu-dienste li:last-child { border-bottom:0; }
+.vu-bestand .akq-knopf { display:inline-flex; align-items:center; gap:4px; font-variant-numeric:tabular-nums; }
+.vu-ampel { flex:none; padding:3px 10px; border-radius:999px; font-size:.78rem; font-weight:700; font-variant-numeric:tabular-nums; }
+.vu-ampel.gruen { color:#1d8a52; background:rgba(29,138,82,.1); }
+.vu-ampel.gelb { color:#b45309; background:rgba(245,158,11,.14); }
+.vu-ampel.rot { color:#b91c1c; background:rgba(220,38,38,.1); }
+.vu-ampel.neutral { color:var(--fg); background:var(--mon-off, rgba(100,116,139,.12)); }

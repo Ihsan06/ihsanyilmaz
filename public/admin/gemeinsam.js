@@ -38,9 +38,10 @@ window.admin = (function () {
         { pfad: '/admin/planen', titel: 'Content planen' },
         { pfad: '/admin/entwuerfe', titel: 'Entwürfe' }
       ] },
-    { pfad: '/admin/akquise', titel: 'Akquise',
+    { pfad: '/admin/akquise/uebersicht', titel: 'Vertrieb',
       symbol: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.8"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><path d="M12 12l6.3-6.3" stroke-linecap="round"/>',
       unter: [
+        { pfad: '/admin/akquise/uebersicht', titel: 'Übersicht' },
         { pfad: '/admin/akquise', titel: 'Betriebe' },
         { pfad: '/admin/akquise/post', titel: 'Post' }
       ] },

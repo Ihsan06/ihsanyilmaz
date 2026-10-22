@@ -28,10 +28,11 @@ const SEITEN: Seite[] = [
     ],
   },
   {
-    pfad: "/admin/akquise",
-    titel: "Akquise",
+    pfad: "/admin/akquise/uebersicht",
+    titel: "Vertrieb",
     icon: Radar,
     unter: [
+      { pfad: "/admin/akquise/uebersicht", titel: "Übersicht" },
       { pfad: "/admin/akquise", titel: "Betriebe" },
       { pfad: "/admin/akquise/post", titel: "Post" },
     ],
@@ -194,7 +195,7 @@ export default function AdminShell({
 
   // Ein Punkt gilt auch als aktiv, wenn eine seiner Unterseiten offen ist.
   const istAktiv = (s: Seite) =>
-    pfad === s.pfad || (s.pfad !== "/admin" && pfad.startsWith(s.pfad + "/"));
+    pfad === s.pfad || (s.pfad !== "/admin" && pfad.startsWith(s.pfad + "/")) || !!s.unter?.some(u => u.pfad === pfad);
 
   // Für die Handy-Ansicht: die Unterpunkte des gerade offenen Bereichs
   const aktiveUnter = SEITEN.find(s => istAktiv(s) && s.unter)?.unter;
