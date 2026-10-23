@@ -59,7 +59,7 @@ Für Autohäuser habe ich eine eigene Website-Lösung entwickelt: dank KI-Werkze
 Mit freundlichen Grüßen
 
 {absender_name}
-Webentwickler, Würzburg
+Wirtschaftsinformatiker (M.Sc.) · Webentwickler, Würzburg
 
 PS: Die Seite hinter dem QR-Code ist nur für {firma} angelegt – ohne Konto, ohne Newsletter.
 
@@ -82,7 +82,7 @@ Was es kostet: einmalig 500 bis 750 € (Endpreis), je nach Umfang. Den genauen 
 Mit freundlichen Grüßen
 
 {absender_name}
-Webentwickler, Würzburg
+Wirtschaftsinformatiker (M.Sc.) · Webentwickler, Würzburg
 
 ---
 ${VORLAGE_STANDARD.split('\n---\n')[1].replace('nur für dieses Anschreiben', 'nur für meine beiden Anschreiben')}`;

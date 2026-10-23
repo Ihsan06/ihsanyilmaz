@@ -174,7 +174,7 @@ const RUECK = {
   panel: [20, 216, 170, 46, 3] as const, qrBox: [25, 221, 36, 36, 1.5] as const, qr: [29, 225, 28] as const,
   titel3: "Demo ansehen – so geht es", titel3Y: 222, schrittX: 66, textX: 72, schrittY: [229.5, 241.5, 248], linkY: 234.5,
   schritte: ["QR-Code scannen oder Adresse eingeben:", "Demo direkt ansehen – ohne Anmeldung, ohne Newsletter.", "Einfach anrufen:"],
-  nameY: 255.5, nameZusatz: "Webentwickler, Würzburg",
+  nameY: 255.5, nameZusatz: "Wirtschaftsinformatiker (M.Sc.), Würzburg",
   bilder: { handy: "/leistungen/druck-handy-start.jpg", desktop: "/leistungen/druck-web-fahrzeuge.jpg", handy2: "/leistungen/druck-handy-fahrzeuge.jpg" },
   schatten: [[0.4, 0.6], [0.8, 1.2]],
 };
