@@ -166,7 +166,7 @@ export default function VertriebUebersicht() {
   ] : [];
 
   return (
-    <AdminShell titel="Übersicht" eyebrow="Vertrieb" lead="Was die Briefe bringen, was sie kosten und was als Nächstes zu tun ist.">
+    <AdminShell titel="Vertrieb" eyebrow="Verwaltung" lead="Was die Briefe bringen, was sie kosten und was als Nächstes zu tun ist.">
       {fehler && <p className="mb-4 text-sm" style={{ color: "#dc2626" }}>{fehler}</p>}
 
       <div className="vu-kopf">
