@@ -1,6 +1,6 @@
 "use client";
 // Vertrieb → Übersicht: die wichtigsten Zahlen aus Betrieben und Post auf
-// einen Blick – Trichter, Kosten, Rückläufer, Verlauf, Aufgaben, Dienste.
+// einen Blick – Trichter, Kosten, Verlauf, Aufgaben, Dienste.
 // Alles kommt in einem Aufruf von /api/admin/akquise/uebersicht.
 import React, { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Check, ExternalLink, Globe, Mail, Phone, RefreshCw, Undo2 } from "lucide-react";
@@ -8,10 +8,10 @@ import AdminShell, { api, datum, euro } from "@/components/admin/AdminShell";
 import { KAT_FARBE } from "../Karte";
 import "./uebersicht.css";
 
-type Kennzahlen = { briefe: number; zurueck: number; geoeffnet: number; demo: number; kontakt: number; kosten_cent: number };
+type Kennzahlen = { briefe: number; geoeffnet: number; demo: number; kontakt: number; kosten_cent: number };
 type Gruppe = Kennzahlen & { gruppe: string };
 type Woche = Kennzahlen & { woche: string };
-type Aktivitaet = { zeit: string; art: "aufruf" | "demo" | "kontakt" | "zurueck"; id: number; aufrufe: number; name: string | null; ort: string | null };
+type Aktivitaet = { zeit: string; art: "aufruf" | "demo" | "kontakt"; id: number; aufrufe: number; name: string | null; ort: string | null };
 // Ein Betrieb, der auf den Brief reagiert hat (Kontakt erlaubt oder Interesse gezeigt).
 type Lead = {
   id: number; token: string; gesendet_am: string | null; aufrufe: number; zuletzt_aufgerufen: string | null; demo_geoeffnet: string | null; befunde: string | null;
@@ -19,13 +19,12 @@ type Lead = {
   betrieb_id: number; name: string; ort: string | null; telefon: string | null; email: string | null; website: string | null;
   kategorie: string | null; google_bewertung: number | null; google_anzahl: number | null;
 };
-type Rueck = { id: number; zurueck_am: string | null; gesendet_am: string | null; empfaenger: string | null; betrieb_id: number | null; name: string | null; strasse: string | null; plz: string | null; ort: string | null; google: number; im_korb: number };
 type Bestand = { kategorie: string; alle: number; versandfertig: number; stark: number };
 type Daten = {
   gesamt: Kennzahlen & { betriebe: number; erster: string | null; letzter: string | null };
   monat: Kennzahlen;
   nach_kategorie: Gruppe[]; nach_region: Gruppe[]; wochen: Woche[];
-  aktivitaet: Aktivitaet[]; kontakte: Lead[]; warm: Lead[]; ruecklaeufer: Rueck[]; bestand: Bestand[];
+  aktivitaet: Aktivitaet[]; kontakte: Lead[]; warm: Lead[]; bestand: Bestand[];
   betriebe: { aktiv: number; auswahl: number; kunden: number; papierkorb: number };
   offen: { entwurf: number; freigegeben: number; fehler: number };
   dienste: {
@@ -41,8 +40,8 @@ const KAT_LABEL: Record<string, string> = {
 };
 
 const zahl = (n?: number | null) => (n == null ? "—" : n.toLocaleString("de-DE"));
-const AKT_KURZ: Record<Aktivitaet["art"], string> = { aufruf: "QR-Code", demo: "Demo", kontakt: "Kontakt erlaubt", zurueck: "Rückläufer" };
-const AKT_RANG: Record<Aktivitaet["art"], number> = { kontakt: 3, demo: 2, aufruf: 1, zurueck: 0 };
+const AKT_KURZ: Record<Aktivitaet["art"], string> = { aufruf: "QR-Code", demo: "Demo", kontakt: "Kontakt erlaubt" };
+const AKT_RANG: Record<Aktivitaet["art"], number> = { kontakt: 3, demo: 2, aufruf: 1 };
 // Mehrere Ereignisse zum selben Brief (QR-Code + Demo …) als eine Zeile, neuestes zuerst.
 function aktivitaetJeBetrieb(liste: Aktivitaet[]) {
   const nach = new Map<number, { id: number; name: string | null; ort: string | null; zeit: string; arten: Aktivitaet[]; staerkste: Aktivitaet["art"] }>();
@@ -161,7 +160,6 @@ export default function VertriebUebersicht() {
   // Trichter: jede Stufe als Anteil der verschickten Briefe.
   const stufen = g ? [
     { titel: "Verschickt", wert: g.briefe, hinweis: "" },
-    { titel: "Angekommen", wert: g.briefe - (g.zurueck || 0), hinweis: g.zurueck ? `−${zahl(g.zurueck)} Rückläufer` : "" },
     { titel: "QR-Code geöffnet", wert: g.geoeffnet, hinweis: quote(g.geoeffnet, g.briefe) },
     { titel: "Demo angesehen", wert: g.demo, hinweis: quote(g.demo, g.briefe) },
     { titel: "Kontakt erlaubt", wert: g.kontakt, hinweis: quote(g.kontakt, g.briefe) },

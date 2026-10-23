@@ -1,6 +1,6 @@
 // /api/admin/akquise/uebersicht — alle Kennzahlen fuer „Vertrieb → Übersicht“
 // in einem Aufruf: Trichter (angeschrieben → Seite → Demo → Kontakt), Kosten,
-// Rückläufer, Verlauf je Woche, Aufschluesselung nach Kategorie und Region,
+// Verlauf je Woche, Aufschluesselung nach Kategorie und Region,
 // offene Aufgaben, letzte Aktivitaet, noch nicht angeschriebener Bestand und
 // der Zustand der Dienste (Guthaben, Google-Kontingent, letzter Suchlauf).
 //
@@ -8,11 +8,10 @@
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
 import * as lxp from '../../../_lib/letterxpress.js';
 
-// Ein verschickter Brief: gesendet, zugestellt oder als Rückläufer zurueck.
-const VERSCHICKT = "b.art != 'test' AND b.status IN ('gesendet', 'zugestellt', 'zurueck')";
+// Ein verschickter Brief: gesendet oder zugestellt.
+const VERSCHICKT = "b.art != 'test' AND b.status IN ('gesendet', 'zugestellt')";
 // Je Gruppe dieselben Kennzahlen.
 const KENNZAHLEN = `COUNT(*) AS briefe,
-  SUM(b.status = 'zurueck') AS zurueck,
   SUM(b.aufrufe > 0) AS geoeffnet,
   SUM(b.demo_geoeffnet IS NOT NULL OR b.demo_angefordert IS NOT NULL) AS demo,
   SUM(b.kontakt_erlaubt IS NOT NULL) AS kontakt,
@@ -26,7 +25,7 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
   const monat = new Date().toISOString().slice(0, 7);
   try {
     const q = sql => env.DB.prepare(sql);
-    const [gesamt, monatlich, nachKat, nachRegion, wochen, aktivitaet, kontakte, warm, zurueck, bestand, betriebe, laeufe, google, offen] = await env.DB.batch([
+    const [gesamt, monatlich, nachKat, nachRegion, wochen, aktivitaet, kontakte, warm, bestand, betriebe, laeufe, google, offen] = await env.DB.batch([
       q(`SELECT ${KENNZAHLEN}, COUNT(DISTINCT b.betrieb_id) AS betriebe, MIN(b.gesendet_am) AS erster, MAX(b.gesendet_am) AS letzter
          FROM akquise_briefe b WHERE ${VERSCHICKT}`),
       q(`SELECT ${KENNZAHLEN} FROM akquise_briefe b WHERE ${VERSCHICKT} AND b.gesendet_am >= strftime('%Y-%m-01', 'now')`),
@@ -58,10 +57,6 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
          FROM akquise_briefe b JOIN akquise_betriebe t ON t.id = b.betrieb_id
          WHERE ${VERSCHICKT} AND b.kontakt_erlaubt IS NULL AND (b.demo_geoeffnet IS NOT NULL OR b.aufrufe >= 1)
          ORDER BY (b.demo_geoeffnet IS NULL), COALESCE(b.demo_geoeffnet, b.zuletzt_aufgerufen) DESC LIMIT 40`),
-      q(`SELECT b.id, b.zurueck_am, b.gesendet_am, b.empfaenger, t.id AS betrieb_id, t.name, t.strasse, t.plz, t.ort, t.website, t.google_place_id IS NOT NULL AS google,
-                t.geloescht IS NOT NULL AS im_korb
-         FROM akquise_briefe b LEFT JOIN akquise_betriebe t ON t.id = b.betrieb_id
-         WHERE b.status = 'zurueck' ORDER BY b.zurueck_am DESC`),
       // Noch nicht angeschriebene, passende Betriebe – das, was als Naechstes rausgehen kann.
       q(`SELECT COALESCE(t.kategorie, 'offen') AS kategorie, COUNT(*) AS alle, SUM(${ANSCHRIFT_OK}) AS versandfertig,
                 SUM(t.google_anzahl > 10) AS stark
@@ -94,7 +89,6 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
       aktivitaet: aktivitaet.results ?? [],
       kontakte: kontakte.results ?? [],
       warm: warm.results ?? [],
-      ruecklaeufer: zurueck.results ?? [],
       bestand: bestand.results ?? [],
       betriebe: zeile(betriebe),
       offen: zeile(offen),

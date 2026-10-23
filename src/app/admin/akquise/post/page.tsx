@@ -29,11 +29,10 @@ type SammelBetrieb = {
   id: number; name: string; ort: string | null; strasse: string | null; plz: string | null; kategorie: string | null;
   auswahl: number; google_anzahl: number | null; google_bewertung: number | null; brief_gesendet?: string | null;
   brief_entwurf?: number; geprueft_am: string | null; google_stand: string | null; geloescht?: string | null;
-  brief_zurueck?: string | null;
 };
 type SammelStand = { art: "laeuft" | "bereit" | "ok" | "fehler"; text: string; briefId?: number };
 const SAMMEL_KAT: [string, string][] = [["auswahl", "★ Auswahl"], ["nur_boerse", "Nur Börse"], ["ohne_website", "Ohne Website"], ["veraltet", "Veraltet"], ["baukasten", "Baukasten"], ["alle", "Alle"]];
-const anschriftOk = (b: SammelBetrieb) => !b.brief_zurueck && /\d/.test(b.strasse || "") && /^\d{5}$/.test(b.plz || "") && !!(b.ort || "").trim();
+const anschriftOk = (b: SammelBetrieb) => /\d/.test(b.strasse || "") && /^\d{5}$/.test(b.plz || "") && !!(b.ort || "").trim();
 type Kandidat = Befund & { punkte: number; vorgewaehlt: boolean };
 type Brief = {
   id: number; betrieb_id: number; token: string; status: string; art: string;
@@ -69,7 +68,7 @@ type Schau = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  entwurf: "Entwurf", freigegeben: "Freigegeben", gesendet: "Gesendet", zugestellt: "Zugestellt", zurueck: "Rückläufer", fehler: "Fehler", storniert: "Storniert",
+  entwurf: "Entwurf", freigegeben: "Freigegeben", gesendet: "Gesendet", zugestellt: "Zugestellt", fehler: "Fehler", storniert: "Storniert",
 };
 const ART_LABEL: Record<string, string> = { brief: "Brief", nachfass: "Nachfass", test: "Test an mich" };
 const BETRIEB_STATUS: Record<string, string> = { neu: "Neu", beobachten: "Beobachten", brief: "Brief", kontakt: "Kontakt", kunde: "Kunde", aus: "Aus" };
@@ -1243,9 +1242,7 @@ export default function PostSeite() {
 
   // ---- Anzeige
 
-  // Wie in der Übersicht: auch Rückläufer zählen als verschickt (sie kosten ja).
-  const zurueck = (zaehler as (Zaehler & { zurueck?: number }) | null)?.zurueck || 0;
-  const gesendetGesamt = (zaehler?.gesendet || 0) + (zaehler?.zugestellt || 0) + zurueck;
+  const gesendetGesamt = (zaehler?.gesendet || 0) + (zaehler?.zugestellt || 0);
   const gewaehlteCodes = new Set(editor?.brief.befunde.map(b => b.code) || []);
   const imEntwurf = editor?.brief.status === "entwurf";
   const bearbeitbar = imEntwurf && !!einst;
@@ -1274,13 +1271,6 @@ export default function PostSeite() {
         {b.status === "gesendet" && b.anbieter_id && (
           <button className="akq-knopf" onClick={() => stornieren(b)} disabled={busy}>Stornieren</button>
         )}
-        {(b.status === "gesendet" || b.status === "zugestellt") && (
-          <button className="akq-knopf" disabled={busy} title="Die Post kam zurück – Anschrift prüfen"
-                  onClick={() => { if (confirm(`Brief an „${b.betrieb_name || "Betrieb"}“ kam zurück?\n\nWird als Rückläufer markiert; der Betrieb bekommt einen Hinweis zur Anschrift.`)) statusSetzen(b, "zurueck"); }}>Rückläufer</button>
-        )}
-        {b.status === "zurueck" && (
-          <button className="akq-knopf" disabled={busy} onClick={() => statusSetzen(b, "gesendet")} title="Doch nicht zurückgekommen">Rückgängig</button>
-        )}
         <a className="akq-knopf" href={einst ? landingLink(einst.landing_basis, b.token) : `/fuer/${b.token}`} target="_blank" rel="noopener noreferrer"
            title="Persönliche Seite"><ExternalLink size={13} /></a>
         <button className="akq-knopf" onClick={() => loeschen(b)} disabled={busy} aria-label="Löschen"><Trash2 size={13} /></button>
@@ -1303,7 +1293,7 @@ export default function PostSeite() {
               : <span className="post-modus aus"><i aria-hidden="true" />nicht eingerichtet</span>}
           </header>
           <div className="post-zahlen-reihe">
-            <Zahl titel="Gesendet" wert={zahl(gesendetGesamt)} unter={[zaehler?.zugestellt ? `${zahl(zaehler.zugestellt)} zugestellt` : "", zurueck ? `${zahl(zurueck)} Rückläufer` : ""].filter(Boolean).join(" · ") || "Briefe"} />
+            <Zahl titel="Gesendet" wert={zahl(gesendetGesamt)} unter={[zaehler?.zugestellt ? `${zahl(zaehler.zugestellt)} zugestellt` : ""].filter(Boolean).join(" · ") || "Briefe"} />
             <Zahl titel="Guthaben" wert={stand?.guthaben_cent != null ? euro(stand.guthaben_cent) : "—"}
                   unter={reichtFuer != null ? `reicht für ca. ${zahl(reichtFuer)} Briefe` : "bei LetterXpress"} warnung={reichtFuer != null && reichtFuer < 10} />
             <Zahl titel="Ausgegeben" wert={euro(zaehler?.kosten_cent ?? 0)} unter={`${monatName}: ${euro(zaehler?.kosten_monat_cent ?? 0)}`} />
@@ -1376,7 +1366,7 @@ export default function PostSeite() {
           <div className="akq-steuerung mb-4">
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="field px-3 py-2 text-sm" style={{ width: "auto" }}>
               <option value="alle">Alle Status</option>
-              {Object.entries(STATUS_LABEL).filter(([k]) => !["storniert", "fehler", "zurueck"].includes(k)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              {Object.entries(STATUS_LABEL).filter(([k]) => !["storniert", "fehler"].includes(k)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             </select>
             <span className="akq-trenner" aria-hidden="true" />
             <span className="akq-hinweis">{zahl(sichtbar.length)} von {zahl(briefe.length)}</span>
@@ -1733,7 +1723,7 @@ export default function PostSeite() {
                 <tbody>
                   {sammelSichtbar.map(b => {
                     const st = sammelStand[b.id];
-                    const sperre = b.brief_zurueck ? "Rückläufer – Anschrift prüfen" : !anschriftOk(b) ? "Anschrift unvollständig" : b.brief_entwurf ? "Entwurf offen – unter „Briefe“" : "";
+                    const sperre = !anschriftOk(b) ? "Anschrift unvollständig" : b.brief_entwurf ? "Entwurf offen – unter „Briefe“" : "";
                     return (
                       <tr key={b.id} className={sperre ? "gesperrt" : undefined}>
                         <td><input type="checkbox" checked={haken.has(b.id) && !sperre} disabled={!!sperre || !!st || sammelLauf} onChange={() => hakenUmschalten(b.id)} aria-label={`${b.name} auswählen`} /></td>

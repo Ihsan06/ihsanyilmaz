@@ -19,7 +19,6 @@
 .post-status.gesendet { background:rgba(180,83,9,.12); color:#b45309; }
 .post-status.zugestellt { background:rgba(29,138,82,.12); color:#1d8a52; }
 .post-status.fehler { background:rgba(220,38,38,.12); color:#dc2626; }
-.post-status.zurueck { background:rgba(220,38,38,.1); color:#b91c1c; }
 .post-status.storniert { text-decoration:line-through; }
 
 .post-fehlertext { color:#dc2626; font-size:.8rem; white-space:normal; max-width:320px; }

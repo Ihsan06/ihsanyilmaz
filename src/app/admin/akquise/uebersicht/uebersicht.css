@@ -1,5 +1,5 @@
 /* Vertrieb → Übersicht. Farben wie im übrigen Admin: Akzent fuer Mengen,
-   Gruen = gut (Kontakt), Orange = Achtung (Guthaben, Rückläufer). */
+   Gruen = gut (Kontakt), Orange = Achtung (Guthaben). */
 .vu-kopf { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
 .vu-kopf > .akq-knopf { margin-left:auto; }
 .vu-kopf > .vu-offen + .akq-knopf { margin-left:0; }
@@ -113,7 +113,6 @@
 .vu-feed li > i { width:8px; height:8px; border-radius:50%; background:var(--accent); }
 .vu-feed li.demo > i { background:#7c3aed; }
 .vu-feed li.kontakt > i { background:#1d8a52; }
-.vu-feed li.zurueck > i { background:#dc2626; }
 .vu-zeit { white-space:nowrap; }
 
 .vu-tabelle { font-size:.84rem; }

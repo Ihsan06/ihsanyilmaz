@@ -32,8 +32,7 @@ import * as lxp from '../../../_lib/letterxpress.js';
 import { vorschauLaden } from '../../../_lib/vorschau.js';
 import { postEinstellungenLaden } from './post-einstellungen.js';
 
-// zurueck = Rueckläufer: die Post kam zurueck (Anschrift falsch/Betrieb weg).
-const STATUS = ['entwurf', 'freigegeben', 'gesendet', 'zugestellt', 'zurueck', 'fehler', 'storniert'];
+const STATUS = ['entwurf', 'freigegeben', 'gesendet', 'zugestellt', 'fehler', 'storniert'];
 const ARTEN = ['brief', 'nachfass', 'test'];
 const PDF_MAX = 3 * 1024 * 1024;
 const TEXT_MAX = 8000;
@@ -194,8 +193,8 @@ export async function onRequestGet({ request, env }) {
                 SUM(CASE WHEN art != 'test' THEN aufrufe ELSE 0 END) AS aufrufe,
                 SUM(art != 'test' AND (demo_angefordert IS NOT NULL OR demo_geoeffnet IS NOT NULL)) AS demo,
                 SUM(art != 'test' AND kontakt_erlaubt IS NOT NULL) AS kontakt,
-                SUM(CASE WHEN status IN ('gesendet', 'zugestellt', 'zurueck') THEN COALESCE(kosten_cent, 0) ELSE 0 END) AS kosten,
-                SUM(CASE WHEN status IN ('gesendet', 'zugestellt', 'zurueck') AND gesendet_am >= strftime('%Y-%m-01', 'now') THEN COALESCE(kosten_cent, 0) ELSE 0 END) AS kosten_monat
+                SUM(CASE WHEN status IN ('gesendet', 'zugestellt') THEN COALESCE(kosten_cent, 0) ELSE 0 END) AS kosten,
+                SUM(CASE WHEN status IN ('gesendet', 'zugestellt') AND gesendet_am >= strftime('%Y-%m-01', 'now') THEN COALESCE(kosten_cent, 0) ELSE 0 END) AS kosten_monat
          FROM akquise_briefe GROUP BY status`,
       ),
     ]);
@@ -481,9 +480,7 @@ export const onRequestPatch = nurAngemeldet(async ({ request, env }) => {
       (brief.status === 'entwurf' && neu === 'freigegeben') ||
       (brief.status === 'freigegeben' && neu === 'entwurf') ||
       (brief.status === 'fehler' && (neu === 'freigegeben' || neu === 'entwurf')) ||
-      (['entwurf', 'freigegeben', 'fehler'].includes(brief.status) && neu === 'storniert') ||
-      (['gesendet', 'zugestellt'].includes(brief.status) && neu === 'zurueck') ||
-      (brief.status === 'zurueck' && neu === 'gesendet');
+      (['entwurf', 'freigegeben', 'fehler'].includes(brief.status) && neu === 'storniert');
     if (!erlaubt) return json({ ok: false, error: `Wechsel von ${brief.status} zu ${String(neu).slice(0, 20)} nicht möglich.` }, 409);
     if (neu === 'freigegeben') {
       if (!brief.pdf_schluessel || pdfVerwerfen) return json({ ok: false, error: 'Erst das PDF erzeugen.' }, 409);
@@ -495,15 +492,6 @@ export const onRequestPatch = nurAngemeldet(async ({ request, env }) => {
     }
     setze('status', neu);
     if (neu !== 'fehler') setze('fehler', null);
-    // Rueckläufer: Datum am Brief, Hinweis am Betrieb – die Anschrift ist zu pruefen.
-    if (neu === 'zurueck') {
-      setze('zurueck_am', new Date().toISOString().slice(0, 19).replace('T', ' '));
-      if (brief.betrieb_id) {
-        await env.DB.prepare("UPDATE akquise_betriebe SET notiz = TRIM(COALESCE(notiz || ' · ', '') || 'Rückläufer ' || strftime('%d.%m.%Y', 'now')), geaendert = datetime('now') WHERE id = ? AND COALESCE(notiz, '') NOT LIKE '%Rückläufer%'")
-          .bind(brief.betrieb_id).run();
-      }
-    }
-    if (brief.status === 'zurueck' && neu === 'gesendet') setze('zurueck_am', null);
   }
 
   // Ein geaendertes Blatt braucht ein neues PDF – das alte weg, sonst geht
