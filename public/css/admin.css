@@ -2792,8 +2792,8 @@ html.vp-offen { overflow: hidden; }
   animation: vp-pop .22s ease-out;
 }
 .vp-schritte li.schief i { border-color: #b42318; background: rgba(180, 35, 24, .12); }
-.vp-lauf-text { min-height: 1.3em; }
-.vp-lauf-leise { font-size: .76rem !important; opacity: .75; }
+.vp-lauf-text { min-height: 1.3em; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vp-lauf-schief .vp-lauf-text { white-space: normal; }
 .vp-lauf-schief .vp-ring { color: #b42318; }
 .vp-lauf-schief .vp-ring i { animation: none; background: rgba(180, 35, 24, .18); }
 .vp-lauf-schief .vp-ring::before { animation: none; background: none; }

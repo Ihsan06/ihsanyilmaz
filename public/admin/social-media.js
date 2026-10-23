@@ -434,9 +434,36 @@
   // keine der beteiligten Funktionen das Fenster kennen.
   const LAUF_SCHRITTE = [['schnitt', 'Bilder zuschneiden'], ['ablage', 'Hochladen'], ['post', 'Auf Instagram veröffentlichen']];
 
+  // Ein Fenster, drei Zustaende (Rueckfrage → Fortschritt → Fertig): der
+  // Kasten bleibt dasselbe Element, nur sein Inhalt wechselt. Vorher wurde
+  // er jedes Mal neu erzeugt – dann lief die Einblendung erneut, und es sah
+  // aus, als ginge das Fenster zu und ein anderes auf. Jetzt gleitet die
+  // Hoehe zur neuen, und der Inhalt blendet im Kasten weich ein.
+  function kastenUmbauen(kasten, klasse, html, titelId) {
+    const stil = getComputedStyle(kasten);
+    const rand = parseFloat(stil.paddingTop) + parseFloat(stil.paddingBottom)
+      + parseFloat(stil.borderTopWidth) + parseFloat(stil.borderBottomWidth);
+    const vorher = kasten.getBoundingClientRect().height;
+    kasten.style.animation = 'none';
+    kasten.className = 'vp-kasten ' + klasse;
+    if (titelId) kasten.setAttribute('aria-labelledby', titelId);
+    kasten.innerHTML = html;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const nachher = kasten.getBoundingClientRect().height;
+    if (Math.abs(nachher - vorher) > 1) {
+      kasten.style.overflow = 'hidden';
+      kasten.animate([{ height: (vorher - rand) + 'px' }, { height: (nachher - rand) + 'px' }],
+        { duration: 300, easing: 'cubic-bezier(.2,.8,.2,1)' })
+        .finished.then(() => { kasten.style.overflow = ''; }, () => { kasten.style.overflow = ''; });
+    }
+    [...kasten.children].forEach((el, i) => el.animate(
+      [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }],
+      { duration: 260, delay: 90 + i * 30, easing: 'ease-out', fill: 'backwards' }));
+  }
+
   function laufZeigen(schleier, was, derDie) {
-    schleier.innerHTML = `<div class="vp-kasten vp-lauf" role="dialog" aria-modal="true"
-           aria-labelledby="vp-lauf-titel" aria-live="polite">
+    schleier.dataset.phase = 'lauf';
+    kastenUmbauen(schleier.querySelector('.vp-kasten'), 'vp-lauf', `
       <span class="vp-ring" aria-hidden="true"><i></i>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
           <rect x="2.8" y="2.8" width="18.4" height="18.4" rx="5.2"/>
@@ -448,9 +475,7 @@
       <ol class="vp-schritte">
         ${LAUF_SCHRITTE.map(([k, t]) => `<li data-schritt="${k}"><i></i><span>${t}</span></li>`).join('')}
       </ol>
-      <p class="vp-lauf-text">Einen Moment …</p>
-      <p class="vp-lauf-leise">Das Fenster darf zu – der Beitrag geht trotzdem raus.</p>
-    </div>`;
+      <p class="vp-lauf-text" aria-live="polite">Einen Moment …</p>`, 'vp-lauf-titel');
   }
 
   function laufMelden(wort) {
@@ -478,12 +503,12 @@
         <path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg>`;
     lauf.querySelector('#vp-lauf-titel').textContent = 'Das hat nicht geklappt';
     lauf.querySelector('.vp-lauf-text').textContent = grund || 'Unbekannter Fehler.';
-    lauf.querySelector('.vp-lauf-leise').remove();
     lauf.querySelectorAll('.vp-schritte li.aktiv').forEach(li => li.classList.replace('aktiv', 'schief'));
     const knoepfe = document.createElement('div');
     knoepfe.className = 'vp-knoepfe';
     knoepfe.innerHTML = '<button type="button" class="vp-nein">Schließen</button>';
     lauf.append(knoepfe);
+    schleier.dataset.phase = 'fehler';
     const zu = () => { schleier.remove(); document.documentElement.classList.remove('vp-offen'); };
     knoepfe.querySelector('.vp-nein').addEventListener('click', zu);
     knoepfe.querySelector('.vp-nein').focus();
@@ -1127,6 +1152,9 @@
       document.documentElement.classList.add('vp-offen');
 
       const zu = () => {
+        // Sobald gepostet wird, gehoert das Fenster dem Fortschritt und der
+        // Bestaetigung – Klick daneben oder Escape brechen dann nichts mehr ab.
+        if (schleier.dataset.phase) return;
         schleier.remove();
         document.documentElement.classList.remove('vp-offen');
         document.removeEventListener('keydown', taste);
@@ -1137,6 +1165,7 @@
       schleier.addEventListener('click', e => { if (e.target === schleier) zu(); });
       schleier.querySelector('.vp-nein').addEventListener('click', zu);
       schleier.querySelector('.vp-ja').addEventListener('click', () => {
+        document.removeEventListener('keydown', taste);
         // Nicht schliessen, sondern umbauen: dasselbe Fenster zeigt jetzt
         // den Fortschritt, bis erfolgZeigen() es in die Bestaetigung
         // verwandelt. Escape oder ein Klick daneben schliessen nur das
@@ -1181,8 +1210,7 @@
 
     const schleier = umgebaut ? vorhandener : document.createElement('div');
     schleier.className = 'vp-schleier';
-    schleier.innerHTML = `<div class="vp-kasten${umgebaut ? ' vp-geschafft' : ''}" role="dialog" aria-modal="true"
-           aria-labelledby="vp-fertig-titel">
+    const inhalt = `
       <span class="vp-achtung vp-fertig" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
           <path class="vp-haken-strich" d="M4.5 12.5l5 5 10-11" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1202,9 +1230,14 @@
           </svg>
         </a>` : ''}
         <button type="button" class="vp-nein">Schließen</button>
-      </div>
-    </div>`;
-    if (!umgebaut) document.body.append(schleier);
+      </div>`;
+    if (umgebaut) {
+      schleier.dataset.phase = 'fertig';
+      kastenUmbauen(schleier.querySelector('.vp-kasten'), 'vp-geschafft', inhalt, 'vp-fertig-titel');
+    } else {
+      schleier.innerHTML = `<div class="vp-kasten" role="dialog" aria-modal="true" aria-labelledby="vp-fertig-titel">${inhalt}</div>`;
+      document.body.append(schleier);
+    }
     document.documentElement.classList.add('vp-offen');
 
     const zu = () => {
