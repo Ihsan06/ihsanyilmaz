@@ -47,7 +47,6 @@ window.admin = (function () {
     { pfad: '/admin/finanzen', titel: 'Finanzen',
       symbol: '<path d="M4 10h11M4 14h8" stroke-linecap="round"/><path d="M18.6 7.2A7.3 7.3 0 0 0 13.5 5 7.2 7.2 0 0 0 6.3 12a7.2 7.2 0 0 0 7.2 7c2 0 3.7-.7 5.1-2.2" stroke-linecap="round"/>',
       unter: [
-        { pfad: '/admin/finanzen', titel: 'Einnahmen & Ausgaben' },
         { pfad: '/admin/finanzen/api', titel: 'API & Verbrauch' },
         { pfad: '/admin/finanzen/steuer', titel: 'Steuer' }
       ] },

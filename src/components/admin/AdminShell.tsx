@@ -41,7 +41,6 @@ const SEITEN: Seite[] = [
     titel: "Finanzen",
     icon: Euro,
     unter: [
-      { pfad: "/admin/finanzen", titel: "Einnahmen & Ausgaben" },
       { pfad: "/admin/finanzen/api", titel: "API & Verbrauch" },
       { pfad: "/admin/finanzen/steuer", titel: "Steuer" },
     ],
