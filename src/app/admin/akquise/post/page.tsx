@@ -1376,7 +1376,7 @@ export default function PostSeite() {
           <div className="akq-steuerung mb-4">
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="field px-3 py-2 text-sm" style={{ width: "auto" }}>
               <option value="alle">Alle Status</option>
-              {Object.entries(STATUS_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              {Object.entries(STATUS_LABEL).filter(([k]) => !["storniert", "fehler", "zurueck"].includes(k)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             </select>
             <span className="akq-trenner" aria-hidden="true" />
             <span className="akq-hinweis">{zahl(sichtbar.length)} von {zahl(briefe.length)}</span>

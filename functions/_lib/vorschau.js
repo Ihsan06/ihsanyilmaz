@@ -157,6 +157,33 @@ export async function vorschauLaden(env, betriebId) {
   try { return { ...z, texte: JSON.parse(z.texte), steckbrief }; } catch { return null; }
 }
 
+// Was auf der Seite steht, auch wenn es fehlt: ohne Telefon, Anschrift oder
+// Zeiten wirkt die Vorschau leer. Fehlendes wird als Platzhalter gezeigt
+// (platzhalter: true, kein Link) – nie eine erfundene Nummer, die echt
+// aussieht und jemand anderem gehoeren koennte.
+export function anzeigeMitPlatzhaltern(brief, f) {
+  const ziffern = String(brief.telefon || '').replace(/[^\d+]/g, '');
+  const international = ziffern.startsWith('+') ? ziffern.slice(1) : ziffern.startsWith('00') ? ziffern.slice(2) : ziffern.startsWith('0') ? '49' + ziffern.slice(1) : ziffern;
+  const mobil = /^491[567]\d{7,}$/.test(international);
+  const plzOrt = [brief.plz, brief.ort].filter(Boolean).join(' ');
+  return {
+    telefon: brief.telefon
+      ? { text: brief.telefon, link: `tel:${ziffern}`, platzhalter: false }
+      : { text: 'Ihre Telefonnummer', link: null, platzhalter: true },
+    whatsapp: mobil
+      ? { text: brief.telefon, link: `https://wa.me/${international}`, platzhalter: false }
+      : { text: 'Ihre WhatsApp-Nummer', link: null, platzhalter: true },
+    adresse: {
+      strasse: brief.strasse || 'Ihre Straße 1',
+      plz_ort: brief.plz && brief.ort ? plzOrt : `${brief.plz || 'PLZ'} ${brief.ort || 'Ort'}`,
+      platzhalter: !brief.strasse || !brief.plz || !brief.ort,
+    },
+    oeffnungszeiten: f.zeiten.length
+      ? { zeilen: f.zeiten, platzhalter: false }
+      : { zeilen: ['Mo–Fr 08:00–18:00', 'Sa 09:00–13:00'], platzhalter: true },
+  };
+}
+
 // Alles, was eine Vorschau zeigt, als ein Objekt – fuer die eigene Seite
 // (/fuer/<token>/website) und fuer die Demo (/api/vorschau/<token>), damit
 // beide aus derselben Quelle lesen.
@@ -172,6 +199,7 @@ export function vorschauDaten(brief, vorschau, { token, meinTelefon = '' } = {})
   return {
     token,
     ablauf: vorschau.ablauf,
+    anzeige: anzeigeMitPlatzhaltern(brief, f),
     betrieb: {
       name: f.name || 'Ihr Betrieb', art: f.art, werkstatt: f.werkstatt, ort: f.ort,
       strasse: brief.strasse || '', plz: brief.plz || '', telefon: brief.telefon || '',

@@ -91,6 +91,7 @@ const CSS = `
   .kontakt dl { margin:0; display:grid; gap:14px; }
   .kontakt dt { color:var(--still); font-size:.74rem; text-transform:uppercase; letter-spacing:.08em; }
   .kontakt dd { margin:2px 0 0; }
+  .platzhalter { border-bottom:1px dashed var(--still); color:var(--leise); cursor:help; }
   .karte-osm { width:100%; height:300px; border:0; border-radius:14px; filter:grayscale(.3) brightness(.9); }
   footer.fuss { border-top:1px solid var(--rand); padding:28px 0; font-size:.82rem; color:var(--still); }
   footer.fuss .breite { display:flex; gap:18px; flex-wrap:wrap; justify-content:space-between; }
@@ -156,7 +157,13 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
     : lg.art === 'symbol' && lg.symbol_svg ? `<span class="zeichen" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${esc(lg.symbol_svg.pfad)}"/>${lg.symbol_svg.zusatz ? `<path d="${esc(lg.symbol_svg.zusatz)}"/>` : ''}</svg></span>`
     : '';
   const fotoNachweis = a => a.foto ? `<p class="foto">Foto: <a href="${esc(a.foto.quelle)}" target="_blank" rel="noopener">${esc(a.foto.autor)}</a>, <a href="${esc(a.foto.lizenz_url || a.foto.quelle)}" target="_blank" rel="noopener">${esc(a.foto.lizenz)}</a>, zugeschnitten · Wikimedia Commons</p>` : '';
-  const adresse = [brief.strasse, [brief.plz, brief.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  // Fehlendes als Platzhalter (vorschau.js, anzeigeMitPlatzhaltern) – gestrichelt, ohne Link.
+  const az = d.anzeige;
+  const ph = (x, inhalt) => (x.platzhalter ? `<span class="platzhalter" title="Platzhalter – hier steht später Ihre Angabe">${inhalt}</span>` : inhalt);
+  const adresse = `${esc(az.adresse.strasse)}, ${esc(az.adresse.plz_ort)}`;
+  const telefonHtml = az.telefon.link ? `<a href="${esc(az.telefon.link)}">${esc(az.telefon.text)}</a>` : ph(az.telefon, esc(az.telefon.text));
+  const whatsappHtml = az.whatsapp.link ? `<a href="${esc(az.whatsapp.link)}" target="_blank" rel="noopener">${esc(az.whatsapp.text)}</a>` : ph(az.whatsapp, esc(az.whatsapp.text));
+  const zeitenHtml = ph(az.oeffnungszeiten, az.oeffnungszeiten.zeilen.map(esc).join('<br>'));
   const google = f.google ? `★ ${String(f.google.bewertung).replace('.', ',')} bei ${f.google.anzahl} Google-Bewertungen` : '';
   const karte = Number.isFinite(brief.lat) && Number.isFinite(brief.lng)
     ? `https://www.openstreetmap.org/export/embed.html?bbox=${brief.lng - 0.01},${brief.lat - 0.006},${brief.lng + 0.01},${brief.lat + 0.006}&layer=mapnik&marker=${brief.lat},${brief.lng}`
@@ -172,7 +179,7 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
 <header class="kopf"><div class="breite">
   <a class="logo" href="#start">${zeichen}<span class="wort">${new RegExp(f.werkstatt ? 'werkstatt' : 'autohaus', 'i').test(firma) ? '' : `<small>${esc(f.art)}</small>`}<b>${esc(firma)}</b></span></a>
   <nav class="menue"><a href="#fahrzeuge">Fahrzeuge</a><a href="#leistungen">Leistungen</a><a href="#ueber">Über uns</a><a href="#kontakt">Kontakt</a></nav>
-  ${brief.telefon ? `<a class="knopf klein" href="tel:${esc(tel(brief.telefon))}">Jetzt anrufen</a>` : ''}
+  <a class="knopf klein" href="${esc(az.telefon.link || '#kontakt')}">Jetzt anrufen</a>
 </div></header>
 
 <section class="held" id="start" style="background-image:url('${esc(d.hero_bild)}')"><div class="breite">
@@ -187,9 +194,9 @@ export async function onRequestGet({ request, params, env, waitUntil }) {
 </div></section>
 
 <div class="leiste"><div class="breite">
-  ${adresse ? `<p><b>Adresse</b>${esc(adresse)}</p>` : ''}
-  ${f.zeiten.length ? `<p><b>Öffnungszeiten</b>${f.zeiten.map(esc).join('<br>')}</p>` : ''}
-  ${brief.telefon ? `<p><b>Telefon</b><a href="tel:${esc(tel(brief.telefon))}">${esc(brief.telefon)}</a></p>` : ''}
+  <p><b>Adresse</b>${ph(az.adresse, adresse)}</p>
+  <p><b>Öffnungszeiten</b>${zeitenHtml}</p>
+  <p><b>Telefon</b>${telefonHtml}</p>
   ${google ? `<p><b>Bewertungen</b>${esc(google)}</p>` : ''}
 </div></div>
 
@@ -220,9 +227,10 @@ ${f.werkstatt ? '' : `<section class="block" id="fahrzeuge"><div class="breite">
 <section class="block hell" id="kontakt"><div class="breite zwei">
   <div class="kontakt"><h2>Kontakt</h2><p class="lead">Wir freuen uns auf Ihren Besuch oder Anruf.</p>
     <dl>
-      ${adresse ? `<div><dt>Adresse</dt><dd>${esc(firma)}<br>${esc(adresse)}</dd></div>` : ''}
-      ${brief.telefon ? `<div><dt>Telefon</dt><dd><a href="tel:${esc(tel(brief.telefon))}">${esc(brief.telefon)}</a></dd></div>` : ''}
-      ${f.zeiten.length ? `<div><dt>Öffnungszeiten</dt><dd>${f.zeiten.map(esc).join('<br>')}</dd></div>` : ''}
+      <div><dt>Adresse</dt><dd>${esc(firma)}<br>${ph(az.adresse, `${esc(az.adresse.strasse)}<br>${esc(az.adresse.plz_ort)}`)}</dd></div>
+      <div><dt>Telefon</dt><dd>${telefonHtml}</dd></div>
+      <div><dt>WhatsApp</dt><dd>${whatsappHtml}</dd></div>
+      <div><dt>Öffnungszeiten</dt><dd>${zeitenHtml}</dd></div>
     </dl></div>
   ${karte ? `<iframe class="karte-osm" src="${esc(karte)}" title="Karte" loading="lazy"></iframe>` : '<div class="karte"><h3>Anfahrt</h3><p>Hier erscheint die Karte zu Ihrem Standort.</p></div>'}
 </div></section>
