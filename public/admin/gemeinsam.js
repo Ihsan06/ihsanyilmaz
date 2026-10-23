@@ -41,7 +41,8 @@ window.admin = (function () {
     { pfad: '/admin/akquise/uebersicht', titel: 'Vertrieb',
       symbol: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.8"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><path d="M12 12l6.3-6.3" stroke-linecap="round"/>',
       unter: [
-        { pfad: '/admin/akquise', titel: 'Betriebe' },
+        { pfad: '/admin/akquise', titel: 'KFZ' },
+        { pfad: '/admin/akquise/gastro', titel: 'Gastro' },
         { pfad: '/admin/akquise/post', titel: 'Post' }
       ] },
     { pfad: '/admin/finanzen', titel: 'Finanzen',

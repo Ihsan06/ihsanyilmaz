@@ -291,3 +291,7 @@ ALTER TABLE akquise_briefe ADD COLUMN reagiert_erledigt TEXT;
 -- Steckbrief der Website-Vorschau (functions/_lib/steckbrief.js): Palette,
 -- Logo-Art, Marken, Beispielfahrzeuge. NULL = alte Vorschau ohne Steckbrief.
 ALTER TABLE akquise_vorschauen ADD COLUMN steckbrief TEXT;
+
+-- Vertrieb nach Branche: 'kfz' (Autohaeuser, mit Suchlauf) oder 'gastro'
+-- (Cafés/Restaurants, Seite Vertrieb → Gastro; Suchlauf folgt).
+ALTER TABLE akquise_betriebe ADD COLUMN branche TEXT NOT NULL DEFAULT 'kfz';

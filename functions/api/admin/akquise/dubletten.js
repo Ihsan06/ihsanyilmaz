@@ -14,7 +14,7 @@
 // Postleitzahlen. Sonst steht die Gruppe zum Pruefen da – dann hat eher
 // Google zwei Standorte auf einen Eintrag gelegt oder falsch zugeordnet.
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
-import { hostVon, istBoersenSeite } from '../../../_lib/akquise.js';
+import { hostVon, istBoersenSeite, branche } from '../../../_lib/akquise.js';
 import { kennwoerter as googleKennwoerter } from '../../../_lib/places.js';
 
 const GATTUNG = new Set(['autohaus', 'auto', 'autos', 'autoservice', 'autocenter', 'werkstatt', 'kfz', 'service', 'automobile',
@@ -49,10 +49,10 @@ function hauptWaehlen(betriebe, briefe) {
     || (x.id - y.id))[0];
 }
 
-export async function gruppenFinden(env) {
+export async function gruppenFinden(env, welche = 'kfz') {
   const { results } = await env.DB.prepare(
-    `SELECT ${FELDER} FROM akquise_betriebe WHERE geloescht IS NULL AND zusammengefuehrt_in IS NULL`,
-  ).all();
+    `SELECT ${FELDER} FROM akquise_betriebe WHERE geloescht IS NULL AND zusammengefuehrt_in IS NULL AND branche = ?`,
+  ).bind(branche(welche)).all();
   const betriebe = results || [];
   const { results: br } = await env.DB.prepare('SELECT betrieb_id, COUNT(*) AS n FROM akquise_briefe GROUP BY betrieb_id').all();
   const briefe = new Map((br || []).map(r => [r.betrieb_id, r.n]));
@@ -99,12 +99,13 @@ export async function gruppenFinden(env) {
   }).sort((a, b) => Number(b.sicher) - Number(a.sicher));
 }
 
-export const onRequestGet = nurAngemeldet(async ({ env }) => json({ ok: true, gruppen: await gruppenFinden(env) }));
+export const onRequestGet = nurAngemeldet(async ({ request, env }) =>
+  json({ ok: true, gruppen: await gruppenFinden(env, new URL(request.url).searchParams.get('branche')) }));
 
 export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   let body = {};
   try { body = await request.json(); } catch { /* ohne Body: alle sicheren */ }
-  const alle = await gruppenFinden(env);
+  const alle = await gruppenFinden(env, body?.branche);
 
   // Nur Gruppen zusammenfuehren, die der Server selbst so sieht – eine
   // uebergebene Liste waehlt nur aus, sie kann keine neuen Paare bilden.

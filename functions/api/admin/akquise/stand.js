@@ -5,8 +5,11 @@
 // Alle Zahlen ausser papierkorb zaehlen nur, was nicht im Papierkorb liegt.
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
 import { kontingent } from '../../../_lib/places.js';
+import { branche } from '../../../_lib/akquise.js';
 
-export const onRequestGet = nurAngemeldet(async ({ env }) => {
+export const onRequestGet = nurAngemeldet(async ({ request, env }) => {
+  // Je Branche eigene Zahlen; der Wert ist fest 'kfz' oder 'gastro'.
+  const br = branche(new URL(request.url).searchParams.get('branche'));
   const [zahlen, status, kategorien, laeufe] = await env.DB.batch([
     env.DB.prepare(`SELECT
         SUM(geloescht IS NULL) AS betriebe,
@@ -17,11 +20,11 @@ export const onRequestGet = nurAngemeldet(async ({ env }) => {
         SUM(geloescht IS NULL AND prioritaet >= 60) AS prioHoch,
         SUM(geloescht IS NULL AND auswahl = 1) AS auswahl,
         SUM(geloescht IS NOT NULL AND zusammengefuehrt_in IS NULL) AS papierkorb
-      FROM akquise_betriebe`),
-    env.DB.prepare('SELECT status, COUNT(*) AS n FROM akquise_betriebe WHERE geloescht IS NULL GROUP BY status'),
+      FROM akquise_betriebe WHERE branche = '${br}'`),
+    env.DB.prepare(`SELECT status, COUNT(*) AS n FROM akquise_betriebe WHERE geloescht IS NULL AND branche = '${br}' GROUP BY status`),
     // Kategorien der aktiven Liste – die Kacheln zeigen sie auch im Papierkorb.
-    env.DB.prepare("SELECT COALESCE(kategorie, 'offen') AS k, COUNT(*) AS n FROM akquise_betriebe WHERE geloescht IS NULL GROUP BY k"),
-    env.DB.prepare("SELECT id, art, region, parameter, gefunden, neu, fehler, zeitpunkt FROM akquise_laeufe WHERE art = 'suche' ORDER BY id DESC LIMIT 5"),
+    env.DB.prepare(`SELECT COALESCE(kategorie, 'offen') AS k, COUNT(*) AS n FROM akquise_betriebe WHERE geloescht IS NULL AND branche = '${br}' GROUP BY k`),
+    env.DB.prepare(`SELECT id, art, region, parameter, gefunden, neu, fehler, zeitpunkt FROM akquise_laeufe WHERE art = 'suche' AND '${br}' = 'kfz' ORDER BY id DESC LIMIT 5`),
   ]);
 
   const z = zahlen.results?.[0] || {};

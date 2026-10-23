@@ -20,6 +20,10 @@ const FETCH_TIMEOUT_MS = 12_000;
 const RATEN_TIMEOUT_MS = 6_000;      // je Kandidat beim Raten der Website
 const CDX_FALLBACK_MS = 8_000;       // Server-Fallback fuer den ersten Snapshot
 
+// Vertrieb nach Branche: KFZ (Autohaeuser, mit Suchlauf) und Gastro (Cafés,
+// Restaurants – Suchlauf folgt). Alles Unbekannte zaehlt als KFZ.
+export const branche = v => (v === 'gastro' ? 'gastro' : 'kfz');
+
 export const KATEGORIEN = ['ohne_website', 'nur_boerse', 'baukasten', 'veraltet', 'mittel', 'gepflegt'];
 export const WEBSITE_QUELLEN = ['osm', 'manuell', 'vermutet', 'bestaetigt', 'google'];
 

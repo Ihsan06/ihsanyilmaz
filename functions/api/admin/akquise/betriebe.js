@@ -19,7 +19,7 @@
 // sonst legte der naechste Suchlauf den Betrieb wieder an.
 // DELETE { id, endgueltig:true }   → wirklich loeschen, Pruefungen mit
 import { json, nurAngemeldet } from '../../../_lib/auth.js';
-import { websiteNormalisieren, kategorieOhnePruefung, kategorieErmitteln, KATEGORIEN, jsonLesen, betriebLaden, letztePruefungLaden, pruefungNeuBewerten, namensSchluessel } from '../../../_lib/akquise.js';
+import { websiteNormalisieren, kategorieOhnePruefung, kategorieErmitteln, KATEGORIEN, jsonLesen, betriebLaden, letztePruefungLaden, pruefungNeuBewerten, namensSchluessel, branche } from '../../../_lib/akquise.js';
 
 export const ERLAUBTE_STATUS = ['neu', 'beobachten', 'brief', 'kontakt', 'kunde', 'aus'];
 
@@ -48,6 +48,7 @@ export const onRequestGet = nurAngemeldet(async ({ request, env }) => {
   // den Papierkorb – wiederherstellen waere dort falsch.
   const wo = [q.get('papierkorb') === '1' ? 'b.geloescht IS NOT NULL AND b.zusammengefuehrt_in IS NULL' : 'b.geloescht IS NULL'];
   const werte = [];
+  wo.push('b.branche = ?'); werte.push(branche(q.get('branche')));
 
   const suche = (q.get('suche') || '').trim().slice(0, 80);
   if (suche) {
@@ -201,8 +202,8 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   // auch "geloescht", gehoeren aber nicht dazu und bleiben unsichtbar.
   if (body?.aktion === 'alle_wiederherstellen') {
     const { meta } = await env.DB.prepare(
-      "UPDATE akquise_betriebe SET geloescht = NULL, geaendert = datetime('now') WHERE geloescht IS NOT NULL AND zusammengefuehrt_in IS NULL",
-    ).run();
+      "UPDATE akquise_betriebe SET geloescht = NULL, geaendert = datetime('now') WHERE geloescht IS NOT NULL AND zusammengefuehrt_in IS NULL AND branche = ?",
+    ).bind(branche(body?.branche)).run();
     return json({ ok: true, wiederhergestellt: Number(meta?.changes || 0) });
   }
 
@@ -231,10 +232,10 @@ export const onRequestPost = nurAngemeldet(async ({ request, env }) => {
   const quelleId = 'm-' + [...zufall].map(b => b.toString(16).padStart(2, '0')).join('');
 
   const { meta } = await env.DB.prepare(
-    `INSERT INTO akquise_betriebe (quelle, quelle_id, name, website, website_quelle, kategorie, ort, plz, telefon, region)
-     VALUES ('manuell', ?, ?, ?, ?, ?, ?, ?, ?, 'manuell')`,
+    `INSERT INTO akquise_betriebe (quelle, quelle_id, name, website, website_quelle, kategorie, ort, plz, telefon, region, branche)
+     VALUES ('manuell', ?, ?, ?, ?, ?, ?, ?, ?, 'manuell', ?)`,
   ).bind(quelleId, name, website, website ? 'manuell' : null, kategorieOhnePruefung(website),
-    leerZuNull(body?.ort), leerZuNull(body?.plz), leerZuNull(body?.telefon)).run();
+    leerZuNull(body?.ort), leerZuNull(body?.plz), leerZuNull(body?.telefon), branche(body?.branche)).run();
   return json({ ok: true, id: meta?.last_row_id });
 });
 
@@ -266,9 +267,11 @@ export const onRequestDelete = nurAngemeldet(async ({ request, env }) => {
   // verschickten Briefen (deren persoenliche Seite braucht den Eintrag).
   // Mengenweise in einem Batch – bindet keine IDs, passt also fuer jede Groesse.
   if (body?.alle === true && body?.endgueltig === true) {
-    const imKorb = `SELECT id FROM akquise_betriebe b WHERE b.geloescht IS NOT NULL AND b.zusammengefuehrt_in IS NULL
+    // Nur der Papierkorb dieser Branche; der Wert ist fest 'kfz' oder 'gastro'.
+    const br = branche(body?.branche);
+    const imKorb = `SELECT id FROM akquise_betriebe b WHERE b.geloescht IS NOT NULL AND b.zusammengefuehrt_in IS NULL AND b.branche = '${br}'
       AND NOT EXISTS (SELECT 1 FROM akquise_briefe br WHERE br.betrieb_id = b.id AND br.status IN ('gesendet', 'zugestellt'))`;
-    const vorher = await env.DB.prepare('SELECT COUNT(*) AS n FROM akquise_betriebe WHERE geloescht IS NOT NULL AND zusammengefuehrt_in IS NULL').first();
+    const vorher = await env.DB.prepare('SELECT COUNT(*) AS n FROM akquise_betriebe WHERE geloescht IS NOT NULL AND zusammengefuehrt_in IS NULL AND branche = ?').bind(br).first();
     const erg = await env.DB.batch([
       ...await namenAusschliessen(env, imKorb),
       ...ausschliessen(env, imKorb),

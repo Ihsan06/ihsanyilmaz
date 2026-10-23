@@ -32,7 +32,8 @@ const SEITEN: Seite[] = [
     titel: "Vertrieb",
     icon: Radar,
     unter: [
-      { pfad: "/admin/akquise", titel: "Betriebe" },
+      { pfad: "/admin/akquise", titel: "KFZ" },
+      { pfad: "/admin/akquise/gastro", titel: "Gastro" },
       { pfad: "/admin/akquise/post", titel: "Post" },
     ],
   },
