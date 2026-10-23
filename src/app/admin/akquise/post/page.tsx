@@ -1287,7 +1287,7 @@ export default function PostSeite() {
   };
 
   return (
-    <AdminShell titel="Post" eyebrow="Vertrieb" lead="Briefe an Betriebe: Vorschau, PDF, Versand.">
+    <AdminShell titel="Brief/Post" eyebrow="Vertrieb" lead="Briefe an Betriebe: Vorschau, PDF, Versand.">
       {fehler && <p className="mb-4 text-sm" style={{ color: "#dc2626" }}>{fehler}</p>}
       {meldung && <p className="mb-4 text-sm" style={{ color: "#1d8a52" }}>{meldung}</p>}
 

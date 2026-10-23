@@ -292,7 +292,7 @@ export const onRequestDelete = nurAngemeldet(async ({ request, env }) => {
     const offen = await env.DB.prepare(
       "SELECT COUNT(*) AS n FROM akquise_briefe WHERE betrieb_id = ? AND status IN ('gesendet', 'zugestellt')",
     ).bind(id).first();
-    if (Number(offen?.n || 0) > 0) return json({ ok: false, error: 'Zu diesem Betrieb gibt es verschickte Briefe – erst unter Post löschen.' }, 409);
+    if (Number(offen?.n || 0) > 0) return json({ ok: false, error: 'Zu diesem Betrieb gibt es verschickte Briefe – erst unter Brief/Post löschen.' }, 409);
     await env.DB.batch([
       ...await namenAusschliessen(env, 'SELECT ?', [id]),
       ...ausschliessen(env, 'SELECT ?', [id]),

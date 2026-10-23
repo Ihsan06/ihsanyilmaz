@@ -41,9 +41,9 @@ window.admin = (function () {
     { pfad: '/admin/akquise/uebersicht', titel: 'Vertrieb',
       symbol: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.8"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><path d="M12 12l6.3-6.3" stroke-linecap="round"/>',
       unter: [
+        { pfad: '/admin/akquise/post', titel: 'Brief/Post' },
         { pfad: '/admin/akquise', titel: 'KFZ' },
-        { pfad: '/admin/akquise/gastro', titel: 'Gastro' },
-        { pfad: '/admin/akquise/post', titel: 'Post' }
+        { pfad: '/admin/akquise/gastro', titel: 'Gastro' }
       ] },
     { pfad: '/admin/finanzen', titel: 'Finanzen',
       symbol: '<path d="M4 10h11M4 14h8" stroke-linecap="round"/><path d="M18.6 7.2A7.3 7.3 0 0 0 13.5 5 7.2 7.2 0 0 0 6.3 12a7.2 7.2 0 0 0 7.2 7c2 0 3.7-.7 5.1-2.2" stroke-linecap="round"/>',

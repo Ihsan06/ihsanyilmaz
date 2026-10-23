@@ -1642,8 +1642,8 @@ export function AkquiseCockpit({ branche }: { branche: Branche }) {
                       <span className="akq-unter">
                         {b.geloescht && <span className="akq-geloescht-am">Gelöscht {datum(b.geloescht)}</span>}
                         {b.brief_gesendet
-                          ? <a className="akq-brief-marke" href="/admin/akquise/post" onClick={() => rueckwegMerken(b)} title="Brief verschickt – unter Post ansehen"><Mail size={10} aria-hidden="true" />Brief {datum(b.brief_gesendet)}</a>
-                          : b.brief_entwurf ? <span className="akq-brief-marke entwurf" title="Entwurf unter Post">Entwurf</span> : null}
+                          ? <a className="akq-brief-marke" href="/admin/akquise/post" onClick={() => rueckwegMerken(b)} title="Brief verschickt – unter Brief/Post ansehen"><Mail size={10} aria-hidden="true" />Brief {datum(b.brief_gesendet)}</a>
+                          : b.brief_entwurf ? <span className="akq-brief-marke entwurf" title="Entwurf unter Brief/Post">Entwurf</span> : null}
                         {b.kontakt_erlaubt && (b.telefon
                           ? <a className="akq-brief-marke kontakt" href={`tel:${b.telefon.replace(/[^\d+]/g, "")}`} title={`Kontakt erlaubt am ${datum(b.kontakt_erlaubt)} – anrufen`}>
                               Kontakt erlaubt · {b.telefon}
