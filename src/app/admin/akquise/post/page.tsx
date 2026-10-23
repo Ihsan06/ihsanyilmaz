@@ -996,6 +996,8 @@ export default function PostSeite() {
       const d = await api("/api/admin/akquise/briefe", { method: "POST", body: JSON.stringify({ betrieb_id: betrieb.id, art }) });
       editorSetzen({ brief: d.brief, betrieb: d.betrieb, kandidaten: d.kandidaten || [], vorschau: !!d.vorschau });
       setReiter("brief");
+      if (art === "nachfass") ladeVorschauen();
+      window.scrollTo({ top: 0 });
       ladeBriefe();
       setInfoRunde(n => n + 1);
     } catch (e) { zeigeFehler(e); }
@@ -1027,7 +1029,7 @@ export default function PostSeite() {
   type VorschauKurz = { betrieb_id: number; modell: string | null; erstellt: string; ablauf: string; aufrufe: number; zuletzt_aufgerufen: string | null; gueltig: number };
   const [vorschauen, setVorschauen] = useState<Record<number, VorschauKurz>>({});
   const [steckbrief, setSteckbrief] = useState<{ id: number; name: string; token: string } | null>(null);
-  const steckbriefZu = useCallback(() => setSteckbrief(null), []);
+  const steckbriefZu = useCallback(() => setSteckbrief(null), [setSteckbrief]);
   const ladeVorschauen = useCallback(() => api("/api/admin/akquise/vorschau")
     .then(d => setVorschauen(Object.fromEntries(((d.vorschauen || []) as VorschauKurz[]).map(v => [v.betrieb_id, v]))))
     .catch(() => {}), []);
@@ -1039,6 +1041,8 @@ export default function PostSeite() {
       const d = await api(`/api/admin/akquise/briefe?id=${id}`);
       editorSetzen({ brief: d.brief, betrieb: d.betrieb, kandidaten: d.kandidaten || [], vorschau: !!d.vorschau });
       setReiter("brief");
+      if (d.brief?.art === "nachfass") ladeVorschauen();
+      window.scrollTo({ top: 0 });
     } catch (e) { zeigeFehler(e); }
   };
 
@@ -1245,6 +1249,10 @@ export default function PostSeite() {
   const gesendetGesamt = (zaehler?.gesendet || 0) + (zaehler?.zugestellt || 0);
   const gewaehlteCodes = new Set(editor?.brief.befunde.map(b => b.code) || []);
   const imEntwurf = editor?.brief.status === "entwurf";
+  const istZweiter = editor?.brief.art === "nachfass";
+  // Schritte bis zum Versand – zeigt, wo der Brief gerade steht.
+  const schritt = !editor ? 0 : editor.brief.status === "entwurf" ? (editor.brief.pdf_schluessel ? 2 : 1)
+    : editor.brief.status === "freigegeben" || editor.brief.status === "fehler" ? 3 : 4;
   const bearbeitbar = imEntwurf && !!einst;
 
   const aktionen = (b: Brief) => {
@@ -1314,11 +1322,17 @@ export default function PostSeite() {
       </div>
 
       <div className="post-reiter" role="tablist">
-        {([["briefe", "Briefe"], ["brief", editor ? "Brief" : "Neuer Brief"], ["sammel", "Mehrere senden"], ["zweiter", "Zweiter Brief"], ["vorlage", "Vorlage"]] as [Reiter, string][]).map(([k, l]) => (
-          <button key={k} role="tab" aria-selected={reiter === k} className={reiter === k ? "aktiv" : ""} onClick={() => setReiter(k)}>
+        {([["briefe", "Briefe"], ["brief", editor && !istZweiter ? "Brief" : "Neuer Brief"], ["sammel", "Mehrere senden"], ["zweiter", "Zweiter Brief"], ["vorlage", "Vorlage"]] as [Reiter, string][]).map(([k, l]) => {
+          // Ein offener zweiter Brief laeuft im Editor („brief“), gehoert aber
+          // sichtbar unter „Zweiter Brief“.
+          const an = reiter === "brief" && istZweiter ? k === "zweiter" : reiter === k;
+          const klick = () => { if (k === "brief" && istZweiter) editorSetzen(null); setReiter(k); };
+          return (
+          <button key={k} role="tab" aria-selected={an} className={an ? "aktiv" : ""} onClick={klick}>
             {l}{k === "briefe" && briefe.length > 0 && <b>{briefe.length}</b>}{k === "zweiter" && zweiteOffen > 0 && <b>{zweiteOffen}</b>}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {/* Wie bei „Content erstellen“: links die Vorschau, sie bleibt beim
@@ -1478,18 +1492,46 @@ export default function PostSeite() {
       {reiter === "brief" && editor && einst && (
         <section className="mon-block">
           <div className="post-editor-kopf">
-            <h2>{editor.brief.art === "test" ? "Testbrief an mich" : editor.betrieb?.name || editor.brief.betrieb_name}</h2>
+            <h2>{editor.brief.art === "test" ? "Testbrief an mich" : `${istZweiter ? "Zweiter Brief an " : ""}${editor.betrieb?.name || editor.brief.betrieb_name}`}</h2>
             <StatusBadge status={editor.brief.status} />
             <span className="akq-hinweis">{ART_LABEL[editor.brief.art]} · angelegt {datum(editor.brief.angelegt)}</span>
             {editor.betrieb && <span className="akq-hinweis">Betrieb: {BETRIEB_STATUS[editor.betrieb.status] || editor.betrieb.status}</span>}
             <a href={link} target="_blank" rel="noopener noreferrer" className="akq-link text-sm">{link}</a>
             <span className="akq-trenner" aria-hidden="true" />
-            <button className="akq-knopf" onClick={() => editorSetzen(null)}>Schließen</button>
+            {istZweiter
+              ? <button className="akq-knopf" onClick={() => { editorSetzen(null); setReiter("zweiter"); }}><ArrowLeft size={13} /> Zurück zur Liste</button>
+              : <button className="akq-knopf" onClick={() => editorSetzen(null)}>Schließen</button>}
           </div>
+          <ol className="post-schritte" aria-label="Schritte bis zum Versand">
+            {["Text prüfen", "PDF erzeugen", "Freigeben", "Senden"].map((t, i) => (
+              <li key={t} className={i + 1 < schritt ? "fertig" : i + 1 === schritt ? "jetzt" : ""}><i>{i + 1 < schritt ? "✓" : i + 1}</i>{t}</li>
+            ))}
+          </ol>
           {editor.brief.status === "fehler" && editor.brief.fehler && <p className="post-fehlertext mb-3">{editor.brief.fehler}</p>}
 
           <div className="post-editor">
             <div>
+              {istZweiter ? (() => {
+                const v = vorschauen[editor.brief.betrieb_id];
+                return (
+                  <div className="post-abschnitt">
+                    <p className="post-abschnitt-titel">Website-Vorschau</p>
+                    {v && v.gueltig ? (
+                      <div className="post-pdf-stand">
+                        <a className="akq-knopf" href={`/fuer/${editor.brief.token}/website`} target="_blank" rel="noopener noreferrer"><ExternalLink size={12} /> Ansehen</a>
+                        <button type="button" className="akq-knopf" onClick={() => setSteckbrief({ id: editor.brief.betrieb_id, name: editor.betrieb?.name || editor.brief.betrieb_name || "Betrieb", token: editor.brief.token })}>Aussehen &amp; Fahrzeuge</button>
+                        <span className="post-leise">gültig bis {datum(v.ablauf)}{v.aufrufe ? ` · ${v.aufrufe}× geöffnet` : ""}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="post-warnung">Noch keine gültige Vorschau – der QR-Code führt dann nur zur persönlichen Seite.</p>
+                        <button type="button" className="akq-knopf" onClick={() => setSteckbrief({ id: editor.brief.betrieb_id, name: editor.betrieb?.name || editor.brief.betrieb_name || "Betrieb", token: editor.brief.token })}>Vorschau bauen</button>
+                      </>
+                    )}
+                    <p className="post-hinweis">Der Brief verweist per QR-Code auf diese Vorschau. Nach dem Bauen „Aus Vorlage neu“ drücken, damit der Text dazu passt.</p>
+                  </div>
+                );
+              })() : (
               <div className="post-abschnitt">
                 <p className="post-abschnitt-titel">Befunde <small>({editor.brief.befunde.length} im Brief)</small></p>
                 {editor.kandidaten.length === 0 ? (
@@ -1510,6 +1552,7 @@ export default function PostSeite() {
                 )}
                 {bearbeitbar && <p className="post-hinweis">Ankreuzen setzt den Text aus der Vorlage neu – eigene Änderungen im Text gehen dabei verloren. Bei vielen Befunden wird der Text kleiner gesetzt; passt er gar nicht mehr, warnt die Vorschau.</p>}
               </div>
+              )}
 
               <div className="post-abschnitt">
                 <p className="post-abschnitt-titel">Anschrift <small>(nur Firma, kein Personenname)</small></p>
@@ -1525,7 +1568,9 @@ export default function PostSeite() {
                 </p>
                 <textarea className="field px-3 py-2 post-text" value={text} onChange={e => setText(e.target.value)} onBlur={textSpeichern}
                           disabled={!bearbeitbar} spellCheck />
-                <p className="post-hinweis">Erste Zeile ist der Betreff, Zeilen mit „– “ werden zum Befund-Kasten (das Wort vor dem Doppelpunkt ist das Stichwort), ein Absatz mit „PS:“ zum PS, unter „---“ steht der Hinweis (höchstens vier Zeilen). Link und QR-Code kommen automatisch unten aufs Blatt.</p>
+                <p className="post-hinweis">{istZweiter
+                  ? "Erste Zeile ist der Betreff, unter „---“ steht der Hinweis. Link und QR-Code (zur Website-Vorschau) kommen automatisch unten aufs Blatt."
+                  : "Erste Zeile ist der Betreff, Zeilen mit „– “ werden zum Befund-Kasten (das Wort vor dem Doppelpunkt ist das Stichwort), ein Absatz mit „PS:“ zum PS, unter „---“ steht der Hinweis (höchstens vier Zeilen). Link und QR-Code kommen automatisch unten aufs Blatt."}</p>
               </div>
 
               <div className="post-abschnitt">

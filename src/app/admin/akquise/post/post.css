@@ -290,3 +290,11 @@ a.post-kontakt:hover { text-decoration:underline; }
 .sb-knoepfe { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding-top:4px; border-top:1px solid var(--border); padding-top:14px; }
 .sb-knoepfe .btn-primary { display:inline-flex; align-items:center; gap:6px; }
 @media (max-width:560px) { .sb-autos { grid-template-columns:repeat(2, minmax(0, 1fr)); } .sb-knopf-muster { display:none; } }
+
+/* Schritte bis zum Versand im Brief-Editor */
+.post-schritte { list-style:none; margin:0 0 16px; padding:0; display:flex; flex-wrap:wrap; gap:6px 18px; font-size:.82rem; color:var(--fg-subtle); }
+.post-schritte li { display:inline-flex; align-items:center; gap:7px; }
+.post-schritte li i { width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-style:normal; font-size:.72rem; font-weight:700; border:1px solid var(--border); }
+.post-schritte li.jetzt { color:var(--fg); font-weight:600; }
+.post-schritte li.jetzt i { background:var(--accent-2); border-color:var(--accent-2); color:#fff; }
+.post-schritte li.fertig i { background:rgba(29,138,82,.15); border-color:rgba(29,138,82,.4); color:#2fa36b; }
